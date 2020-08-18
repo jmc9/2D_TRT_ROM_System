@@ -424,7 +424,7 @@ SUBROUTINE SPCF_OUTPUT(Data,Times,File,Data_Name,f_unit,datevalues,database_gen,
   WRITE(f_unit,*)
   DO j=1,N_y
     DO i=1,N_x
-      WRITE(f_unit,'(I3.3,A,I3.3,2ES14.6)',ADVANCE='NO') i,' ', j, (i*1d0-.5d0)*Delx(i), (j*1d0-.5d0)*Dely(j)
+      WRITE(f_unit,'(I3.3,A,I3.3,2ES14.6)',ADVANCE='NO') i,' ', j, (DBLE(i)-.5d0)*Delx(i), (DBLE(j)-.5d0)*Dely(j)
       DO t=1,N_t2
         WRITE(f_unit,'(ES23.15)',ADVANCE='NO') Data(i,j,t)
       END DO

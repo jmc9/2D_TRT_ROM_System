@@ -190,7 +190,7 @@ program main
       nu_g,N_t,sig_r,ar,Kap0,pi,c,h,cv,Omega_x,Omega_y,quad_weight,quadrature,MGQD_E_avg_Times)
 
     CALL SYSTEM_CLOCK(solve_time2,clockrate)
-    solve_time=(solve_time2*1d0-solve_time1*1d0)/(clockrate*1d0)
+    solve_time=(DBLE(solve_time2)-DBLE(solve_time1))/DBLE(clockrate)
 
     WRITE(*,*)
     WRITE(*,'(A,ES16.8,A)') "Solve took ",solve_time," seconds."

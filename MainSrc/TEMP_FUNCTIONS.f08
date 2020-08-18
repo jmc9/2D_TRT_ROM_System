@@ -95,7 +95,6 @@ FUNCTION Bg_planck_calc(Tin,nu_low,nu_high,comp_unit)
   REAL*8,PARAMETER:: c=2.99792458d2
   REAL*8,PARAMETER:: erg=6.24150934d11
   REAL*8,PARAMETER:: h=6.62613d-19
-  REAL*8,PARAMETER:: pi=4d0*ATAN(1d0)
 
   IF (Tin .LE. 1d-15) THEN !essentially Tin=0
     Bg_planck_calc = 0d0
@@ -188,7 +187,7 @@ FUNCTION GREY_kapE_dT_calc(kapE_dT_mod,kapE_dT_flag,enrgy_strc,nu_g,MG_E,Temp,Te
   REAL*8,INTENT(IN):: nu_g(:), MG_E(:), Temp, Temp_mold, GREY_kapE, GREY_kapE_mold, GREY_kapE_dT
   INTEGER,INTENT(IN):: MG_it
   REAL*8:: GREY_kapE_dT_calc
-  REAL*8:: trash, sum1, sum2
+  REAL*8:: sum1, sum2
   REAL*8,ALLOCATABLE:: kapB_dT(:)
   INTEGER:: groups, g
 
@@ -206,6 +205,8 @@ FUNCTION GREY_kapE_dT_calc(kapE_dT_mod,kapE_dT_flag,enrgy_strc,nu_g,MG_E,Temp,Te
         END IF
       END DO
 
+      sum1=0d0
+      sum2=0d0
       DO g=1,groups
         sum1 = sum1 + kapB_dT(g)*MG_E(g)
         sum2 = sum2 + MG_E(g)

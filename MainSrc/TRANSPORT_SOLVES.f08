@@ -6,11 +6,11 @@ MODULE TRANSPORT_SOLVES
 
 CONTAINS
 
-!============================================================================================================!
+!==================================================================================================================================!
 !Subroutine TRANSPORT_SCB
 !
 ! Solves the 2D radiative transfer equation discretized with simple corner balance
-!============================================================================================================!
+!==================================================================================================================================!
 SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,Omega_x,Omega_y,Delx,Dely,A,KapE_in,Src_in,&
   I_crn_old,c,Delt,Open_Threads,Res_Calc)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:)
@@ -301,9 +301,9 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
 
 END SUBROUTINE TRANSPORT_SCB
 
-!============================================================================================================!
+!==================================================================================================================================!
 !
-!============================================================================================================!
+!==================================================================================================================================!
 SUBROUTINE SCB_BGEN(B,Omega_x,Omega_y,Delx,Dely,KapE)
   REAL*8,INTENT(IN):: Omega_x, Omega_y
   REAL*8,INTENT(IN):: Delx, Dely
@@ -345,14 +345,14 @@ SUBROUTINE SCB_BGEN(B,Omega_x,Omega_y,Delx,Dely,KapE)
 
 END SUBROUTINE SCB_BGEN
 
-!============================================================================================================!
+!==================================================================================================================================!
 !Subroutine COLLAPSE_INTENSITIES
 !
 ! 'collapses' radiation intensities into low-order multigroup and grey quantities:
 ! --> H is the second angular moment of I (tensor)
 ! --> F is the first angular moment of I (vector)
 ! --> E is the zeroth angular moment of I (scalar)
-!============================================================================================================!
+!==================================================================================================================================!
 SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_xy,&
   Hg_avg_yy,Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,Eg_edgV,Eg_edgH,Eg_avg,Fxg_edgV,Fyg_edgH,E_edgV,E_edgH,E_avg,Fx_edgV,&
   Fy_edgH)
@@ -485,9 +485,9 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
   END DO
 
 END SUBROUTINE COLLAPSE_INTENSITIES
-!============================================================================================================!
+!==================================================================================================================================!
 !
-!============================================================================================================!
+!==================================================================================================================================!
 
 
 END MODULE TRANSPORT_SOLVES

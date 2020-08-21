@@ -6,7 +6,7 @@ MODULE QD_SOLVERS
 
 CONTAINS
 
-!============================================================================================================!
+!==================================================================================================================================!
 !Subroutine QD_FV
 !
 ! Solves the 2D radiative transfer quasidiffusion equations discretized with a finite volumes scheme
@@ -36,7 +36,7 @@ CONTAINS
 !   Cp_[L,B,R,T] - coefficients attached to boundary cell edge radiation energy densities present in the boundary conditions
 !   BC_[L,B,R,T] - right hand sides of the boundary conditions
 !
-!============================================================================================================!
+!==================================================================================================================================!
 SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,MBy_T,MBy_L,MBy_R,&
   EB_RHS,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
 
@@ -67,7 +67,7 @@ SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,
   !     First unknown is the left boundary face                               !
   !     Cell unknowns ordered as: bottom, center, right, top                  !
   !     First cell unknowns: left, bottom, center, right, top                 !
-  !                                                 7                          !
+  !                                                                           !
   !     Total unknowns in this row: 4*N_x + 1                                 !
   !                                                                           !
   !===========================================================================!
@@ -408,5 +408,9 @@ SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,
   DEALLOCATE(mat,sol)
 
 END SUBROUTINE QD_FV
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
 
 END MODULE QD_SOLVERS

@@ -119,8 +119,8 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
   ALLOCATE(Phat_L(N_x,N_y),Phat_B(N_x,N_y),Phat_R(N_x,N_y),Phat_T(N_x,N_y))
 
   ALLOCATE(EB_L(N_x,N_y),EB_B(N_x,N_y),EB_C(N_x,N_y),EB_R(N_x,N_y),EB_T(N_x,N_y))
-  ALLOCATE(MBx_C(N_x,N_y),MBx_R(N_x,N_y),MBx_B(N_x,N_y),MBx_T(N_x,N_y))
-  ALLOCATE(MBy_C(N_x,N_y),MBy_T(N_x,N_y),MBy_L(N_x,N_y),MBy_R(N_x,N_y))
+  ALLOCATE(MBx_C(N_x,N_y),MBx_R(N_x-1,N_y),MBx_B(N_x,N_y),MBx_T(N_x,N_y))
+  ALLOCATE(MBy_C(N_x,N_y),MBy_T(N_x,N_y-1),MBy_L(N_x,N_y),MBy_R(N_x,N_y))
   ALLOCATE(MBx_RHS(N_x,N_y),MBy_RHS(N_x,N_y))
 
   ALLOCATE(Cp_L(N_y), Cp_B(N_x), Cp_R(N_y), Cp_T(N_x))

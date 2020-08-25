@@ -284,16 +284,23 @@ SUBROUTINE GQD_In_Calc(E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,E
 END SUBROUTINE GQD_In_Calc
 
 !==================================================================================================================================!
+!Subroutine EGP_FV_NEWT
+!
+! Solves the 2D effective grey problem (EGP) discretized with a second-order finite volumes (FV) scheme with Newton's method
+!
+! NOTES::
+!   The effective grey problem couples together the grey quasidiffusion system and the material energy balance equation
+!   A reduced form of the linear system is used to solve ONLY for change in ENERGY DENSITIES (Delta E) via matrix inversion
+!   Auxilliary equations are used to solve for other Delta terms (for other unknowns)
+!
+!   The Newton iterations employ a line search and safety bounds
 !
 !==================================================================================================================================!
 SUBROUTINE EGP_FV_NEWT()
 
   !OUTPUTS
   REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Temp(:,:), KapE_Bar(:,:)
-  REAL*8,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:)
-  REAL*8,INTENT(OUT):: Q_bar(:,:), Q_bar_dT(:,:,:), KapE_Bar_dT(:,:,:)
-  REAL*8,INTENT(OUT):: Del_E_avg(:,:,:), Del_E_edgV(:,:,:), Del_E_edgH(:,:,:), Del_T(:,:,:)
-  REAL*8,INTENT(OUT):: Del_Fx_edgV(:,:,:), Del_Fy_edgH(:,:,:)
+  REAL*8,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:), Q_bar(:,:)
   INTEGER,INTENT(OUT):: Its
 
   !INPUTS
@@ -308,10 +315,13 @@ SUBROUTINE EGP_FV_NEWT()
   REAL*8,INTENT(IN):: DL_xy(:,:), DR_xy(:,:), DB_xy(:,:), DT_xy(:,:)
   REAL*8,INTENT(IN):: PL(:,:), PR(:,:), PB(:,:), PT(:,:)
   REAL*8,INTENT(IN):: Gold_Hat(:,:), Rhat_old(:,:)
-  REAL*8,INTENT(IN):: Chi, line_src
+  REAL*8,INTENT(IN):: Chi, line_src, Eps1, Eps2
   REAL*8,INTENT(IN):: Kap0, cv, Comp_Unit
 
   !INTERNALS(ARRAYS)
+  REAL*8,ALLOCATABLE:: Del_T(:,:), Del_E_avg(:,:), Del_E_edgV(:,:), Del_E_edgH(:,:)
+  REAL*8,ALLOCATABLE:: Del_Fx_edgV(:,:), Del_Fy_edgH(:,:)
+  REAL*8,ALLOCATABLE:: Q_bar_dT(:,:), KapE_Bar_dT(:,:)
   REAL*8,ALLOCATABLE:: EB_L(:,:), EB_B(:,:), EB_C(:,:), EB_R(:,:), EB_T(:,:)
   REAL*8,ALLOCATABLE:: MBx_C(:,:), MBx_R(:,:), MBx_B(:,:), MBx_T(:,:)
   REAL*8,ALLOCATABLE:: MBy_C(:,:), MBy_T(:,:), MBy_L(:,:), MBy_R(:,:)
@@ -326,9 +336,11 @@ SUBROUTINE EGP_FV_NEWT()
   REAL*8,PARAMETER:: c=2.99792458d2   !cm/sh
   REAL*8,PARAMETER:: pi=4d0*ATAN(1d0)
   REAL*8,PARAMETER:: erg=6.24150934d11  !eV/erg -- 1 erg is this many ev's
-  LOGICAL:: Converged
+  LOGICAL:: Converged, Use_Line_Search, Use_Safety_Search
   INTEGER:: N_x, N_y, i, j
-  REAL*8:: KapE_Bound
+  REAL*8:: KapE_Bound, dres, LS
+  REAL*8:: T_Norm, T_Eps, Fx_Norm, Fx_Eps, Fy_Norm, Fy_Eps
+  REAL*8:: Ea_Norm, Ea_Eps, Ev_Norm, Ev_Eps, Eh_Norm, Eh_Eps
 
 
   !===========================================================================!
@@ -345,6 +357,9 @@ SUBROUTINE EGP_FV_NEWT()
   N_y = SIZE(Temp,2)
 
   !allocating all internal arrays
+  ALLOCATE(Del_T(N_x,N_y),Del_E_avg(N_x,N_y),Del_E_edgV(N_x+1,N_y),Del_E_edgH(N_x,N_y+1))
+  ALLOCATE(Del_Fx_edgV(N_x+1,N_y),Del_Fy_edgH(N_x,N_y+1))
+  ALLOCATE(Q_bar_dT(N_x,N_y),KapE_Bar_dT(N_x,N_y))
   ALLOCATE(EB_L(N_x,N_y),EB_B(N_x,N_y),EB_C(N_x,N_y),EB_R(N_x,N_y),EB_T(N_x,N_y))
   ALLOCATE(MBx_C(N_x,N_y),MBx_R(N_x-1,N_y),MBx_B(N_x,N_y),MBx_T(N_x,N_y))
   ALLOCATE(MBy_C(N_x,N_y),MBy_T(N_x,N_y-1),MBy_L(N_x,N_y),MBy_R(N_x,N_y))
@@ -369,7 +384,7 @@ SUBROUTINE EGP_FV_NEWT()
   !===========================================================================!
   Converged = .FALSE.
   Its = 0
-  DO WHILE (.NOT.Converged)
+  Newton_Its: DO WHILE (.NOT.Converged)
     Its = Its + 1
 
     !calculating source and source T-derivative
@@ -397,32 +412,40 @@ SUBROUTINE EGP_FV_NEWT()
     !===========================================================================!
     DO j=1,N_y
       DO i=1,N_x
-        !'delta r' quantities (momentum bal eqs)
-        dr_ML(i,j) = A(i,j)*Fx_edgV(i,j)/2d0 + c*Dely(j)*(DC_xx(i,j)*E_avg(i,j) - DL_xx(i,j)*E_edgV(i,j)) +&
-         c*Delx(i)*(DT_xy(i,j)*E_edgH(i,j+1) - DB_xy(i,j)*E_edgH(i,j))/2d0 - PL(i,j)
-        dr_MR(i,j) = A(i,j)*Fx_edgV(i,j+1)/2d0 + c*Dely(j)*(DR_xx(i,j)*E_edgV(i+1,j) - DC_xx(i,j)*E_avg(i,j)) +&
-         c*Delx(i)*(DT_xy(i,j)*E_edgH(i,j+1) - DB_xy(i,j)*E_edgH(i,j))/2d0 - PR(i,j)
-        dr_MB(i,j) = A(i,j)*Fy_edgH(i,j)/2d0 + c*Delx(i)*(DC_yy(i,j)*E_avg(i,j) - DB_yy(i,j)*E_edgH(i,j)) +&
-         c*Delx(i)*(DR_xy(i,j)*E_edgV(i+1,j) - DL_xy(i,j)*E_edgV(i,j))/2d0 - PB(i,j)
-        dr_MT(i,j) = A(i,j)*Fy_edgH(i+1,j)/2d0 + c*Delx(i)*(DT_yy(i,j)*E_edgH(i,j+1) - DC_yy(i,j)*E_avg(i,j)) +&
-         c*Delx(i)*(DR_xy(i,j)*E_edgV(i+1,j) - DL_xy(i,j)*E_edgV(i,j))/2d0 - PT(i,j)
+        !residual for material energy balance eq
+        dr_T(i,j) = dr_T_Calc(Theta,c,cv,Delt,Temp(i,j),E_avg(i,j),KapE_Bar(i,j),Q_Bar(i,j),Rhat_old(i,j))
 
-        !'delta r' quantities (rad energy bal/ material energy bal)
-        dr_B(i,j) = A(i,j)*(1d0/(Theta*Delt) + c**KapE_Bar(i,j))*E_avg(i,j) + Dely(j)*(Fx_edgV(i+1,j) - Fx_edgV(i,j)) +&
-         Delx(i)*(Fy_edgH(i,j+1) - Fy_edgH(i,j)) - A(i,j)*Q_bar(i,j)
-        dr_T(i,j) = cv/(Theta*Delt)*Temp(i,j) + Q_bar(i,j) - c*KapE_Bar(i,j)*E_avg(i,j)
+        !residual for rad energy balance eq
+        dr_B(i,j) = dr_B_Calc(Theta,c,Delt,Delx(i),Dely(j),A(i,j),KapE_Bar(i,j),Q_Bar(i,j),Gold_Hat(i,j),E_avg(i,j),&
+         Fx_edgV(i+1,j),Fx_edgV(i,j),Fy_edgH(i,j+1),Fy_edgH(i,j))
+
+        !residual for left-half-cell rad x-momentum balance eq
+        dr_ML(i,j) = dr_ML_Calc(c,A(i,j),Delx(i),Dely(j),DC_xx(i,j),DL_xx(i,j),DT_xy(i,j),DB_xy(i,j),PL(i,j),&
+         Fx_edgV(i,j),E_avg(i,j),E_edgV(i,j),E_edgH(i,j+1),E_edgH(i,j))
+
+        !residual for right-half-cell rad x-momentum balance eq
+        dr_MR(i,j) = dr_MR_Calc(c,A(i,j),Delx(i),Dely(j),DR_xx(i,j),DC_xx(i,j),DT_xy(i,j),DB_xy(i,j),PR(i,j),&
+         Fx_edgV(i+1,j),E_edgV(i+1,j),E_avg(i,j),E_edgH(i,j+1),E_edgH(i,j))
+
+        !residual for bottom-half-cell rad y-momentum balance eq
+        dr_MB(i,j) = dr_MB_Calc(c,A(i,j),Delx(i),Dely(j),DC_yy(i,j),DB_yy(i,j),DL_xy(i,j),DR_xy(i,j),PB(i,j),&
+         Fy_edgH(i,j),E_avg(i,j),E_edgH(i,j),E_edgV(i+1,j),E_edgV(i,j))
+
+        !residual for top-half-cell rad y-momentum balance eq
+        dr_MT(i,j) = dr_MT_Calc(c,A(i,j),Delx(i),Dely(j),DT_yy(i,j),DC_yy(i,j),DL_xy(i,j),DR_xy(i,j),PT(i,j),&
+         Fy_edgH(i,j+1),E_edgH(i,j+1),E_avg(i,j),E_edgV(i+1,j),E_edgV(i,j))
 
         !'delta r_G' is right hand side for linearized ebal
-        dr_G(i,j) = Gold_Hat(i,j) - dr_B(i,j) -&
-         (A(i,j)/W(i,j))*( c*KapE_Bar_dT(i,j,Its)*E_avg(i,j) - Q_bar_dT(i,j,Its) )*(Rhat_old(i,j)-dr_T(i,j)) +&
+        dr_G(i,j) = - dr_B(i,j) -&
+         (A(i,j)/W(i,j))*( c*KapE_Bar_dT(i,j)*E_avg(i,j) - Q_bar_dT(i,j) )*(-dr_T(i,j)) +&
          2d0*Dely(j)*(dr_MR(i,j) - dr_ML(i,j))/A(i,j) + 2d0*Delx(i)*(dr_MT(i,j) - dr_MB(i,j))/A(i,j)
 
         !'omega' in delta T eq
-        W(i,j) = Cv/(Theta*Delt) + Q_bar_dT(i,j,Its) - c*KapE_Bar_dT(i,j,Its)*E_avg(i,j)
+        W(i,j) = Cv/(Theta*Delt) + Q_bar_dT(i,j) - c*KapE_Bar_dT(i,j)*E_avg(i,j)
 
         !coefficients for the left hand side of the energy balance eq
         EB_C(i,j) = A(i,j)*( 1d0/(Theta*Delt) +&
-         c*KapE_Bar(i,j)*( 1d0 + (c*KapE_Bar_dT(i,j,Its)*E_avg(i,j) - Q_bar_dT(i,j,Its))/W(i,j) ) ) +&
+         c*KapE_Bar(i,j)*( 1d0 + (c*KapE_Bar_dT(i,j)*E_avg(i,j) - Q_bar_dT(i,j))/W(i,j) ) ) +&
          4d0*c*Dely(j)**2*DC_xx(i,j)/A(i,j) + 4d0*c*Delx(i)**2*DC_yy(i,j)/A(i,j)
         EB_L(i,j) = -2d0*c*Dely(j)**2*DL_xx(i,j)/A(i,j)
         EB_R(i,j) = -2d0*c*Dely(j)**2*DR_xx(i,j)/A(i,j)
@@ -483,7 +506,7 @@ SUBROUTINE EGP_FV_NEWT()
     !     (solving for Delta E's)                                               !
     !                                                                           !
     !===========================================================================!
-    CALL QD_FV(Del_E_avg(:,:,Its),Del_E_edgV(:,:,Its),Del_E_edgH(:,:,Its),EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
+    CALL QD_FV(Del_E_avg,Del_E_edgV,Del_E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
       MBy_T,MBy_L,MBy_R,EB_RHS,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
 
     !===========================================================================!
@@ -494,38 +517,438 @@ SUBROUTINE EGP_FV_NEWT()
     DO j=1,N_y
       DO i=1,N_x
         !Delta T
-        Del_T(i,j) = ( c*KapE_Bar(i,j)*Del_E_avg(i,j,Its) + Rhat_old(i,j) - dr_T(i,j) )/W(i,j)
+        Del_T(i,j) = ( c*KapE_Bar(i,j)*Del_E_avg(i,j) + Rhat_old(i,j) - dr_T(i,j) )/W(i,j)
 
         !Delta Fx on left(i-1/2) edges
-        Del_Fx_edgV(i,j) = -2d0*c*Dely(j)*(DC_xx(i,j)*Del_E_avg(i,j,Its) - DL_xx(i,j)*Del_E_edgV(i,j,Its))/A(i,j) -&
-         c*Delx(i)*(DT_xy(i,j)*Del_E_edgH(i,j+1,Its) - DT_xy(i,j)*Del_E_edgH(i,j,Its))/A(i,j) - 2d0*dr_ML(i,j)/A(i,j)
+        Del_Fx_edgV(i,j) = -2d0*c*Dely(j)*(DC_xx(i,j)*Del_E_avg(i,j) - DL_xx(i,j)*Del_E_edgV(i,j))/A(i,j) -&
+         c*Delx(i)*(DT_xy(i,j)*Del_E_edgH(i,j+1) - DT_xy(i,j)*Del_E_edgH(i,j))/A(i,j) - 2d0*dr_ML(i,j)/A(i,j)
 
         !Delta Fy on bottom(j-1/2) edges
-        Del_Fy_edgH(i,j) = -2d0*c*Delx(i)*(DC_yy(i,j)*Del_E_avg(i,j,Its) - DB_yy(i,j)*Del_E_edgH(i,j,Its))/A(i,j) -&
-         c*Dely(j)*(DR_xy(i,j)*Del_E_edgH(i+1,j,Its) - DB_xy(i,j)*Del_E_edgH(i,j,Its))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
+        Del_Fy_edgH(i,j) = -2d0*c*Delx(i)*(DC_yy(i,j)*Del_E_avg(i,j) - DB_yy(i,j)*Del_E_edgH(i,j))/A(i,j) -&
+         c*Dely(j)*(DR_xy(i,j)*Del_E_edgH(i+1,j) - DB_xy(i,j)*Del_E_edgH(i,j))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
       END DO
       !Delta Fx on right-most edge
       i = N_x
-      Del_Fx_edgV(i+1,j) = -2d0*c*Dely(j)*(DR_xx(i,j)*Del_E_edgV(i+1,j,Its) - DC_xx(i,j)*Del_E_avg(i,j,Its))/A(i,j) -&
-       c*Delx(i)*(DT_xy(i,j)*Del_E_edgH(i,j+1,Its) - DT_xy(i,j)*Del_E_edgH(i,j,Its))/A(i,j) - 2d0*dr_ML(i,j)/A(i,j)
+      Del_Fx_edgV(i+1,j) = -2d0*c*Dely(j)*(DR_xx(i,j)*Del_E_edgV(i+1,j) - DC_xx(i,j)*Del_E_avg(i,j))/A(i,j) -&
+       c*Delx(i)*(DT_xy(i,j)*Del_E_edgH(i,j+1) - DT_xy(i,j)*Del_E_edgH(i,j))/A(i,j) - 2d0*dr_ML(i,j)/A(i,j)
     END DO
 
     j = N_y
     DO i=1,N_x
-      !Delta Fy onTOP-MOST edge
-      Del_Fy_edgH(i,j+1) = -2d0*c*Delx(i)*(Dt_yy(i,j)*Del_E_edgH(i,j+1,Its) - Dc_yy(i,j)*Del_E_avg(i,j,Its))/A(i,j) -&
-       c*Dely(j)*(DR_xy(i,j)*Del_E_edgH(i+1,j,Its) - DB_xy(i,j)*Del_E_edgH(i,j,Its))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
+      !Delta Fy on top-most edge
+      Del_Fy_edgH(i,j+1) = -2d0*c*Delx(i)*(Dt_yy(i,j)*Del_E_edgH(i,j+1) - Dc_yy(i,j)*Del_E_avg(i,j))/A(i,j) -&
+       c*Dely(j)*(DR_xy(i,j)*Del_E_edgH(i+1,j) - DB_xy(i,j)*Del_E_edgH(i,j))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
     END DO
+
+    !===========================================================================!
+    !                                                                           !
+    !     EVALUATING NEW SOLUTION VECTOR                                        !
+    !                                                                           !
+    !===========================================================================!
+    Temp = Temp + Del_T
+    E_avg = E_avg + Del_E_avg
+    E_edgH = E_edgH + Del_E_edgH
+    E_edgV = E_edgV + Del_E_edgV
+    Fx_edgV = Fx_edgV + Del_Fx_edgV
+    Fy_edgH = Fy_edgH + Del_Fy_edgH
+    KapE_Bar = KapE_Bar + DOT_PRODUCT(KapE_Bar_dT,Del_T)
+    Q_bar(i,j) = 15d0*kap0*c*aR*Temp(i,j)/pi**4
 
     !===========================================================================!
     !                                                                           !
     !     PERFORMING LINE SEARCH                                                !
     !                                                                           !
     !===========================================================================!
+    LS_Switch: IF (Use_Line_Search) THEN
 
-  END DO
+    LS = 1d0
+    Line_Search: DO
+
+      CALL LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_Temp,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
+        Del_Fy_edgH,KapE_Bar,KapE_Bar_dT,Q_Bar,LS,kap0,c,aR,pi)
+
+      LS = 1d0
+
+      DO j=1,N_y
+        DO i=1,N_x
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     material energy balance                      !
+          !                                                  !
+          !--------------------------------------------------!
+          LS_MEB: DO
+            dres = dr_T_Calc(Theta,c,cv,Delt,Temp(i,j),E_avg(i,j),KapE_Bar(i,j),Q_Bar(i,j),Rhat_old(i,j))
+
+            !if residual got bigger, must reduce newton step
+            IF (dres .GT. dr_T(i,j)) THEN
+              !perform 'point line search'
+              KapE_Bar(i,j) = KapE_Bar(i,j) - KapE_Bar_dT(i,j)*Del_T(i,j)
+              CALL LS_Reset(Temp(i,j),Del_T(i,j),line_src)
+              CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),line_src)
+              KapE_Bar(i,j) = KapE_Bar(i,j) + KapE_Bar_dT(i,j)*Del_T(i,j)
+              Q_bar(i,j) = 15d0*kap0*c*aR*Temp(i,j)/pi**4
+
+              LS = LS*line_src !increase total line search step
+              CYCLE LS_MEB !cycle loop to check if residual still bigger
+
+            ELSE !if/when residual detected smaller than last iterate, move out of loop
+              EXIT LS_MEB
+
+            END IF
+          END DO LS_MEB
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     rad energy balance                           !
+          !                                                  !
+          !--------------------------------------------------!
+          LS_REB: DO
+            dres = dr_B_Calc(Theta,c,Delt,Delx(i),Dely(j),A(i,j),KapE_Bar(i,j),Q_Bar(i,j),Gold_Hat(i,j),E_avg(i,j),&
+             Fx_edgV(i+1,j),Fx_edgV(i,j),Fy_edgH(i,j+1),Fy_edgH(i,j))
+
+            !if residual got bigger, must reduce newton step
+            IF (dres .GT. dr_B(i,j)) THEN
+              !perform 'point line search'
+              KapE_Bar(i,j) = KapE_Bar(i,j) - KapE_Bar_dT(i,j)*Del_T(i,j)
+              CALL LS_Reset(Temp(i,j),Del_T(i,j),line_src)
+              CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),line_src)
+              CALL LS_Reset(Fx_edgV(i,j),Del_Fx_edgV(i,j),line_src)
+              CALL LS_Reset(Fx_edgV(i+1,j),Del_Fx_edgV(i+1,j),line_src)
+              CALL LS_Reset(Fy_edgH(i,j),Del_Fy_edgH(i,j),line_src)
+              CALL LS_Reset(Fy_edgH(i,j+1),Del_Fy_edgH(i,j+1),line_src)
+              KapE_Bar(i,j) = KapE_Bar(i,j) + KapE_Bar_dT(i,j)*Del_T(i,j)
+              Q_bar(i,j) = 15d0*kap0*c*aR*Temp(i,j)/pi**4
+
+              LS = LS*line_src !increase total line search step
+              CYCLE LS_REB !cycle loop to check if residual still bigger
+
+            ELSE !if/when residual detected smaller than last iterate, move out of loop
+              EXIT LS_REB
+
+            END IF
+          END DO LS_REB
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     left-half-cell rad x-momentum balance eq     !
+          !                                                  !
+          !--------------------------------------------------!
+          LS_MXLB: DO
+            dres = dr_ML_Calc(c,A(i,j),Delx(i),Dely(j),DC_xx(i,j),DL_xx(i,j),DT_xy(i,j),DB_xy(i,j),PL(i,j),&
+             Fx_edgV(i,j),E_avg(i,j),E_edgV(i,j),E_edgH(i,j+1),E_edgH(i,j))
+
+            !if residual got bigger, must reduce newton step
+            IF (dres .GT. dr_ML(i,j)) THEN
+              !perform 'point line search'
+              CALL LS_Reset(Fx_edgV(i,j),Del_Fx_edgV(i,j),line_src)
+              CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),line_src)
+              CALL LS_Reset(E_edgV(i,j),Del_E_edgV(i,j),line_src)
+              CALL LS_Reset(E_edgH(i,j),Del_E_edgH(i,j),line_src)
+              CALL LS_Reset(E_edgH(i,j+1),Del_E_edgH(i,j+1),line_src)
+
+              LS = LS*line_src !increase total line search step
+              CYCLE LS_MXLB !cycle loop to check if residual still bigger
+
+            ELSE !if/when residual detected smaller than last iterate, move out of loop
+              EXIT LS_MXLB
+
+            END IF
+          END DO LS_MXLB
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     right-half-cell rad x-momentum balance eq    !
+          !                                                  !
+          !--------------------------------------------------!
+          LS_MXRB: DO
+            dres = dr_MR_Calc(c,A(i,j),Delx(i),Dely(j),DR_xx(i,j),DC_xx(i,j),DT_xy(i,j),DB_xy(i,j),PR(i,j),&
+             Fx_edgV(i+1,j),E_edgV(i+1,j),E_avg(i,j),E_edgH(i,j+1),E_edgH(i,j))
+
+            !if residual got bigger, must reduce newton step
+            IF (dres .GT. dr_MR(i,j)) THEN
+              !perform 'point line search'
+              CALL LS_Reset(Fx_edgV(i+1,j),Del_Fx_edgV(i+1,j),line_src)
+              CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),line_src)
+              CALL LS_Reset(E_edgV(i+1,j),Del_E_edgV(i+1,j),line_src)
+              CALL LS_Reset(E_edgH(i,j),Del_E_edgH(i,j),line_src)
+              CALL LS_Reset(E_edgH(i,j+1),Del_E_edgH(i,j+1),line_src)
+
+              LS = LS*line_src !increase total line search step
+              CYCLE LS_MXRB !cycle loop to check if residual still bigger
+
+            ELSE !if/when residual detected smaller than last iterate, move out of loop
+              EXIT LS_MXRB
+
+            END IF
+          END DO LS_MXRB
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     bottom-half-cell rad y-momentum balance eq   !
+          !                                                  !
+          !--------------------------------------------------!
+          LS_MYBB: DO
+            dres = dr_MB_Calc(c,A(i,j),Delx(i),Dely(j),DC_yy(i,j),DB_yy(i,j),DL_xy(i,j),DR_xy(i,j),PB(i,j),&
+             Fy_edgH(i,j),E_avg(i,j),E_edgH(i,j),E_edgV(i+1,j),E_edgV(i,j))
+
+            !if residual got bigger, must reduce newton step
+            IF (dres .GT. dr_MB(i,j)) THEN
+              !perform 'point line search'
+              CALL LS_Reset(Fy_edgH(i,j),Del_Fy_edgH(i,j),line_src)
+              CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),line_src)
+              CALL LS_Reset(E_edgH(i,j),Del_E_edgH(i,j),line_src)
+              CALL LS_Reset(E_edgV(i,j),Del_E_edgV(i,j),line_src)
+              CALL LS_Reset(E_edgV(i+1,j),Del_E_edgV(i+1,j),line_src)
+
+              LS = LS*line_src !increase total line search step
+              CYCLE LS_MYBB !cycle loop to check if residual still bigger
+
+            ELSE !if/when residual detected smaller than last iterate, move out of loop
+              EXIT LS_MYBB
+
+            END IF
+          END DO LS_MYBB
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     bottom-half-cell rad y-momentum balance eq   !
+          !                                                  !
+          !--------------------------------------------------!
+          LS_MYTB: DO
+            dres = dr_MT_Calc(c,A(i,j),Delx(i),Dely(j),DT_yy(i,j),DC_yy(i,j),DL_xy(i,j),DR_xy(i,j),PT(i,j),&
+             Fy_edgH(i,j+1),E_edgH(i,j+1),E_avg(i,j),E_edgV(i+1,j),E_edgV(i,j))
+
+            !if residual got bigger, must reduce newton step
+            IF (dres .GT. dr_MT(i,j)) THEN
+              !perform 'point line search'
+              CALL LS_Reset(Fy_edgH(i,j+1),Del_Fy_edgH(i,j+1),line_src)
+              CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),line_src)
+              CALL LS_Reset(E_edgH(i,j+1),Del_E_edgH(i,j+1),line_src)
+              CALL LS_Reset(E_edgV(i,j),Del_E_edgV(i,j),line_src)
+              CALL LS_Reset(E_edgV(i+1,j),Del_E_edgV(i+1,j),line_src)
+
+              LS = LS*line_src !increase total line search step
+              CYCLE LS_MYTB !cycle loop to check if residual still bigger
+
+            ELSE !if/when residual detected smaller than last iterate, move out of loop
+              EXIT LS_MYTB
+
+            END IF
+          END DO LS_MYTB
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+        END DO
+      END DO
+
+      EXIT
+
+    END DO Line_Search
+
+    END IF LS_Switch
+
+    !===========================================================================!
+    !                                                                           !
+    !     PERFORMING SAFETY LINE SEARCH                                         !
+    !                                                                           !
+    !===========================================================================!
+    Safe_Switch: IF (Use_Safety_Search) THEN
+
+    LS = 1d0
+    Safe_Search: DO
+
+      CALL LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_Temp,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
+        Del_Fy_edgH,KapE_Bar,KapE_Bar_dT,Q_Bar,LS,kap0,c,aR,pi)
+
+      LS = 1d0
+
+      DO j=1,N_y
+        DO i=1,N_x
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     Temperature                                  !
+          !                                                  !
+          !--------------------------------------------------!
+          Safe_T: DO
+            !if temperature found below lower bound, perform line search
+            IF (Temp(i,j) .LT. T_Bound_Low) THEN
+              CALL LS_Reset(Temp(i,j),Del_T(i,j),line_src)
+              LS = LS*line_src !increase total line search step
+              CYCLE Safe_T !cycle loop to check if residual still bigger
+
+            ELSE !if/when temperature above lower bound, move out of loop
+              EXIT Safe_T
+
+            END IF
+          END DO Safe_T
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     cell-averaged Energy Density                 !
+          !                                                  !
+          !--------------------------------------------------!
+          Safe_EA: DO
+            !if E found below lower bound, perform line search
+            IF (E_avg(i,j) .LT. E_Bound_Low) THEN
+              CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),line_src)
+              LS = LS*line_src !increase total line search step
+              CYCLE Safe_EA !cycle loop to check if residual still bigger
+
+            ELSE !if/when E above lower bound, move out of loop
+              EXIT Safe_EA
+
+            END IF
+          END DO Safe_EA
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+        END DO
+      END DO
+
+      DO j=1,N_y
+        DO i=1,N_x+1
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     cell-edge (vertical) Energy Density          !
+          !                                                  !
+          !--------------------------------------------------!
+          Safe_EV: DO
+            !if E found below lower bound, perform line search
+            IF (E_edgV(i,j) .LT. E_Bound_Low) THEN
+              CALL LS_Reset(E_edgV(i,j),Del_E_edgV(i,j),line_src)
+              LS = LS*line_src !increase total line search step
+              CYCLE Safe_EV !cycle loop to check if residual still bigger
+
+            ELSE !if/when E above lower bound, move out of loop
+              EXIT Safe_EV
+
+            END IF
+          END DO Safe_EV
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+        END DO
+      END DO
+
+      DO j=1,N_y+1
+        DO i=1,N_x
+
+          !--------------------------------------------------!
+          !                                                  !
+          !     cell-edge (horizontal) Energy Density        !
+          !                                                  !
+          !--------------------------------------------------!
+          Safe_EH: DO
+            !if E found below lower bound, perform line search
+            IF (E_edgH(i,j) .LT. E_Bound_Low) THEN
+              CALL LS_Reset(E_edgH(i,j),Del_E_edgH(i,j),line_src)
+              LS = LS*line_src !increase total line search step
+              CYCLE Safe_EH !cycle loop to check if residual still bigger
+
+            ELSE !if/when E above lower bound, move out of loop
+              EXIT Safe_EH
+
+            END IF
+          END DO Safe_EH
+          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+
+        END DO
+      END DO
+
+    END DO Safe_Search
+
+    END IF Safe_Switch
+
+    !===========================================================================!
+    !                                                                           !
+    !     CHECKING CONVERGENCE                                                  !
+    !                                                                           !
+    !===========================================================================!
+    T_Eps = Eps1*Temp + Eps2
+    Ea_Eps = Eps1*E_avg + Eps2
+    Ev_Eps = Eps1*E_edgV + Eps2
+    Eh_Eps = Eps1*E_edgH + Eps2
+    Fx_Eps = Eps1*Fx_edgV + Eps2
+    Fy_Eps = Eps1*Fy_edgH + Eps2
+
+    T_Norm = MAXVAL(ABS(Del_T))
+    Ea_Norm = MAXVAL(ABS(Del_E_avg))
+    Ev_Norm = MAXVAL(ABS(Del_E_edgV))
+    Eh_Norm = MAXVAL(ABS(Del_E_edgH))
+    Fx_Norm = MAXVAL(ABS(Del_Fx_edgV))
+    Fy_Norm = MAXVAL(ABS(Del_Fy_edgH))
+
+    Converged = .TRUE.
+    IF (T_Norm .GT. T_Eps) Converged = .FALSE.
+    IF (Ea_Norm .GT. Ea_Eps) Converged = .FALSE.
+    IF (Ev_Norm .GT. Ev_Eps) Converged = .FALSE.
+    IF (Eh_Norm .GT. Eh_Eps) Converged = .FALSE.
+    IF (Fx_Norm .GT. Fx_Eps) Converged = .FALSE.
+    IF (Fy_Norm .GT. Fy_Eps) Converged = .FALSE.
+
+  END DO Newton_Its
 
 END SUBROUTINE EGP_FV_NEWT
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE LS_Reset(x,Del_x,LS)
+
+  REAL*8,INTENT(INOUT):: x, Del_x
+  REAL*8,INTENT(IN):: LS
+
+  x = x - Del_x
+  Del_x = Del_x/LS
+  x = x + Del_x
+
+END SUBROUTINE LS_Reset
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_Temp,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
+  Del_Fy_edgH,KapE_Bar,KapE_Bar_dT,Q_Bar,LS,kap0,c,aR,pi)
+
+  REAL*8,INTENT(INOUT):: Temp(:,:), E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Fx_edgV(:,:), Fy_edgH(:,:)
+  REAL*8,INTENT(INOUT):: Del_Temp(:,:), Del_E_avg(:,:), Del_E_edgV(:,:), Del_E_edgH(:,:), Del_Fx_edgV(:,:), Del_Fy_edgH(:,:)
+  REAL*8,INTENT(INOUT):: KapE_Bar(:,:), KapE_Bar_dT(:,:), Q_Bar(:,:)
+  REAL*8,INTENT(IN):: LS, kap0, c, aR, pi
+  INTEGER:: i, j, N_x, N_y
+
+  N_x = SIZE(Temp,1)
+  N_y = SIZE(Temp,2)
+
+  DO j=1,N_y
+    DO i=1,N_x
+      KapE_Bar(i,j) = KapE_Bar(i,j) - KapE_Bar_dT(i,j)*Del_T(i,j)
+      CALL LS_Reset(Temp(i,j),Del_T(i,j),LS)
+      CALL LS_Reset(E_avg(i,j),Del_E_avg(i,j),LS)
+      CALL LS_Reset(E_edgV(i,j),Del_E_edgV(i,j),LS)
+      CALL LS_Reset(E_edgH(i,j),Del_E_edgH(i,j),LS)
+      CALL LS_Reset(Fx_edgV(i,j),Del_Fx_edgV(i,j),LS)
+      CALL LS_Reset(Fy_edgH(i,j),Del_Fy_edgH(i,j),LS)
+      KapE_Bar(i,j) = KapE_Bar(i,j) + KapE_Bar_dT(i,j)*Del_T(i,j)
+      Q_bar(i,j) = 15d0*kap0*c*aR*Temp(i,j)/pi**4
+    END DO
+    i=N_x+1
+    CALL LS_Reset(E_edgV(i,j),Del_E_edgV(i,j),LS)
+    CALL LS_Reset(Fx_edgV(i,j),Del_Fx_edgV(i,j),LS)
+  END DO
+
+  j=N_y+1
+  DO i=1,N_x
+    CALL LS_Reset(E_edgH(i,j),Del_E_edgH(i,j),LS)
+    CALL LS_Reset(Fy_edgH(i,j),Del_Fy_edgH(i,j),LS)
+  END DO
+
+END SUBROUTINE LS_Reset
 
 !==================================================================================================================================!
 !
@@ -536,10 +959,85 @@ FUNCTION FC_KapE_Bar_dT(Temp_l,Temp_lold,KapE_Bar_l,KapE_Bar_lold)
 
   FC_KapE_Bar_dT = (KapE_Bar_l - KapE_Bar_lold)/(Temp_l - Temp_lold)
 
-END FUNCTION
+END FUNCTION FC_KapE_Bar_dT
 
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+FUNCTION dr_T_Calc(Theta,c,cv,Delt,Temp,E_avg,KapE_Bar,Q_Bar,Rhat_old)
+  REAL*8:: dr_T_Calc
+  REAL*8,INTENT(IN):: Theta, c, cv, Delt
+  REAL*8,INTENT(IN):: Temp, E_avg, KapE_Bar, Q_Bar, Rhat_old
+
+  dr_T_Calc = cv/(Theta*Delt)*Temp + Q_bar - c*KapE_Bar*E_avg - Rhat_old
+
+END FUNCTION dr_T_Calc
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+FUNCTION dr_B_Calc(Theta,c,Delt,Delx,Dely,A,KapE_Bar,Q_Bar,Gold_Hat,E_avg,Fx_edgV_R,Fx_edgV_L,Fy_edgH_T,Fy_edgH_B)
+  REAL*8:: dr_B_Calc
+  REAL*8,INTENT(IN):: Theta, c
+  REAL*8,INTENT(IN):: Delt, Delx, Dely, A
+  REAL*8,INTENT(IN):: KapE_Bar, Q_Bar, Gold_Hat
+  REAL*8,INTENT(IN):: E_avg, Fx_edgV_R, Fx_edgV_L, Fy_edgH_T, Fy_edgH_B
+
+  dr_B_Calc = A*(1d0/(Theta*Delt) + c*KapE_Bar)*E_avg + Dely*(Fx_edgV_R - Fx_edgV_L) + Delx*(Fy_edgH_T - Fy_edgH_B) -&
+   A*Q_bar - Gold_Hat
+
+END FUNCTION dr_B_Calc
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+FUNCTION dr_ML_Calc(c,A,Delx,Dely,DC_xx,DL_xx,DT_xy,DB_xy,PL,Fx_edgV_L,E_avg,E_edgV_L,E_edgH_T,E_edgH_B)
+  REAL*8:: dr_ML_Calc
+  REAL*8,INTENT(IN):: c, A, Delx, Dely
+  REAL*8,INTENT(IN):: DC_xx, DL_xx, DT_xy, DB_xy, PL
+  REAL*8,INTENT(IN):: Fx_edgV_L, E_avg, E_edgV_L, E_edgH_T, E_edgH_B
+
+  dr_ML_Calc = A*Fx_edgV_L/2d0 + c*Dely*(DC_xx*E_avg - DL_xx*E_edgV_L) + c*Delx*(DT_xy*E_edgH_T - DB_xy*E_edgH_B)/2d0 - PL
+
+END FUNCTION dr_ML_Calc
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+FUNCTION dr_MR_Calc(c,A,Delx,Dely,DR_xx,DC_xx,DT_xy,DB_xy,PR,Fx_edgV_R,E_edgV_R,E_avg,E_edgH_T,E_edgH_B)
+  REAL*8:: dr_MR_Calc
+  REAL*8,INTENT(IN):: c, A, Delx, Dely
+  REAL*8,INTENT(IN):: DR_xx, DC_xx, DT_xy, DB_xy, PR
+  REAL*8,INTENT(IN):: Fx_edgV_R, E_edgV_R, E_avg, E_edgH_T, E_edgH_B
+
+  dr_MR_Calc = A*Fx_edgV_R/2d0 + c*Dely*(DR_xx*E_edgV_R - DC_xx*E_avg) + c*Delx*(DT_xy*E_edgH_T - DB_xy*E_edgH_B)/2d0 - PR
+
+END FUNCTION dr_MR_Calc
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+FUNCTION dr_MB_Calc(c,A,Delx,Dely,DC_yy,DB_yy,DL_xy,DR_xy,PB,Fy_edgH_B,E_avg,E_edgH_B,E_edgV_R,E_edgV_L)
+  REAL*8:: dr_MB_Calc
+  REAL*8,INTENT(IN):: c, A, Delx, Dely
+  REAL*8,INTENT(IN):: DC_yy, DB_yy, DL_xy, DR_xy, PB
+  REAL*8,INTENT(IN):: Fy_edgH_B, E_avg, E_edgH_B, E_edgV_R, E_edgV_L
+
+  dr_MB_Calc = A*Fy_edgH_B/2d0 + c*Delx*(DC_yy*E_avg - DB_yy*E_edgH_B) + c*Delx*(DR_xy*E_edgV_R - DL_xy*E_edgV_L)/2d0 - PB
+
+END FUNCTION dr_MB_Calc
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+FUNCTION dr_MT_Calc(c,A,Delx,Dely,DT_yy,DC_yy,DL_xy,DR_xy,PT,Fy_edgH_T,E_edgH_T,E_avg,E_edgV_R,E_edgV_L)
+  REAL*8:: dr_MT_Calc
+  REAL*8,INTENT(IN):: c, A, Delx, Dely
+  REAL*8,INTENT(IN):: DT_yy, DC_yy, DL_xy, DR_xy, PT
+  REAL*8,INTENT(IN):: Fy_edgH_T, E_edgH_T, E_avg, E_edgV_R, E_edgV_L
+
+  dr_MT_Calc = A*Fy_edgH_T/2d0 + c*Delx*(DT_yy*E_edgH_T - DC_yy*E_avg) + c*Delx*(DR_xy*E_edgV_R - DL_xy*E_edgV_L)/2d0 - PT
+
+END FUNCTION dr_MT_Calc
 
 END MODULE GLOQD_SOLVES

@@ -134,13 +134,13 @@ program main
       Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Residual,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,&
       MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,maxit_MLOQD,maxit_RTE)
     CALL COLLAPSE_INTENSITIES(Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
-      Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,Eg_edgV_old,Eg_edgH_old,Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old,HO_E_edgV,&
+      Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,Eg_edgV,Eg_edgH,Eg_avg,Fxg_edgV,Fyg_edgH,HO_E_edgV,&
       HO_E_edgH,HO_E_avg,HO_Fx_edgV,HO_Fy_edgH)
     CALL TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,N_t,Tini,&
       Comp_Unit,Nu_g,Temp_Times,HO_E_avg_Times,GREY_E_avg_Times,Temp_Old,MGQD_E_avg_Times)
-    CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
-      fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
-      Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
+    ! CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
+    !   fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
+    !   Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
 
     OPEN(UNIT=103,FILE=res_history_outfile,STATUS='REPLACE',ACTION='WRITE',IOSTAT=err)
   !   making sure file exists/opens, if not tells user

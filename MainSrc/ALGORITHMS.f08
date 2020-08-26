@@ -115,13 +115,40 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
   Time = Start_Time
   t = 0
   DO
+
+    t = t + 1
+    Time = Time + Delt
+
+    Temp_Old = Temp
+    I_crn_old = I_crn
+
+    fg_avg_xx_old = fg_avg_xx
+    fg_avg_xy_old = fg_avg_xy
+    fg_avg_yy_old = fg_avg_yy
+    fg_edgV_xx_old = fg_edgV_xx
+    fg_edgV_xy_old = fg_edgV_xy
+    fg_edgH_yy_old = fg_edgH_yy
+    fg_edgH_xy_old = fg_edgH_xy
+    MGQD_Src_old = MGQD_Src
+    Eg_avg_old = Eg_avg
+    Eg_edgV_old = Eg_edgV
+    Eg_edgH_old = Eg_edgH
+    Fxg_edgV_old = Fxg_edgV
+    Fyg_edgH_old = Fyg_edgH
+    KapE_old = KapE
+    KapR_old = KapR
+
+    CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
+      fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
+      Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
+
     HO_E_avg_RTold2 = 0d0
     HO_E_avg_RTold = 0d0
     Temp_RTold2 = 0d0
     Temp_RTold = 0d0
     RT_Its = 0
-    t = t + 1
-    Time = Time + Delt
+    ! t = t + 1
+    ! Time = Time + Delt
     RT_Conv = .FALSE.
     DO WHILE ((.NOT. RT_Conv).AND.(RT_Its .LT. Maxit_RTE))
       RT_Its = RT_Its + 1
@@ -209,28 +236,28 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
     HO_E_avg_Times(:,:,t) = HO_E_avg
     MGQD_E_avg_Times(:,:,t) = MGQD_E_avg
 
-    Temp_Old = Temp
-    I_crn_old = I_crn
+    ! Temp_Old = Temp
+    ! I_crn_old = I_crn
 
-    fg_avg_xx_old = fg_avg_xx
-    fg_avg_xy_old = fg_avg_xy
-    fg_avg_yy_old = fg_avg_yy
-    fg_edgV_xx_old = fg_edgV_xx
-    fg_edgV_xy_old = fg_edgV_xy
-    fg_edgH_yy_old = fg_edgH_yy
-    fg_edgH_xy_old = fg_edgH_xy
-    MGQD_Src_old = MGQD_Src
-    Eg_avg_old = Eg_avg
-    Eg_edgV_old = Eg_edgV
-    Eg_edgH_old = Eg_edgH
-    Fxg_edgV_old = Fxg_edgV
-    Fyg_edgH_old = Fyg_edgH
-    KapE_old = KapE
-    KapR_old = KapR
+    ! fg_avg_xx_old = fg_avg_xx
+    ! fg_avg_xy_old = fg_avg_xy
+    ! fg_avg_yy_old = fg_avg_yy
+    ! fg_edgV_xx_old = fg_edgV_xx
+    ! fg_edgV_xy_old = fg_edgV_xy
+    ! fg_edgH_yy_old = fg_edgH_yy
+    ! fg_edgH_xy_old = fg_edgH_xy
+    ! MGQD_Src_old = MGQD_Src
+    ! Eg_avg_old = Eg_avg
+    ! Eg_edgV_old = Eg_edgV
+    ! Eg_edgH_old = Eg_edgH
+    ! Fxg_edgV_old = Fxg_edgV
+    ! Fyg_edgH_old = Fyg_edgH
+    ! KapE_old = KapE
+    ! KapR_old = KapR
 
-    CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
-      fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
-      Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
+    ! CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
+    !   fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
+    !   Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
 
     IF (Time .GE. Final_Time) EXIT
   END DO

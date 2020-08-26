@@ -9,9 +9,9 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE OLD_GREY_COEFS(c, Delt, Theta,Gold,Temp_old,KapE_bar_old,E_avg_old,GQD_Src_old,Gold_Hat,Rhat_old)
+SUBROUTINE OLD_GREY_COEFS(c,Delt,Theta,cv,A,Gold,Temp_old,KapE_bar_old,E_avg_old,GQD_Src_old,Gold_Hat,Rhat_old)
 
-  REAL*8,INTENT(IN):: c, Delt, Theta
+  REAL*8,INTENT(IN):: c, Delt, Theta, cv, A(:,:)
   REAL*8,INTENT(IN):: Gold(:,:,:), Temp_old(:,:), KapE_bar_old(:,:), E_avg_old(:,:), GQD_Src_old(:,:)
   REAL*8,INTENT(OUT):: Gold_Hat(:,:), Rhat_old(:,:)
 
@@ -45,8 +45,8 @@ END SUBROUTINE OLD_GREY_COEFS
 !
 !==================================================================================================================================!
 SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
-  fg_edgH_xy,KapE,KapR,Delx,Dely,A,c,Delt,Theta,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,&
-  PL,PR,PB,PT)
+  fg_edgH_xy,KapE,KapR,Delx,Dely,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,&
+  DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
 
   REAL*8,INTENT(IN):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,INTENT(IN):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
@@ -56,6 +56,7 @@ SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_
   REAL*8,INTENT(IN):: KapE(:,:,:), KapR(:,:,:)
   REAL*8,INTENT(IN):: Delx(:), Dely(:), A(:,:)
   REAL*8,INTENT(IN):: c, Delt, Theta
+  REAL*8,INTENT(IN):: Pold_L(:,:,:), Pold_R(:,:,:), Pold_B(:,:,:), Pold_T(:,:,:)
 
   REAL*8,INTENT(OUT):: KapE_Bar(:,:)
   REAL*8,INTENT(OUT):: DC_xx(:,:), DL_xx(:,:), DR_xx(:,:)
@@ -296,7 +297,10 @@ END SUBROUTINE GQD_In_Calc
 !   The Newton iterations employ a line search and safety bounds
 !
 !==================================================================================================================================!
-SUBROUTINE EGP_FV_NEWT()
+SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,Its,Temp_Mold,KapE_bar_Mold,Theta,&
+  Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,&
+  DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,&
+  T_Bound_Low,Eps1,Eps2,Use_Line_Search,Use_Safety_Search)
 
   !OUTPUTS
   REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Temp(:,:), KapE_Bar(:,:)
@@ -305,7 +309,7 @@ SUBROUTINE EGP_FV_NEWT()
 
   !INPUTS
   REAL*8,INTENT(IN):: Temp_Mold(:,:), KapE_bar_Mold(:,:)
-  REAL*8,INTENT(IN):: Theta, c, Delt
+  REAL*8,INTENT(IN):: Theta, Delt
   REAL*8,INTENT(IN):: Delx(:), Dely(:), A(:,:)
   REAL*8,INTENT(IN):: Cb_L(:), Cb_B(:), Cb_R(:), Cb_T(:)
   REAL*8,INTENT(IN):: E_in_L(:), E_in_B(:), E_in_R(:), E_in_T(:)
@@ -315,8 +319,9 @@ SUBROUTINE EGP_FV_NEWT()
   REAL*8,INTENT(IN):: DL_xy(:,:), DR_xy(:,:), DB_xy(:,:), DT_xy(:,:)
   REAL*8,INTENT(IN):: PL(:,:), PR(:,:), PB(:,:), PT(:,:)
   REAL*8,INTENT(IN):: Gold_Hat(:,:), Rhat_old(:,:)
-  REAL*8,INTENT(IN):: Chi, line_src, Eps1, Eps2
   REAL*8,INTENT(IN):: Kap0, cv, Comp_Unit
+  REAL*8,INTENT(IN):: Chi, line_src, E_Bound_Low, T_Bound_Low, Eps1, Eps2
+  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search
 
   !INTERNALS(ARRAYS)
   REAL*8,ALLOCATABLE:: Del_T(:,:), Del_E_avg(:,:), Del_E_edgV(:,:), Del_E_edgH(:,:)
@@ -336,9 +341,9 @@ SUBROUTINE EGP_FV_NEWT()
   REAL*8,PARAMETER:: c=2.99792458d2   !cm/sh
   REAL*8,PARAMETER:: pi=4d0*ATAN(1d0)
   REAL*8,PARAMETER:: erg=6.24150934d11  !eV/erg -- 1 erg is this many ev's
-  LOGICAL:: Converged, Use_Line_Search, Use_Safety_Search
+  LOGICAL:: Converged
   INTEGER:: N_x, N_y, i, j
-  REAL*8:: KapE_Bound, dres, LS
+  REAL*8:: KapE_Bound, dres, LS, aR, sig_R
   REAL*8:: T_Norm, T_Eps, Fx_Norm, Fx_Eps, Fy_Norm, Fy_Eps
   REAL*8:: Ea_Norm, Ea_Eps, Ev_Norm, Ev_Eps, Eh_Norm, Eh_Eps
 
@@ -477,7 +482,7 @@ SUBROUTINE EGP_FV_NEWT()
     DO j=1,N_y
       DO i=1,N_x-1
         !center cell face coefficient for the left hand side of the x-momentum balance eq
-        MBx_R(i,j) = -2d0*c*Dely(j)*( DR_yy(i,j)/A(i,j) + DL_yy(i+1,j)/A(i+1,j) )
+        MBx_R(i,j) = -2d0*c*Dely(j)*( DR_xx(i,j)/A(i,j) + DL_xx(i+1,j)/A(i+1,j) )
 
         !right hand side of x-momentum balance eq
         MBx_RHS(i,j) = dr_MR(i,j)/A(i,j) - dr_ML(i+1,j)/A(i+1,j)
@@ -507,7 +512,7 @@ SUBROUTINE EGP_FV_NEWT()
     !                                                                           !
     !===========================================================================!
     CALL QD_FV(Del_E_avg,Del_E_edgV,Del_E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
-      MBy_T,MBy_L,MBy_R,EB_RHS,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
+      MBy_T,MBy_L,MBy_R,dr_G,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
 
     !===========================================================================!
     !                                                                           !
@@ -551,7 +556,7 @@ SUBROUTINE EGP_FV_NEWT()
     E_edgV = E_edgV + Del_E_edgV
     Fx_edgV = Fx_edgV + Del_Fx_edgV
     Fy_edgH = Fy_edgH + Del_Fy_edgH
-    KapE_Bar = KapE_Bar + DOT_PRODUCT(KapE_Bar_dT,Del_T)
+    KapE_Bar = KapE_Bar + KapE_Bar_dT*Del_T
     Q_bar(i,j) = 15d0*kap0*c*aR*Temp(i,j)/pi**4
 
     !===========================================================================!
@@ -564,7 +569,7 @@ SUBROUTINE EGP_FV_NEWT()
     LS = 1d0
     Line_Search: DO
 
-      CALL LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_Temp,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
+      CALL LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_T,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
         Del_Fy_edgH,KapE_Bar,KapE_Bar_dT,Q_Bar,LS,kap0,c,aR,pi)
 
       LS = 1d0
@@ -762,7 +767,7 @@ SUBROUTINE EGP_FV_NEWT()
     LS = 1d0
     Safe_Search: DO
 
-      CALL LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_Temp,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
+      CALL LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_T,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
         Del_Fy_edgH,KapE_Bar,KapE_Bar_dT,Q_Bar,LS,kap0,c,aR,pi)
 
       LS = 1d0
@@ -787,7 +792,7 @@ SUBROUTINE EGP_FV_NEWT()
 
             END IF
           END DO Safe_T
-          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+          IF (LS .GT. 1d0) CYCLE Safe_Search !if a line search was conducted, must apply to entire solution vector and reset
 
           !--------------------------------------------------!
           !                                                  !
@@ -806,7 +811,7 @@ SUBROUTINE EGP_FV_NEWT()
 
             END IF
           END DO Safe_EA
-          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+          IF (LS .GT. 1d0) CYCLE Safe_Search !if a line search was conducted, must apply to entire solution vector and reset
 
         END DO
       END DO
@@ -831,7 +836,7 @@ SUBROUTINE EGP_FV_NEWT()
 
             END IF
           END DO Safe_EV
-          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+          IF (LS .GT. 1d0) CYCLE Safe_Search !if a line search was conducted, must apply to entire solution vector and reset
 
         END DO
       END DO
@@ -856,7 +861,7 @@ SUBROUTINE EGP_FV_NEWT()
 
             END IF
           END DO Safe_EH
-          IF (LS .GT. 1d0) CYCLE Line_Search !if a line search was conducted, must apply to entire solution vector and reset
+          IF (LS .GT. 1d0) CYCLE Safe_Search !if a line search was conducted, must apply to entire solution vector and reset
 
         END DO
       END DO
@@ -870,12 +875,12 @@ SUBROUTINE EGP_FV_NEWT()
     !     CHECKING CONVERGENCE                                                  !
     !                                                                           !
     !===========================================================================!
-    T_Eps = Eps1*Temp + Eps2
-    Ea_Eps = Eps1*E_avg + Eps2
-    Ev_Eps = Eps1*E_edgV + Eps2
-    Eh_Eps = Eps1*E_edgH + Eps2
-    Fx_Eps = Eps1*Fx_edgV + Eps2
-    Fy_Eps = Eps1*Fy_edgH + Eps2
+    T_Eps = Eps1*MAXVAL(ABS(Temp)) + Eps2
+    Ea_Eps = Eps1*MAXVAL(ABS(E_avg)) + Eps2
+    Ev_Eps = Eps1*MAXVAL(ABS(E_edgV)) + Eps2
+    Eh_Eps = Eps1*MAXVAL(ABS(E_edgH)) + Eps2
+    Fx_Eps = Eps1*MAXVAL(ABS(Fx_edgV)) + Eps2
+    Fy_Eps = Eps1*MAXVAL(ABS(Fy_edgH)) + Eps2
 
     T_Norm = MAXVAL(ABS(Del_T))
     Ea_Norm = MAXVAL(ABS(Del_E_avg))
@@ -913,11 +918,11 @@ END SUBROUTINE LS_Reset
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_Temp,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
+SUBROUTINE LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_T,Del_E_avg,Del_E_edgV,Del_E_edgH,Del_Fx_edgV,&
   Del_Fy_edgH,KapE_Bar,KapE_Bar_dT,Q_Bar,LS,kap0,c,aR,pi)
 
   REAL*8,INTENT(INOUT):: Temp(:,:), E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Fx_edgV(:,:), Fy_edgH(:,:)
-  REAL*8,INTENT(INOUT):: Del_Temp(:,:), Del_E_avg(:,:), Del_E_edgV(:,:), Del_E_edgH(:,:), Del_Fx_edgV(:,:), Del_Fy_edgH(:,:)
+  REAL*8,INTENT(INOUT):: Del_T(:,:), Del_E_avg(:,:), Del_E_edgV(:,:), Del_E_edgH(:,:), Del_Fx_edgV(:,:), Del_Fy_edgH(:,:)
   REAL*8,INTENT(INOUT):: KapE_Bar(:,:), KapE_Bar_dT(:,:), Q_Bar(:,:)
   REAL*8,INTENT(IN):: LS, kap0, c, aR, pi
   INTEGER:: i, j, N_x, N_y
@@ -948,7 +953,7 @@ SUBROUTINE LS_Reset_Full(Temp,E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,Del_Temp,Del_E
     CALL LS_Reset(Fy_edgH(i,j),Del_Fy_edgH(i,j),LS)
   END DO
 
-END SUBROUTINE LS_Reset
+END SUBROUTINE LS_Reset_Full
 
 !==================================================================================================================================!
 !

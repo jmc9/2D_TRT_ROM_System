@@ -45,11 +45,6 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
   KapE = KapE_in + 1d0/(c*Delt)
   Src = Src_in + I_crn_old/(c*Delt)
 
-  !$ threads = open_threads
-  !$ IF (threads .GT. N_g) threads = N_g
-  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(threads) &
-  !$OMP& PRIVATE(m,i,j,m1,m2,left,right,bot,top,Q,B)
-  !$OMP DO
   DO g=1,N_g
     !--------------------------------------------------!
     !            Omega_x > 0, Omega_y > 0              !
@@ -239,13 +234,11 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
       END DO !end of y cell loop
     END DO !end of angle loop
   END DO
-  !$OMP END DO
 
   !--------------------------------------------------!
   !              Residual Calculations               !
   !--------------------------------------------------!
   IF (Res_Calc) THEN
-  !$OMP DO
   DO g=1,N_g
     DO m=1,N_m
       DO j=1,N_y
@@ -293,9 +286,7 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
       END DO
     END DO
   END DO
-  !$OMP END DO
   END IF
-  !$OMP END PARALLEL
 
   DEALLOCATE(B,Q)
 
@@ -409,11 +400,6 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
   !--------------------------------------------------!
   !             Multigroup E's and F's               !
   !--------------------------------------------------!
-  !$ threads = open_threads
-  !$ IF (threads .GT. N_g) threads = N_m
-  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(threads) &
-  !$OMP& PRIVATE(g,m,i,j)
-  !$OMP DO
   DO g=1,N_g
     DO m=1,N_m
 
@@ -449,8 +435,6 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
 
     END DO
   END DO
-  !$OMP END DO
-  !$OMP END PARALLEL
   Eg_avg = Eg_avg/c !Dividing all values by c to find radiation energy density (instead of scalar rad flux)
   Eg_edgV = Eg_edgV/c
   Eg_edgH = Eg_edgH/c

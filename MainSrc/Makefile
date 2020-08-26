@@ -25,7 +25,8 @@ SRC_OBJ = main.o \
 					CONVERGENCE_CHECKS.o \
 					MLOQD_SOLVES.o \
 					QD_SOLVERS.o \
-					TEMP_FUNCTIONS.o
+					TEMP_FUNCTIONS.o \
+					GLOQD_SOLVES.o
 
 EXEC = 2dtrt.exe
 
@@ -40,8 +41,6 @@ all :
 	$(MAKE) $(EXEC)
 	@mkdir -p $(MOD_DIR)
 	mv *mod $(MOD_DIR)
-	@mkdir -p $(OBJ_DIR)
-	mv *o $(OBJ_DIR)
 
 $(EXEC) : $(SRC_OBJ)
 	$(FC) $(FFLAGS) $(WARNINGS) $(RUNTIMES) $^ -o $@ -L$(MATH_DIR) -ljmcmath -Wl,-rpath=$(MATH_DIR) $(LAPACK)
@@ -64,4 +63,5 @@ UPDATES.o : TEMP_FUNCTIONS.o
 ALGORITHMS.o : TRANSPORT_SOLVES.o UPDATES.o CONVERGENCE_CHECKS.o OUTPUTS.o
 CONVERGENCE_CHECKS.o :
 MLOQD_SOLVES.o : QD_SOLVERS.o
+GLOQD_SOLVES.o : QD_SOLVERS.o
 QD_SOLVERS.o :

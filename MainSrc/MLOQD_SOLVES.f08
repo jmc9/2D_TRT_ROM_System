@@ -128,12 +128,6 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
 
   ALLOCATE(E1(N_x,N_y),E2(N_x+1,N_y),E3(N_x,N_y+1))
 
-  !$ threads = open_threads
-  !$ IF (threads .GT. N_g) threads = N_g
-  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(threads) &
-  !$OMP& PRIVATE(i,j,Xi,Phat_L,Phat_B,Phat_R,Phat_T,Ghat,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,&
-  !$OMP& MBy_C,MBy_T,MBy_L,MBy_R,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T,MBx_RHS,MBy_RHS,E1,E2,E3)
-  !$OMP DO
   DO g=1,N_g
 
     DO j=1,N_y
@@ -242,14 +236,12 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
     END DO
 
   END DO !End loop over N_g
-  !$OMP END DO
 
   !--------------------------------------------------!
   !              Residual Calculations               !
   !--------------------------------------------------!
   IF (Res_Calc) THEN
   MGQD_Residual = 0d0
-  !$OMP DO
   DO g=1,N_g
     DO j=1,N_y
       DO i=1,N_x
@@ -296,9 +288,7 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
       END DO
     END DO
   END DO
-  !$OMP END DO
   END IF
-  !$OMP END PARALLEL
 
   DEALLOCATE(Xi)
   DEALLOCATE(Ghat)

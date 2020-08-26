@@ -138,9 +138,6 @@ program main
       HO_E_edgH,HO_E_avg,HO_Fx_edgV,HO_Fy_edgH)
     CALL TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,N_t,Tini,&
       Comp_Unit,Nu_g,Temp_Times,HO_E_avg_Times,GREY_E_avg_Times,Temp_Old,MGQD_E_avg_Times)
-    ! CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
-    !   fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
-    !   Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
 
     OPEN(UNIT=103,FILE=res_history_outfile,STATUS='REPLACE',ACTION='WRITE',IOSTAT=err)
   !   making sure file exists/opens, if not tells user
@@ -151,14 +148,14 @@ program main
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     CALL TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Tlen,c,cV,Kap0,Comp_Unit,Bg,KapE,&
-      kapB,RT_Src,Temp,Temp_old,I_crn_old,I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,Hg_avg_xx,Hg_avg_xy,&
+      kapB,RT_Src,Temp,Temp_old,I_crn_old,I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_xy,&
       Hg_avg_yy,Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,&
       HO_E_avg,HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,Temp_Times,HO_E_avg_Times,Nu_g,conv_ho,maxit_RTE,conv_type,&
       Start_Time,Threads,BC_Type,bcT_left,bcT_lower,bcT_right,bcT_upper,MGQD_Src,KapR,KapE_old,KapR_old,Theta,Eg_avg,&
       Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,&
       fg_avg_xx_old,fg_avg_xy_old,fg_avg_yy_old,fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,&
       Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Eg_avg_old,Eg_edgV_old,Eg_edgH_old,&
-      Fxg_edgV_old,Fyg_edgH_old,MGQD_Src_old,Res_Calc,MGQD_Residual,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
+      Fxg_edgV_old,Fyg_edgH_old,MGQD_Src_old,Res_Calc,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
       MGQD_Fy_edgH,MGQD_E_avg_Times,Maxit_MLOQD,run_type,Conv_LO,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     CLOSE ( 103, STATUS='KEEP')

@@ -147,6 +147,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
     Temp_RTold2 = 0d0
     Temp_RTold = 0d0
     RT_Its = 0
+    MGQD_Its = 0
     RT_Conv = .FALSE.
     DO WHILE ((.NOT. RT_Conv).AND.(RT_Its .LT. Maxit_RTE))
       RT_Its = RT_Its + 1

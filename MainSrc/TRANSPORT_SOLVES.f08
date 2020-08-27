@@ -70,7 +70,7 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
           Q(4) = A(i,j)*Src(left,top,m,g)/4d0 + Omega_x(m)*Dely(j)*Ic_edgV(i,top,m,g)/2d0
 
           !solve subcell system for corner intensities
-          CALL LP_MATSOLVE(B,Q)
+          CALL GAUSS_COMPLETE(B,Q)
           I_crn(left,bot,m,g)  = Q(1)
           I_crn(right,bot,m,g) = Q(2)
           I_crn(right,top,m,g) = Q(3)
@@ -117,7 +117,7 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
           Q(4) = A(i,j)*Src(left,top,m,g)/4d0
 
           !solve subcell system for corner intensities
-          CALL LP_MATSOLVE(B,Q)
+          CALL GAUSS_COMPLETE(B,Q)
           I_crn(left,bot,m,g)  = Q(1)
           I_crn(right,bot,m,g) = Q(2)
           I_crn(right,top,m,g) = Q(3)
@@ -164,7 +164,7 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
           Q(4) = A(i,j)*Src(left,top,m,g)/4d0 - Omega_y(m)*Delx(i)*Ic_edgH(left,j+1,m,g)/2d0
 
           !solve subcell system for corner intensities
-          CALL LP_MATSOLVE(B,Q)
+          CALL GAUSS_COMPLETE(B,Q)
           I_crn(left,bot,m,g)  = Q(1)
           I_crn(right,bot,m,g) = Q(2)
           I_crn(right,top,m,g) = Q(3)
@@ -211,7 +211,7 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
           - Omega_y(m)*Delx(i)*Ic_edgH(left,j+1,m,g)/2d0
 
           !solve subcell system for corner intensities
-          CALL LP_MATSOLVE(B,Q)
+          CALL GAUSS_COMPLETE(B,Q)
           I_crn(left,bot,m,g)  = Q(1)
           I_crn(right,bot,m,g) = Q(2)
           I_crn(right,top,m,g) = Q(3)

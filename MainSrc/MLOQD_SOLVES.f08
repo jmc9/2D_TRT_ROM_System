@@ -127,7 +127,7 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
   ALLOCATE(BC_L(N_y), BC_B(N_x), BC_R(N_y), BC_T(N_x))
 
   ALLOCATE(E1(N_x,N_y),E2(N_x+1,N_y),E3(N_x,N_y+1))
-
+  
   DO g=1,N_g
 
     DO j=1,N_y
@@ -201,8 +201,6 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
     !     Finding Eg's by inverting the reduced linear system                   !
     !                                                                           !
     !===========================================================================!
-    ! CALL QD_FV(Eg_avg(:,:,g),Eg_edgV(:,:,g),Eg_edgH(:,:,g),EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
-    !   MBy_T,MBy_L,MBy_R,Ghat,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
     CALL QD_FV(E1,E2,E3,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
       MBy_T,MBy_L,MBy_R,Ghat,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
     Eg_avg(:,:,g)=E1

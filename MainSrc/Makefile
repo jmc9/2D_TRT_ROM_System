@@ -8,7 +8,7 @@ MATH_DIR = /mnt/c/math_routines
 #--------------------------------------------
 
 FC = gfortran
-FFLAGS = -Og -fopenmp -I $(MATH_DIR)
+FFLAGS = -O1 -I $(MATH_DIR)
 WARNINGS =  -Wall -Wextra -Wunused-dummy-argument -Wconversion -Wconversion-extra -Wintrinsic-shadow -Wsurprising
 RUNTIMES = -fbacktrace -fbounds-check -fcheck=all
 LAPACK = -llapack -lblas

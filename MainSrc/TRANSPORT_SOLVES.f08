@@ -434,10 +434,10 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
       END DO
 
     END DO
+    Eg_avg(:,:,g) = Eg_avg(:,:,g)/c !Dividing all values by c to find radiation energy density (instead of scalar rad flux)
+    Eg_edgV(:,:,g) = Eg_edgV(:,:,g)/c
+    Eg_edgH(:,:,g) = Eg_edgH(:,:,g)/c
   END DO
-  Eg_avg = Eg_avg/c !Dividing all values by c to find radiation energy density (instead of scalar rad flux)
-  Eg_edgV = Eg_edgV/c
-  Eg_edgH = Eg_edgH/c
 
   !--------------------------------------------------!
   !             Multigroup E's and F's               !

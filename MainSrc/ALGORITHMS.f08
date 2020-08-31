@@ -170,7 +170,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
         CALL fg_Calc(fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
           Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,c,Comp_Unit)
 
-        CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit)
+        CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type)
 
       END IF
 
@@ -208,6 +208,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
           MGQD_E_avg_MGQDold = MGQD_E_avg
           Temp_MGQDold2 = Temp_MGQDold
           Temp_MGQDold = Temp
+
+          write(*,*) 'MGQD:     ',MGQD_Its, MGQD_Tnorm, MGQD_Enorm
 
         END DO
 

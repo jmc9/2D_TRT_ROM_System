@@ -45,7 +45,7 @@ program main
     CHARACTER(100):: run_type, restart_infile
     CHARACTER(100):: kapE_dT_flag, enrgy_strc, quadrature
     REAL*8,ALLOCATABLE:: Omega_x(:), Omega_y(:), quad_weight(:)
-    REAL*8:: Theta=1
+    REAL*8:: Theta=1d0
     LOGICAL:: Res_Calc = .TRUE.
 
     !--------------------------------------------------!
@@ -132,7 +132,7 @@ program main
       fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_xy_old,fg_avg_yy_old,&
       fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,&
       Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Residual,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,&
-      MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,maxit_MLOQD,maxit_RTE)
+      MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,maxit_MLOQD,maxit_RTE,BC_Type)
     CALL COLLAPSE_INTENSITIES(Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
       Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,Eg_edgV,Eg_edgH,Eg_avg,Fxg_edgV,Fyg_edgH,HO_E_edgV,&
       HO_E_edgH,HO_E_avg,HO_Fx_edgV,HO_Fy_edgH)

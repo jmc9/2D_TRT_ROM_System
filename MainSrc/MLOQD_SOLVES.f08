@@ -127,7 +127,7 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
   ALLOCATE(BC_L(N_y), BC_B(N_x), BC_R(N_y), BC_T(N_x))
 
   ALLOCATE(E1(N_x,N_y),E2(N_x+1,N_y),E3(N_x,N_y+1))
-  
+
   DO g=1,N_g
 
     DO j=1,N_y
@@ -308,11 +308,12 @@ END SUBROUTINE MLOQD_FV
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit)
+SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type)
   REAL*8,INTENT(OUT):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
   REAL*8,INTENT(IN):: I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:)
   REAL*8,INTENT(IN):: Comp_Unit
+  INTEGER,INTENT(IN):: BC_Type(:)
 
   REAL*8:: sum, eps
   INTEGER:: N_x, N_y, N_m, N_g
@@ -334,55 +335,91 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
   Cg_T = 0d0
   DO g=1,N_g
 
-    m1 = N_m/4+1
-    m2 = 3*N_m/4
-    DO i=1,N_y
-      sum=0d0
-      DO m=m1,m2
-        Cg_L(i,g) = Cg_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
-        sum = sum + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+    !--------------------------------------------------!
+    !            Left Boundary Coefficient             !
+    !--------------------------------------------------!
+    IF (BC_Type(1) .EQ. 0) THEN !incoming radiation condition, calculate Cg_L
+      m1 = N_m/4+1
+      m2 = 3*N_m/4
+      DO i=1,N_y
+        sum=0d0
+        DO m=m1,m2
+          Cg_L(i,g) = Cg_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+          sum = sum + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+        END DO
+        Cg_L(i,g) = Cg_L(i,g)/sum
       END DO
-      Cg_L(i,g) = Cg_L(i,g)/sum
-    END DO
 
-    m1 = N_m/2+1
-    m2 = N_m
-    DO i=1,N_x
-      sum=0d0
-      DO m=m1,m2
-        Cg_B(i,g) = Cg_B(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,1,m,g) + eps)
-        sum = sum + quad_weight(m)*(I_edgH(i,1,m,g) + eps)
-      END DO
-      Cg_B(i,g) = Cg_B(i,g)/sum
-    END DO
+    ELSE IF (BC_Type(1) .EQ. 1) THEN !vacuum condition implies Cg_L = 0
+      Cg_L(:,g) = 0d0
 
-    DO i=1,N_y
-      sum=0d0
-      m1 = 1
-      m2 = N_m/4
-      DO m=m1,m2
-        Cg_R(i,g) = Cg_R(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
-        sum = sum + quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
-      END DO
-      m1 = 3*N_m/4+1
+    END IF
+
+    !--------------------------------------------------!
+    !           Bottom Boundary Coefficient            !
+    !--------------------------------------------------!
+    IF (BC_Type(2) .EQ. 0) THEN !incoming radiation condition, calculate Cg_B
+      m1 = N_m/2+1
       m2 = N_m
-      DO m=m1,m2
-        Cg_R(i,g) = Cg_R(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
-        sum = sum + quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+      DO i=1,N_x
+        sum=0d0
+        DO m=m1,m2
+          Cg_B(i,g) = Cg_B(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,1,m,g) + eps)
+          sum = sum + quad_weight(m)*(I_edgH(i,1,m,g) + eps)
+        END DO
+        Cg_B(i,g) = Cg_B(i,g)/sum
       END DO
-      Cg_R(i,g) = Cg_R(i,g)/sum
-    END DO
 
-    m1 = 1
-    m2 = N_m/2
-    DO i=1,N_x
-      sum=0d0
-      DO m=m1,m2
-        Cg_T(i,g) = Cg_T(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
-        sum = sum + quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
+    ELSE IF (BC_Type(2) .EQ. 1) THEN !vacuum condition implies Cg_B = 0
+      Cg_B(:,g) = 0d0
+
+    END IF
+
+    !--------------------------------------------------!
+    !           Right Boundary Coefficient             !
+    !--------------------------------------------------!
+    IF (BC_Type(3) .EQ. 0) THEN !incoming radiation condition, calculate Cg_R
+      DO i=1,N_y
+        sum=0d0
+        m1 = 1
+        m2 = N_m/4
+        DO m=m1,m2
+          Cg_R(i,g) = Cg_R(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+          sum = sum + quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+        END DO
+        m1 = 3*N_m/4+1
+        m2 = N_m
+        DO m=m1,m2
+          Cg_R(i,g) = Cg_R(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+          sum = sum + quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+        END DO
+        Cg_R(i,g) = Cg_R(i,g)/sum
       END DO
-      Cg_T(i,g) = Cg_T(i,g)/sum
-    END DO
+
+    ELSE IF (BC_Type(3) .EQ. 1) THEN !vacuum condition implies Cg_R = 0
+      Cg_R(:,g) = 0d0
+
+    END IF
+
+    !--------------------------------------------------!
+    !            Top Boundary Coefficient              !
+    !--------------------------------------------------!
+    IF (BC_Type(4) .EQ. 0) THEN !incoming radiation condition, calculate Cg_T
+      m1 = 1
+      m2 = N_m/2
+      DO i=1,N_x
+        sum=0d0
+        DO m=m1,m2
+          Cg_T(i,g) = Cg_T(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
+          sum = sum + quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
+        END DO
+        Cg_T(i,g) = Cg_T(i,g)/sum
+      END DO
+
+    ELSE IF (BC_Type(4) .EQ. 1) THEN !vacuum condition implies Cg_T = 0
+      Cg_T(:,g) = 0d0
+
+    END IF
 
   END DO
 

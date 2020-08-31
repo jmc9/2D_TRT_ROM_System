@@ -166,7 +166,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_xy_old,fg_avg_yy_old,&
   fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,&
   Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Residual,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,&
-  MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,maxit_MLOQD,maxit_RTE)
+  MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,maxit_MLOQD,maxit_RTE,BC_Type)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
@@ -190,6 +190,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:)
   REAL*8,INTENT(IN):: c, Comp_Unit
   INTEGER,INTENT(IN):: N_y, N_x, N_g, maxit_MLOQD, maxit_RTE
+  INTEGER,INTENT(IN):: BC_Type(:)
 
   !Multigroup quasidiffusion tensors
   ALLOCATE(fg_avg_xx(N_x,N_y,N_g))
@@ -274,7 +275,31 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   fg_edgH_yy_old = 1d0/3d0
   fg_edgH_xy_old = 0d0
 
-  CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit)
+  IF (BC_Type(1) .EQ. 0) THEN
+    Cg_L=-0.5d0
+  ELSE IF (BC_Type(1) .EQ. 1) THEN
+    Cg_L=0d0
+  END IF
+
+  IF (BC_Type(2) .EQ. 0) THEN
+    Cg_B=-0.5d0
+  ELSE IF (BC_Type(2) .EQ. 1) THEN
+    Cg_B=0d0
+  END IF
+
+  IF (BC_Type(3) .EQ. 0) THEN
+    Cg_R=0.5d0
+  ELSE IF (BC_Type(3) .EQ. 1) THEN
+    Cg_R=0d0
+  END IF
+
+  IF (BC_Type(4) .EQ. 0) THEN
+    Cg_T=0.5d0
+  ELSE IF (BC_Type(3) .EQ. 1) THEN
+    Cg_T=0d0
+  END IF
+
+  ! CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit)
   CALL MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,&
     quad_weight,c,Comp_Unit)
 

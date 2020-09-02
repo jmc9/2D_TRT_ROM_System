@@ -11,11 +11,11 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE RT_INIT(I_avg,I_avg_old,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
+SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
   Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_avg,&
-  HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,RT_Residual,N_y,N_x,N_m,N_g,&
+  HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,N_y,N_x,N_m,N_g,&
   Tini,comp_unit,nu_g,bcT_left,bcT_right,bcT_upper,bcT_lower,BC_Type,maxit_RTE)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: I_avg(:,:,:,:), I_avg_old(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: I_crn(:,:,:,:), I_crn_old(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_xy(:,:,:), Hg_avg_yy(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
@@ -24,7 +24,7 @@ SUBROUTINE RT_INIT(I_avg,I_avg_old,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH
   REAL*8,ALLOCATABLE,INTENT(OUT):: HO_Fxg_edgV(:,:,:), HO_Fyg_edgH(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: HO_E_avg(:,:), HO_E_edgV(:,:), HO_E_edgH(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: HO_Fx_edgV(:,:), HO_Fy_edgH(:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: RT_Residual(:,:,:,:,:,:)
+  ! REAL*8,ALLOCATABLE,INTENT(OUT):: RT_Residual(:,:,:,:,:,:)
 
   REAL*8,INTENT(IN):: Tini, bcT_left, bcT_right, bcT_upper, bcT_lower
   REAL*8,INTENT(IN):: comp_unit, nu_g(:)
@@ -76,7 +76,7 @@ SUBROUTINE RT_INIT(I_avg,I_avg_old,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH
   ALLOCATE(HO_E_edgH(N_x,N_y+1))
 
   !Residuals for the transport solve
-  ALLOCATE(RT_Residual(N_x*2,N_y*2,N_m,N_g,2,maxit_RTE))
+  ! ALLOCATE(RT_Residual(N_x*2,N_y*2,N_m,N_g,2,maxit_RTE))
 
   DO g=1,N_g
     !black body radiation distribution at initial Temp
@@ -90,7 +90,6 @@ SUBROUTINE RT_INIT(I_avg,I_avg_old,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH
   END DO
 
   CALL RT_BC_UPDATE(BC_Type,bcT_left,bcT_lower,bcT_right,bcT_upper,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
-  I_avg_old = I_avg
   I_crn_old = I_crn
 
 END SUBROUTINE RT_INIT
@@ -99,13 +98,13 @@ END SUBROUTINE RT_INIT
 !
 !==================================================================================================================================!
 SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,N_t,Tini,&
-  Comp_Unit,Nu_g,Temp_Times,HO_E_avg_Times,GREY_E_avg_Times,Temp_Old,MGQD_E_avg_Times)
+  Comp_Unit,Nu_g,Temp_Old)
   REAL*8,ALLOCATABLE,INTENT(INOUT):: Temp(:,:), Temp_Old(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: RT_Src(:,:,:,:), MGQD_Src(:,:,:), MGQD_Src_old(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: KapE(:,:,:), KapB(:,:,:), KapR(:,:,:), Bg(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: KapE_old(:,:,:), KapR_old(:,:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: Temp_Times(:,:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: HO_E_avg_Times(:,:,:), GREY_E_avg_Times(:,:,:), MGQD_E_avg_Times(:,:,:)
+  ! REAL*8,ALLOCATABLE,INTENT(OUT):: Temp_Times(:,:,:)
+  ! REAL*8,ALLOCATABLE,INTENT(OUT):: HO_E_avg_Times(:,:,:), GREY_E_avg_Times(:,:,:), MGQD_E_avg_Times(:,:,:)
 
   REAL*8,INTENT(IN):: Tini, comp_unit, nu_g(:)
   INTEGER,INTENT(IN):: N_y, N_x, N_m, N_g, N_t
@@ -122,10 +121,10 @@ SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,K
   ALLOCATE(Temp(N_x,N_y))
   ALLOCATE(Temp_Old(N_x,N_y))
 
-  ALLOCATE(Temp_Times(N_x,N_y,N_t))
-  ALLOCATE(HO_E_avg_Times(N_x,N_y,N_t))
-  ALLOCATE(MGQD_E_avg_Times(N_x,N_y,N_t))
-  ALLOCATE(GREY_E_avg_Times(N_x,N_y,N_t))
+  ! ALLOCATE(Temp_Times(N_x,N_y,N_t))
+  ! ALLOCATE(HO_E_avg_Times(N_x,N_y,N_t))
+  ! ALLOCATE(MGQD_E_avg_Times(N_x,N_y,N_t))
+  ! ALLOCATE(GREY_E_avg_Times(N_x,N_y,N_t))
 
   Temp = Tini
   Temp_Old = Temp
@@ -140,22 +139,16 @@ END SUBROUTINE TEMP_INIT
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE MISC_INIT(Delx,Dely,Delt,Start_Time,N_t,A,Times)
+SUBROUTINE MISC_INIT(Delx,Dely,Delt,Start_Time,N_t,A)
   REAL*8,INTENT(IN):: Delx(:), Dely(:), Delt, Start_Time
   INTEGER,INTENT(IN):: N_t
-  REAL*8,ALLOCATABLE,INTENT(OUT):: A(:,:), Times(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: A(:,:)
   INTEGER:: N_x, N_y, t
 
   N_x = SIZE(Delx,1)
   N_y = SIZE(Dely,1)
   ALLOCATE(A(N_x,N_y))
   CALL OUTER_PROD(A,Delx,Dely)
-
-  ALLOCATE(Times(N_t))
-  Times(1) = Start_Time + Delt
-  DO t=2,N_t
-    Times(t) = Times(t-1) + Delt
-  END DO
 
 END SUBROUTINE MISC_INIT
 
@@ -165,7 +158,7 @@ END SUBROUTINE MISC_INIT
 SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,&
   fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_xy_old,fg_avg_yy_old,&
   fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,&
-  Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Residual,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,&
+  Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,&
   MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,maxit_MLOQD,maxit_RTE,BC_Type)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
@@ -181,7 +174,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   REAL*8,ALLOCATABLE,INTENT(OUT):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fg_in_L(:,:), Fg_in_B(:,:), Fg_in_R(:,:), Fg_in_T(:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: MGQD_Residual(:,:,:,:,:,:,:)
+  ! REAL*8,ALLOCATABLE,INTENT(OUT):: MGQD_Residual(:,:,:,:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: MGQD_E_avg(:,:), MGQD_E_edgV(:,:), MGQD_E_edgH(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: MGQD_Fx_edgV(:,:), MGQD_Fy_edgH(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
@@ -256,7 +249,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   ALLOCATE(MGQD_E_edgH(N_x,N_y+1))
 
   !Residuals for the transport solve
-  ALLOCATE(MGQD_Residual(N_x,N_y,N_g,5,2,maxit_MLOQD,maxit_RTE))
+  ! ALLOCATE(MGQD_Residual(N_x,N_y,N_g,5,2,maxit_MLOQD,maxit_RTE))
 
   ALLOCATE(G_old(N_x,N_y,N_g),Pold_L(N_x,N_y,N_g),Pold_B(N_x,N_y,N_g),Pold_R(N_x,N_y,N_g),Pold_T(N_x,N_y,N_g))
 

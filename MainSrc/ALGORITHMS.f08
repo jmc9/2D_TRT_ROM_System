@@ -6,6 +6,7 @@ MODULE ALGORITHMS
   USE MLOQD_SOLVES
   ! USE GLOQD_SOLVES
   USE OUTPUTS
+  USE INITIALIZERS
 
   IMPLICIT NONE
 
@@ -14,64 +15,65 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final_Time,c,cV,Kap0,Comp_Unit,Bg,KapE,&
-  kapB,RT_Src,Temp,Temp_old,I_crn_old,I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_xy,&
-  Hg_avg_yy,Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,&
-  HO_E_avg,HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,Temp_Times,HO_E_avg_Times,Nu_g,Conv_HO,Maxit_RTE,Conv_Type,&
-  Start_Time,Threads,BC_Type,bcT_left,bcT_lower,bcT_right,bcT_upper,MGQD_Src,KapR,KapE_old,KapR_old,Theta,Eg_avg,&
-  Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,&
-  fg_avg_xx_old,fg_avg_xy_old,fg_avg_yy_old,fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,&
-  Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Eg_avg_old,Eg_edgV_old,Eg_edgH_old,&
-  Fxg_edgV_old,Fyg_edgH_old,MGQD_Src_old,Res_Calc,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
-  MGQD_Fy_edgH,MGQD_E_avg_Times,Maxit_MLOQD,run_type,Conv_LO,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
+SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,A,Delt,Theta,Start_Time,c,cV,h,pi,Kap0,&
+  erg,Comp_Unit,Conv_ho,Conv_lo,Conv_gr,bcT_left,bcT_bottom,bcT_right,bcT_top,Tini,chi,line_src,database_gen,&
+  use_grey,Conv_Type,Maxit_RTE,Threads,BC_Type,Maxit_MLOQD,Maxit_GLOQD,N_x,N_y,N_m,N_g,N_t,Res_Calc,run_type,&
+  kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,&
+  Norm_Types_ID)
 
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:)
-  REAL*8,INTENT(IN):: Delx(:), Dely(:), A(:,:), Delt
-  REAL*8,INTENT(IN):: Final_Time, Start_Time
-  REAL*8,INTENT(IN):: c, cV, Kap0
-  REAL*8,INTENT(IN):: Comp_Unit, Conv_HO, Conv_LO
-  REAL*8,INTENT(IN):: bcT_left, bcT_lower, bcT_right, bcT_upper
-  INTEGER,INTENT(IN):: Conv_Type, Maxit_RTE, Threads, BC_Type(:), Maxit_MLOQD
-  REAL*8,INTENT(IN):: Theta
+  REAL*8,INTENT(IN):: Delx(:), Dely(:), Delt, Theta
+  REAL*8,INTENT(IN):: Start_Time
+  REAL*8,INTENT(IN):: c, cV, h, pi, Kap0, erg
+  REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr
+  REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
+  REAL*8,INTENT(IN):: chi, line_src
+  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
+  INTEGER,INTENT(IN):: database_gen, use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
   LOGICAL,INTENT(IN):: Res_Calc
-  CHARACTER(100),INTENT(IN):: run_type
+  CHARACTER(*),INTENT(IN):: run_type, kapE_dT_flag
 
-  REAL*8,INTENT(INOUT):: Bg(:,:,:), KapE(:,:,:), KapB(:,:,:), KapR(:,:,:)
-  REAL*8,INTENT(INOUT):: KapE_old(:,:,:), KapR_old(:,:,:)
-  REAL*8,INTENT(INOUT):: MGQD_Src(:,:,:), MGQD_Src_old(:,:,:), RT_Src(:,:,:,:)
-  REAL*8,INTENT(INOUT):: Temp(:,:), Temp_old(:,:)
+  INTEGER,INTENT(IN):: outID
+  INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID
+  INTEGER,INTENT(IN):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID
 
-  REAL*8,INTENT(INOUT):: I_crn_old(:,:,:,:)
-  REAL*8,INTENT(INOUT):: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
-  REAL*8,INTENT(INOUT):: I_crn(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
+  REAL*8,ALLOCATABLE:: Bg(:,:,:), KapE(:,:,:), KapB(:,:,:), KapR(:,:,:), A(:,:)
+  REAL*8,ALLOCATABLE:: KapE_old(:,:,:), KapR_old(:,:,:)
+  REAL*8,ALLOCATABLE:: MGQD_Src(:,:,:), MGQD_Src_old(:,:,:), RT_Src(:,:,:,:)
 
-  REAL*8,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_xy(:,:,:), Hg_avg_yy(:,:,:)
-  REAL*8,INTENT(OUT):: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
-  REAL*8,INTENT(OUT):: Hg_edgH_yy(:,:,:), Hg_edgH_xy(:,:,:)
-  REAL*8,INTENT(OUT):: HO_Eg_avg(:,:,:), HO_Eg_edgV(:,:,:), HO_Eg_edgH(:,:,:)
-  REAL*8,INTENT(OUT):: HO_Fxg_edgV(:,:,:), HO_Fyg_edgH(:,:,:)
-  REAL*8,INTENT(OUT):: HO_E_avg(:,:), HO_E_edgV(:,:), HO_E_edgH(:,:)
-  REAL*8,INTENT(OUT):: HO_Fx_edgV(:,:), HO_Fy_edgH(:,:)
+  REAL*8,ALLOCATABLE:: I_crn_old(:,:,:,:)
+  REAL*8,ALLOCATABLE:: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
+  REAL*8,ALLOCATABLE:: I_crn(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
 
-  REAL*8,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
-  REAL*8,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
-  REAL*8,INTENT(OUT):: MGQD_E_avg(:,:), MGQD_E_edgV(:,:), MGQD_E_edgH(:,:)
-  REAL*8,INTENT(OUT):: MGQD_Fx_edgV(:,:), MGQD_Fy_edgH(:,:)
+  REAL*8,ALLOCATABLE:: Hg_avg_xx(:,:,:), Hg_avg_xy(:,:,:), Hg_avg_yy(:,:,:)
+  REAL*8,ALLOCATABLE:: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: Hg_edgH_yy(:,:,:), Hg_edgH_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: HO_Eg_avg(:,:,:), HO_Eg_edgV(:,:,:), HO_Eg_edgH(:,:,:)
+  REAL*8,ALLOCATABLE:: HO_Fxg_edgV(:,:,:), HO_Fyg_edgH(:,:,:)
+  REAL*8,ALLOCATABLE:: HO_E_avg(:,:), HO_E_edgV(:,:), HO_E_edgH(:,:)
+  REAL*8,ALLOCATABLE:: HO_Fx_edgV(:,:), HO_Fy_edgH(:,:)
 
-  REAL*8,INTENT(INOUT):: fg_avg_xx(:,:,:), fg_avg_xy(:,:,:), fg_avg_yy(:,:,:)
-  REAL*8,INTENT(INOUT):: fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:)
-  REAL*8,INTENT(INOUT):: fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
-  REAL*8,INTENT(INOUT):: fg_avg_xx_old(:,:,:), fg_avg_xy_old(:,:,:), fg_avg_yy_old(:,:,:)
-  REAL*8,INTENT(INOUT):: fg_edgV_xx_old(:,:,:), fg_edgV_xy_old(:,:,:)
-  REAL*8,INTENT(INOUT):: fg_edgH_yy_old(:,:,:), fg_edgH_xy_old(:,:,:)
-  REAL*8,INTENT(INOUT):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
-  REAL*8,INTENT(INOUT):: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
-  REAL*8,INTENT(INOUT):: Fg_in_L(:,:), Fg_in_B(:,:), Fg_in_R(:,:), Fg_in_T(:,:)
-  REAL*8,INTENT(INOUT):: Eg_avg_old(:,:,:), Eg_edgV_old(:,:,:), Eg_edgH_old(:,:,:)
-  REAL*8,INTENT(INOUT):: Fxg_edgV_old(:,:,:), Fyg_edgH_old(:,:,:)
-  REAL*8,INTENT(INOUT):: G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
+  REAL*8,ALLOCATABLE:: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
+  REAL*8,ALLOCATABLE:: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
+  REAL*8,ALLOCATABLE:: MGQD_E_avg(:,:), MGQD_E_edgV(:,:), MGQD_E_edgH(:,:)
+  REAL*8,ALLOCATABLE:: MGQD_Fx_edgV(:,:), MGQD_Fy_edgH(:,:)
 
-  REAL*8,INTENT(OUT):: Temp_Times(:,:,:), HO_E_avg_Times(:,:,:), MGQD_E_avg_Times(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_avg_xx(:,:,:), fg_avg_xy(:,:,:), fg_avg_yy(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_avg_xx_old(:,:,:), fg_avg_xy_old(:,:,:), fg_avg_yy_old(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_edgV_xx_old(:,:,:), fg_edgV_xy_old(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_edgH_yy_old(:,:,:), fg_edgH_xy_old(:,:,:)
+  REAL*8,ALLOCATABLE:: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
+  REAL*8,ALLOCATABLE:: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
+  REAL*8,ALLOCATABLE:: Fg_in_L(:,:), Fg_in_B(:,:), Fg_in_R(:,:), Fg_in_T(:,:)
+  REAL*8,ALLOCATABLE:: Eg_avg_old(:,:,:), Eg_edgV_old(:,:,:), Eg_edgH_old(:,:,:)
+  REAL*8,ALLOCATABLE:: Fxg_edgV_old(:,:,:), Fyg_edgH_old(:,:,:)
+  REAL*8,ALLOCATABLE:: G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
+
+  REAL*8,ALLOCATABLE:: Temp(:,:), Temp_old(:,:)
+  REAL*8,ALLOCATABLE:: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
+  REAL*8,ALLOCATABLE:: Fx_edgV(:,:), Fy_edgH(:,:)
 
   REAL*8,ALLOCATABLE:: RT_Residual(:,:,:,:,:), MGQD_Residual(:,:,:,:,:)
   REAL*8,ALLOCATABLE:: Temp_RTold(:,:), Temp_RTold2(:,:)
@@ -80,16 +82,43 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
   REAL*8,ALLOCATABLE:: MGQD_E_avg_MGQDold(:,:), MGQD_E_avg_MGQDold2(:,:)
   REAL*8:: TR_Tnorm, TR_Enorm, TR_Trho, TR_Erho
   REAL*8:: MGQD_Tnorm, MGQD_Enorm, MGQD_Trho, MGQD_Erho
-  REAL*8:: Time
-  INTEGER:: MGQD_Its
-  INTEGER:: N_x, N_y, N_m, N_g
+  REAL*8:: Time, Final_Time
+  INTEGER:: MGQD_Its, Status
   INTEGER:: RT_Its, RT_start_Its, t
   LOGICAL:: RT_Conv, MGQD_conv, Tconv, Econv
 
-  N_x = SIZE(I_avg,1)
-  N_y = SIZE(I_avg,2)
-  N_m = SIZE(I_avg,3)
-  N_g = SIZE(I_avg,4)
+  INTEGER:: Temp_ID, E_avg_ID, E_edgV_ID, E_edgH_ID, MGQD_E_avg_ID, MGQD_E_edgV_ID, MGQD_E_edgH_ID, HO_E_avg_ID
+  INTEGER:: HO_E_edgV_ID, HO_E_edgH_ID, Fx_edgV_ID, Fy_edgH_ID, MGQD_Fx_edgV_ID, MGQD_Fy_edgH_ID, HO_Fx_edgV_ID
+  INTEGER:: HO_Fy_edgH_ID, Eg_avg_ID, Eg_edgV_ID, Eg_edgH_ID, HO_Eg_avg_ID, HO_Eg_edgV_ID, HO_Eg_edgH_ID
+  INTEGER:: Fxg_edgV_ID, Fyg_edgH_ID, HO_Fxg_edgV_ID, HO_Fyg_edgH_ID, I_avg_ID, I_edgV_ID, I_edgH_ID
+  INTEGER:: RT_Residual_ID, RT_ResNorms_ID, MGQD_Residual_ID, MGQD_ResNorms_ID
+  INTEGER:: Del_T_ID, Del_E_avg_ID, Del_E_edgV_ID, Del_E_edgH_ID, Del_Fx_edgV_ID, Del_Fy_edgH_ID, Del_T_Norms_ID
+  INTEGER:: Del_E_avg_Norms_ID, Del_E_edgV_Norms_ID, Del_E_edgH_Norms_ID, Del_Fx_edgV_Norms_ID, Del_Fy_edgH_Norms_ID
+  INTEGER:: RT_ItCount_ID, MGQD_ItCount_ID, GQD_ItCount_ID
+
+  CALL MISC_INIT(Delx,Dely,Delt,Start_Time,N_t,A)
+  CALL RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
+    Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_avg,&
+    HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,N_y,N_x,N_m,N_g,Tini,comp_unit,nu_g,bcT_left,bcT_right,&
+    bcT_top,bcT_bottom,BC_Type,maxit_RTE)
+  CALL MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,&
+    fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_xy_old,fg_avg_yy_old,&
+    fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,&
+    Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,&
+    MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,maxit_MLOQD,maxit_RTE,BC_Type)
+  CALL COLLAPSE_INTENSITIES(Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
+    Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,Eg_edgV,Eg_edgH,Eg_avg,Fxg_edgV,Fyg_edgH,HO_E_edgV,&
+    HO_E_edgH,HO_E_avg,HO_Fx_edgV,HO_Fy_edgH)
+  CALL TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,N_t,Tini,&
+    Comp_Unit,Nu_g,Temp_Old)
+
+  CALL OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,&
+    Norm_Types_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,&
+    HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,&
+    Eg_edgH_ID,HO_Eg_avg_ID,HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,&
+    I_edgV_ID,I_edgH_ID,RT_Residual_ID,RT_ResNorms_ID,MGQD_Residual_ID,MGQD_ResNorms_ID,Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,&
+    Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,Del_T_Norms_ID,Del_E_avg_Norms_ID,Del_E_edgV_Norms_ID,Del_E_edgH_Norms_ID,&
+    Del_Fx_edgV_Norms_ID,Del_Fy_edgH_Norms_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID)
 
   ALLOCATE(Temp_RTold(SIZE(TEMP,1),SIZE(TEMP,2)))
   ALLOCATE(Temp_RTold2(SIZE(TEMP,1),SIZE(TEMP,2)))
@@ -162,7 +191,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
           HO_E_avg,HO_Fx_edgV,HO_Fy_edgH)
 
         IF (MAXVAL(BC_Type) .GT. 0) THEN
-          CALL RT_BC_UPDATE(BC_Type,bcT_left,bcT_lower,bcT_right,bcT_upper,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
+          CALL RT_BC_UPDATE(BC_Type,bcT_left,bcT_bottom,bcT_right,bcT_top,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
           CALL MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,&
             quad_weight,c,Comp_Unit)
         END IF
@@ -233,9 +262,14 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Delx,Dely,A,Delt,Final
     ! CALL ITERATIVE_OUTPUT(103,t,RT_its,MGQD_its,0,Time,c,TR_Tnorm,TR_Enorm,TR_Trho,TR_Erho,MGQD_Tnorm,&
     !   MGQD_Enorm,MGQD_Trho,MGQD_Erho,RT_Residual,MGQD_Residual)
 
-    Temp_Times(:,:,t) = Temp
-    HO_E_avg_Times(:,:,t) = HO_E_avg
-    MGQD_E_avg_Times(:,:,t) = MGQD_E_avg
+    ! Temp_Times(:,:,t) = Temp
+    ! HO_E_avg_Times(:,:,t) = HO_E_avg
+    ! MGQD_E_avg_Times(:,:,t) = MGQD_E_avg
+
+    Status = nf90_put_var(outID,Temp_ID,Temp,(/1,1,t/),(/N_x,N_y/))
+    CALL HANDLE_ERR(Status)
+    Status = nf90_put_var(outID,MGQD_E_avg_ID,MGQD_E_avg,(/1,1,t/),(/N_x,N_y/))
+    CALL HANDLE_ERR(Status)
 
     IF (Time .GE. Final_Time) EXIT
   END DO

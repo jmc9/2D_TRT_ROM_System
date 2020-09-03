@@ -11,8 +11,8 @@ CONTAINS
 !
 ! Solves the 2D radiative transfer equation discretized with simple corner balance
 !==================================================================================================================================!
-SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,Omega_x,Omega_y,Delx,Dely,A,KapE_in,Src_in,&
-  I_crn_old,c,Delt,Open_Threads,Res_Calc)
+SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega_y,Delx,Dely,A,KapE_in,Src_in,&
+  I_crn_old,c,Delt,Open_Threads,RT_Residual,RT_ResLoc_x,RT_ResLoc_y,Res_Calc)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:)
   REAL*8,INTENT(IN):: Delx(:), Dely(:), A(:,:)
   REAL*8,INTENT(IN):: KapE_in(:,:,:), Src_in(:,:,:,:)
@@ -23,14 +23,16 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
 
   REAL*8,INTENT(OUT):: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,INTENT(OUT):: I_crn(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
-  REAL*8,INTENT(OUT):: RT_Residual(:,:,:,:,:)
+  REAL*8,INTENT(OUT):: RT_Residual(:,:,:)
+  INTEGER,INTENT(OUT):: RT_ResLoc_x(:,:,:), RT_ResLoc_y(:,:,:)
 
   REAL*8,ALLOCATABLE:: Src(:,:,:,:), KapE(:,:,:)
   REAL*8,ALLOCATABLE:: B(:,:), Q(:)
+  REAL*8:: res(4), sums(4)
   INTEGER:: N_g, N_m, N_x, N_y, Threads
   INTEGER:: left, right, bot, top
   INTEGER:: i, j, g, m
-  INTEGER:: m1, m2
+  INTEGER:: m1, m2, k
 
   ALLOCATE(B(4,4))
   ALLOCATE(Q(4))
@@ -239,8 +241,11 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
   !              Residual Calculations               !
   !--------------------------------------------------!
   IF (Res_Calc) THEN
+  RT_Residual=0d0
   DO g=1,N_g
     DO m=1,N_m
+      m2 = 1 + INT(4*(m-1)/N_m)
+      sums=0d0
       DO j=1,N_y
         DO i=1,N_x
 
@@ -251,39 +256,56 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,RT_Residual,O
           top = 2*j
 
           !bottom left
-          RT_Residual(left,bot,m,g,1) = (Omega_x(m)*Dely(j) + Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(left,bot,m,g)/4d0 &
+          ! RT_Residual(left,bot,m,g)
+          res(1) = ABS( (Omega_x(m)*Dely(j) + Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(left,bot,m,g)/4d0 &
           + Omega_x(m)*Dely(j)*I_crn(right,bot,m,g)/4d0 + Omega_y(m)*Delx(i)*I_crn(left,top,m,g)/4d0 &
           - Omega_x(m)*Dely(j)*Ic_edgV(i,bot,m,g)/2d0 - Omega_y(m)*Delx(i)*Ic_edgH(left,j,m,g)/2d0 &
-          - A(i,j)*Src(left,bot,m,g)/4d0
-
-          RT_Residual(left,bot,m,g,2) = RT_Residual(left,bot,m,g,1)/I_crn(left,bot,m,g)
+          - A(i,j)*Src(left,bot,m,g)/4d0 )
 
           !bottom right
-          RT_Residual(right,bot,m,g,1) = (-Omega_x(m)*Dely(j) + Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(right,bot,m,g)/4d0 &
+          ! RT_Residual(right,bot,m,g)
+          res(2) = ABS( (-Omega_x(m)*Dely(j) + Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(right,bot,m,g)/4d0 &
           - Omega_x(m)*Dely(j)*I_crn(left,bot,m,g)/4d0 + Omega_y(m)*Delx(i)*I_crn(right,top,m,g)/4d0 &
           + Omega_x(m)*Dely(j)*Ic_edgV(i+1,bot,m,g)/2d0 - Omega_y(m)*Delx(i)*Ic_edgH(right,j,m,g)/2d0 &
-          - A(i,j)*Src(right,bot,m,g)/4d0
-
-          RT_Residual(right,bot,m,g,2) = RT_Residual(right,bot,m,g,1)/I_crn(right,bot,m,g)
+          - A(i,j)*Src(right,bot,m,g)/4d0 )
 
           !top right
-          RT_Residual(right,top,m,g,1) = (-Omega_x(m)*Dely(j) - Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(right,top,m,g)/4d0 &
+          ! RT_Residual(right,top,m,g)
+          res(3) = ABS( (-Omega_x(m)*Dely(j) - Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(right,top,m,g)/4d0 &
           - Omega_x(m)*Dely(j)*I_crn(left,top,m,g)/4d0 - Omega_y(m)*Delx(i)*I_crn(right,bot,m,g)/4d0 &
           + Omega_x(m)*Dely(j)*Ic_edgV(i+1,top,m,g)/2d0 + Omega_y(m)*Delx(i)*Ic_edgH(right,j+1,m,g)/2d0 &
-          - A(i,j)*Src(right,top,m,g)/4d0
-
-          RT_Residual(right,top,m,g,2) = RT_Residual(right,top,m,g,1)/I_crn(right,top,m,g)
+          - A(i,j)*Src(right,top,m,g)/4d0 )
 
           !top left
-          RT_Residual(left,top,m,g,1) = (Omega_x(m)*Dely(j) - Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(left,top,m,g)/4d0 &
+          ! RT_Residual(left,top,m,g)
+          res(4) = ABS( (Omega_x(m)*Dely(j) - Omega_y(m)*Delx(i) + KapE(i,j,g)*A(i,j))*I_crn(left,top,m,g)/4d0 &
           + Omega_x(m)*Dely(j)*I_crn(right,top,m,g)/4d0 - Omega_y(m)*Delx(i)*I_crn(left,bot,m,g)/4d0 &
           - Omega_x(m)*Dely(j)*Ic_edgV(i,top,m,g)/2d0 + Omega_y(m)*Delx(i)*Ic_edgH(left,j+1,m,g)/2d0 &
-          - A(i,j)*Src(left,top,m,g)/4d0
+          - A(i,j)*Src(left,top,m,g)/4d0 )
 
-          RT_Residual(left,top,m,g,2) = RT_Residual(left,top,m,g,1)/I_crn(left,top,m,g)
+          DO k=1,4
+            IF (res(k) .GT. RT_Residual(m2,g,1)) THEN
+              RT_Residual(m2,g,1) = res(k)
+              RT_ResLoc_x(m2,g,1) = i
+              RT_ResLoc_y(m2,g,1) = j
+            END IF
+            sums(1) = sums(1) + res(k)
+            sums(2) = sums(2) + res(k)**2
+            sums(3) = sums(3) + A(i,j)*res(k)/4d0
+            sums(4) = sums(4) + A(i,j)*res(k)**2/4d0
+          END DO
 
         END DO
       END DO
+
+      DO k=1,4
+        IF (sums(k) .GT. RT_Residual(m2,g,k+1)) THEN
+          RT_Residual(m2,g,k+1) = sums(k)
+          RT_ResLoc_x(m2,g,k+1) = i
+          RT_ResLoc_y(m2,g,k+1) = j
+        END IF
+      END DO
+
     END DO
   END DO
   END IF

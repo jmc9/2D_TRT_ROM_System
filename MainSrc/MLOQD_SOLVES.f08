@@ -71,12 +71,13 @@ END SUBROUTINE OLD_MGQD_COEFS
 !==================================================================================================================================!
 SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
   fg_edgH_xy,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Src,KapE,KapR,Delx,Dely,A,c,&
-  Delt,Theta,Open_Threads,Res_Calc,MGQD_Residual,G_old,Pold_L,Pold_B,Pold_R,Pold_T,Eg_avg_old,Eg_edgV_old,Eg_edgH_old,&
-  Fxg_edgV_old,Fyg_edgH_old)
+  Delt,Theta,Open_Threads,Res_Calc,MGQD_Residual,MGQD_ResLoc_x,MGQD_ResLoc_y,MGQD_BC_Residual,G_old,Pold_L,Pold_B,Pold_R,&
+  Pold_T,Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old)
 
   REAL*8,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
-  REAL*8,INTENT(OUT):: MGQD_Residual(:,:,:,:,:)
+  REAL*8,INTENT(OUT):: MGQD_Residual(:,:,:), MGQD_BC_Residual(:,:)
+  INTEGER,INTENT(OUT):: MGQD_ResLoc_x(:,:,:), MGQD_ResLoc_y(:,:,:)
 
   REAL*8,INTENT(IN):: G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
   REAL*8,INTENT(IN):: fg_avg_xx(:,:,:), fg_avg_xy(:,:,:), fg_avg_yy(:,:,:)
@@ -107,8 +108,9 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
   REAL*8,ALLOCATABLE:: BC_L(:), BC_B(:), BC_R(:), BC_T(:)
   REAL*8,ALLOCATABLE:: E1(:,:),E2(:,:),E3(:,:)
 
+  REAL*8:: res(5), sums(5,4)
   INTEGER:: N_g, N_x, N_y, Threads
-  INTEGER:: i, j, g
+  INTEGER:: i, j, g, k, z
 
   N_g = SIZE(Eg_avg,3)
   N_y = SIZE(Eg_avg,2)
@@ -240,51 +242,82 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_xy
   !--------------------------------------------------!
   IF (Res_Calc) THEN
   MGQD_Residual = 0d0
+  MGQD_BC_Residual = 0d0
   DO g=1,N_g
+    sums=0d0
     DO j=1,N_y
       DO i=1,N_x
 
         !Energy Balance
-        MGQD_Residual(i,j,g,1,1) = A(i,j)*(1d0/(Theta*Delt)+c*KapE(i,j,g))*Eg_avg(i,j,g) + &
+        res(1) = ABS( A(i,j)*(1d0/(Theta*Delt)+c*KapE(i,j,g))*Eg_avg(i,j,g) + &
         Dely(j)*(Fxg_edgV(i+1,j,g)-Fxg_edgV(i,j,g)) + Delx(i)*(Fyg_edgH(i,j+1,g)-Fyg_edgH(i,j,g)) - &
-        (A(i,j)*Src(i,j,g) + A(i,j)*Eg_avg_old(i,j,g)/(Theta*Delt) + G_old(i,j,g))
-
-        MGQD_Residual(i,j,g,1,2) = MGQD_Residual(i,j,g,1,1)/Eg_avg(i,j,g)
+        (A(i,j)*Src(i,j,g) + A(i,j)*Eg_avg_old(i,j,g)/(Theta*Delt) + G_old(i,j,g)) )
 
         !Momentum Balance (left half-cell)
-        MGQD_Residual(i,j,g,2,1) = A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fxg_edgV(i,j,g)/2d0 + &
+        res(2) = ABS( A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fxg_edgV(i,j,g)/2d0 + &
         c*Dely(j)*(fg_avg_xx(i,j,g)*Eg_avg(i,j,g) - fg_edgV_xx(i,j,g)*Eg_edgV(i,j,g)) + &
         c*Delx(i)*(fg_edgH_xy(i,j+1,g)*Eg_edgH(i,j+1,g) - fg_edgH_xy(i,j,g)*Eg_edgH(i,j,g))/2d0 - &
-        (A(i,j)*Fxg_edgV_old(i,j,g)/(2d0*Theta*c*Delt)+Pold_L(i,j,g))
-
-        MGQD_Residual(i,j,g,2,2) = MGQD_Residual(i,j,g,2,1)/Fxg_edgV(i,j,g)
+        (A(i,j)*Fxg_edgV_old(i,j,g)/(2d0*Theta*c*Delt)+Pold_L(i,j,g)) )
 
         !Momentum Balance (bottom half-cell)
-        MGQD_Residual(i,j,g,3,1) = A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fyg_edgH(i,j,g)/2d0 + &
+        res(3) = ABS( A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fyg_edgH(i,j,g)/2d0 + &
         c*Delx(i)*(fg_avg_yy(i,j,g)*Eg_avg(i,j,g) - fg_edgH_yy(i,j,g)*Eg_edgH(i,j,g)) + &
         c*Dely(j)*(fg_edgV_xy(i+1,j,g)*Eg_edgV(i+1,j,g) - fg_edgV_xy(i,j,g)*Eg_edgV(i,j,g))/2d0 - &
-        (A(i,j)*Fyg_edgH_old(i,j,g)/(2d0*Theta*c*Delt)+Pold_B(i,j,g))
-
-        MGQD_Residual(i,j,g,3,2) = MGQD_Residual(i,j,g,3,1)/Fyg_edgH(i,j,g)
+        (A(i,j)*Fyg_edgH_old(i,j,g)/(2d0*Theta*c*Delt)+Pold_B(i,j,g)) )
 
         !Momentum Balance (right half-cell)
-        MGQD_Residual(i,j,g,4,1) = A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fxg_edgV(i+1,j,g)/2d0 + &
+        res(4) = ABS( A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fxg_edgV(i+1,j,g)/2d0 + &
         c*Dely(j)*(fg_edgV_xx(i+1,j,g)*Eg_edgV(i+1,j,g) - fg_avg_xx(i,j,g)*Eg_avg(i,j,g)) + &
         c*Delx(i)*(fg_edgH_xy(i,j+1,g)*Eg_edgH(i,j+1,g) - fg_edgH_xy(i,j,g)*Eg_edgH(i,j,g))/2d0 - &
-        (A(i,j)*Fxg_edgV_old(i+1,j,g)/(2d0*Theta*c*Delt)+Pold_R(i,j,g))
-
-        MGQD_Residual(i,j,g,4,2) = MGQD_Residual(i,j,g,4,1)/Fxg_edgV(i+1,j,g)
+        (A(i,j)*Fxg_edgV_old(i+1,j,g)/(2d0*Theta*c*Delt)+Pold_R(i,j,g)) )
 
         !Momentum Balance (top half-cell)
-        MGQD_Residual(i,j,g,5,1) = A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fyg_edgH(i,j+1,g)/2d0 + &
+        res(5) = ABS( A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))*Fyg_edgH(i,j+1,g)/2d0 + &
         c*Delx(i)*(fg_edgH_yy(i,j+1,g)*Eg_edgH(i,j+1,g) - fg_avg_yy(i,j,g)*Eg_avg(i,j,g)) + &
         c*Dely(j)*(fg_edgV_xy(i+1,j,g)*Eg_edgV(i+1,j,g) - fg_edgV_xy(i,j,g)*Eg_edgV(i,j,g))/2d0 - &
-        (A(i,j)*Fyg_edgH_old(i,j+1,g)/(2d0*Theta*c*Delt)+Pold_T(i,j,g))
+        (A(i,j)*Fyg_edgH_old(i,j+1,g)/(2d0*Theta*c*Delt)+Pold_T(i,j,g)) )
 
-        MGQD_Residual(i,j,g,5,2) = MGQD_Residual(i,j,g,5,1)/Fyg_edgH(i,j+1,g)
+        DO k=1,5
+          IF (res(k) .GT. MGQD_Residual(g,k,1)) THEN
+            MGQD_Residual(g,k,1) = res(k)
+            MGQD_ResLoc_x(g,k,1) = i
+            MGQD_ResLoc_y(g,k,1) = j
+          END IF
+          sums(k,1) = sums(k,1) + res(k)
+          sums(k,2) = sums(k,2) + res(k)**2
+          sums(k,3) = sums(k,3) + A(i,j)*res(k)
+          sums(k,4) = sums(k,4) + A(i,j)*res(k)**2
+        END DO
 
       END DO
     END DO
+
+    DO z=1,5
+    DO k=1,4
+      IF (sums(z,k) .GT. MGQD_Residual(g,z,k+1)) THEN
+        MGQD_Residual(g,z,k+1) = sums(z,k)
+        MGQD_ResLoc_x(g,z,k+1) = i
+        MGQD_ResLoc_y(g,z,k+1) = j
+      END IF
+    END DO
+    END DO
+
+    DO j=1,N_y
+      res(1) = ABS( Fxg_edgV(1,j,g) - c*Cg_L(j,g)*(Eg_edgV(1,j,g)-Eg_in_L(j,g)) - Fg_in_L(j,g) )
+      IF (res(1) .GT. MGQD_BC_Residual(g,1)) MGQD_BC_Residual(g,1) = res(1)
+
+      res(1) = ABS( Fxg_edgV(N_x+1,j,g) - c*Cg_R(j,g)*(Eg_edgV(N_x+1,j,g)-Eg_in_R(j,g)) - Fg_in_R(j,g) )
+      IF (res(1) .GT. MGQD_BC_Residual(g,3)) MGQD_BC_Residual(g,3) = res(1)
+    END DO
+
+    DO i=1,N_x
+      res(1) = ABS( Fyg_edgH(i,1,g) - c*Cg_B(i,g)*(Eg_edgH(i,1,g)-Eg_in_B(i,g)) - Fg_in_B(i,g) )
+      IF (res(1) .GT. MGQD_BC_Residual(g,2)) MGQD_BC_Residual(g,2) = res(1)
+
+      res(1) = ABS( Fyg_edgH(i,N_y+1,g) - c*Cg_T(i,g)*(Eg_edgH(i,N_y+1,g)-Eg_in_T(i,g)) - Fg_in_T(i,g) )
+      IF (res(1) .GT. MGQD_BC_Residual(g,4)) MGQD_BC_Residual(g,4) = res(1)
+    END DO
+
   END DO
   END IF
 

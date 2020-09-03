@@ -4,6 +4,10 @@ MODULE NCDF_IO
 
   IMPLICIT NONE
 
+INTERFACE NF_PUT_t_VAR
+  MODULE PROCEDURE NF_PUT_t_VAR1D, NF_PUT_t_VAR2D, NF_PUT_t_VAR3D, NF_PUT_t_VAR4D
+END INTERFACE
+
 CONTAINS
 
 !==================================================================================================================================!
@@ -290,5 +294,60 @@ END SUBROUTINE NF_DEF_UNIT
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+SUBROUTINE NF_PUT_t_VAR1D(ncID,varID,Values,t)
+  REAL*8,INTENT(IN):: Values(:)
+  INTEGER,INTENT(IN):: ncID, varID, t
+  INTEGER:: Status
+  CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR1D'
+
+  !calling NetCDF function
+  Status = nf90_put_var(ncID,varID,Values,(/1,1,t/),(/SIZE(Values,1)/))
+
+  !Checking for any errors that may have occured
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_PUT_t_VAR1D
+
+SUBROUTINE NF_PUT_t_VAR2D(ncID,varID,Values,t)
+  REAL*8,INTENT(IN):: Values(:,:)
+  INTEGER,INTENT(IN):: ncID, varID, t
+  INTEGER:: Status
+  CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR2D'
+
+  !calling NetCDF function
+  Status = nf90_put_var(ncID,varID,Values,(/1,1,t/),(/SIZE(Values,1),SIZE(Values,2)/))
+
+  !Checking for any errors that may have occured
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_PUT_t_VAR2D
+
+SUBROUTINE NF_PUT_t_VAR3D(ncID,varID,Values,t)
+  REAL*8,INTENT(IN):: Values(:,:,:)
+  INTEGER,INTENT(IN):: ncID, varID, t
+  INTEGER:: Status
+  CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR3D'
+
+  !calling NetCDF function
+  Status = nf90_put_var(ncID,varID,Values,(/1,1,t/),(/SIZE(Values,1),SIZE(Values,2),SIZE(Values,3)/))
+
+  !Checking for any errors that may have occured
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_PUT_t_VAR3D
+
+SUBROUTINE NF_PUT_t_VAR4D(ncID,varID,Values,t)
+  REAL*8,INTENT(IN):: Values(:,:,:,:)
+  INTEGER,INTENT(IN):: ncID, varID, t
+  INTEGER:: Status
+  CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR4D'
+
+  !calling NetCDF function
+  Status = nf90_put_var(ncID,varID,Values,(/1,1,t/),(/SIZE(Values,1),SIZE(Values,2),SIZE(Values,3),SIZE(Values,4)/))
+
+  !Checking for any errors that may have occured
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_PUT_t_VAR4D
 
 END MODULE NCDF_IO

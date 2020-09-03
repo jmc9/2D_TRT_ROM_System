@@ -9,7 +9,7 @@ CONTAINS
 !==================================================================================================================================!
 SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr,&
   comp_unit,line_src,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,threads,kapE_dT_flag,enrgy_strc,&
-  Nwt_upbnd,erg,xlen,ylen,x_cells,y_cells,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,Tini,sig_R,ar,&
+  Nwt_upbnd,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,Tini,sig_R,ar,&
   pi,c,h,delx,dely,cv,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,GREY_F_out,&
   GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,TEMP_outfile,&
   GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,res_history_outfile,&
@@ -32,7 +32,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:)
-  INTEGER,INTENT(OUT):: x_cells, y_cells, tpoints, BC_Type(:)
+  INTEGER,INTENT(OUT):: N_x, N_y, tpoints, BC_Type(:)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: out_times(:)
   INTEGER,ALLOCATABLE,INTENT(OUT):: out_time_steps(:)
@@ -68,13 +68,13 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   sig_R=2d0*pi**5/(15d0*c**2*h**3*erg**4*comp_unit) !(erg/(ev**4 cm**2 sh))
   aR=4d0*sig_R/c
 
-  CALL INPUT_PARAMETERS(inpunit,erg,xlen,ylen,x_cells,y_cells,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&
+  CALL INPUT_PARAMETERS(inpunit,erg,xlen,ylen,N_x,N_y,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&
     bcT_lower,Tini)
 
-  ALLOCATE(Delx(x_cells))
-  ALLOCATE(Dely(y_cells))
-  Delx = xlen/REAL(x_cells,8)
-  Dely = ylen/REAL(y_cells,8)
+  ALLOCATE(Delx(N_x))
+  ALLOCATE(Dely(N_y))
+  Delx = xlen/REAL(N_x,8)
+  Dely = ylen/REAL(N_y,8)
   tpoints = NINT(tlen/delt)
   Cv=0.5917d0*ar*(bcT_left)**3*((1.38d-16)**4*(11600d0**4)*erg**4)
 
@@ -479,7 +479,7 @@ END SUBROUTINE INPUT_SOLVER_OPTS
 !
 !==================================================================================================================================!
 
-SUBROUTINE INPUT_PARAMETERS(inpunit,erg,xlen,ylen,x_cells,y_cells,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&
+SUBROUTINE INPUT_PARAMETERS(inpunit,erg,xlen,ylen,N_x,N_y,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&
   bcT_lower,Tini)
 
   IMPLICIT NONE
@@ -490,7 +490,7 @@ SUBROUTINE INPUT_PARAMETERS(inpunit,erg,xlen,ylen,x_cells,y_cells,tlen,delt,BC_T
 
   !OUTPUT VARIABLES
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
-  INTEGER,INTENT(OUT):: x_cells, y_cells, BC_Type(:)
+  INTEGER,INTENT(OUT):: N_x, N_y, BC_Type(:)
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
@@ -502,8 +502,8 @@ SUBROUTINE INPUT_PARAMETERS(inpunit,erg,xlen,ylen,x_cells,y_cells,tlen,delt,BC_T
   !DEFAULT VALUES
   xlen = 6d0
   ylen = 6d0
-  x_cells = 10
-  y_cells = 10
+  N_x = 10
+  N_y = 10
   tlen = 6d-1
   delt = 2d-3
   bcT_left = 1d3
@@ -574,21 +574,21 @@ SUBROUTINE INPUT_PARAMETERS(inpunit,erg,xlen,ylen,x_cells,y_cells,tlen,delt,BC_T
         END IF
 
       ELSE IF (trim(key) .EQ. 'x_cells') THEN
-        READ(args(1),*) x_cells
-        IF (x_cells .LE. 0) THEN
+        READ(args(1),*) N_x
+        IF (N_x .LE. 0) THEN
           WRITE(*,*)
-          WRITE(*,*) 'x_cells Omega_xst be a positive integer (>0)'
+          WRITE(*,*) 'x_cells be a positive integer (>0)'
           WRITE(*,*) 'resetting x_cells = 10'
-          x_cells = 10
+          N_x = 10
         END IF
 
       ELSE IF (trim(key) .EQ. 'y_cells') THEN
-        READ(args(1),*) y_cells
-        IF (y_cells .LE. 0) THEN
+        READ(args(1),*) N_y
+        IF (N_y .LE. 0) THEN
           WRITE(*,*)
-          WRITE(*,*) 'y_cells Omega_xst be a positive integer (>0)'
+          WRITE(*,*) 'y_cells be a positive integer (>0)'
           WRITE(*,*) 'resetting y_cells = 10'
-          y_cells = 10
+          N_y = 10
         END IF
 
       ELSE IF (trim(key) .EQ. 'tlen') THEN

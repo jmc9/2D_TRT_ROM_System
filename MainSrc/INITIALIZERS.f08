@@ -11,13 +11,13 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_xy,Hg_avg_yy,&
-  Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_avg,&
-  HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,N_y,N_x,N_m,N_g,&
-  Tini,comp_unit,nu_g,bcT_left,bcT_right,bcT_upper,bcT_lower,BC_Type)
+SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_yy,Hg_edgV_xx,&
+  Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_avg,&
+  HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,N_y,N_x,N_m,N_g,Tini,comp_unit,nu_g,bcT_left,bcT_right,&
+  bcT_upper,bcT_lower,BC_Type)
   REAL*8,ALLOCATABLE,INTENT(OUT):: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: I_crn(:,:,:,:), I_crn_old(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_xy(:,:,:), Hg_avg_yy(:,:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_yy(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_edgH_yy(:,:,:), Hg_edgH_xy(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: HO_Eg_avg(:,:,:), HO_Eg_edgV(:,:,:), HO_Eg_edgH(:,:,:)
@@ -49,7 +49,6 @@ SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx
 
   !Multigroup second angular moment tensors
   ALLOCATE(Hg_avg_xx(N_x,N_y,N_g))
-  ALLOCATE(Hg_avg_xy(N_x,N_y,N_g))
   ALLOCATE(Hg_avg_yy(N_x,N_y,N_g))
   ALLOCATE(Hg_edgV_xx(N_x+1,N_y,N_g))
   ALLOCATE(Hg_edgV_xy(N_x+1,N_y,N_g))
@@ -147,19 +146,19 @@ END SUBROUTINE MISC_INIT
 !
 !==================================================================================================================================!
 SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,&
-  fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_xy_old,fg_avg_yy_old,&
-  fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,&
-  Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,&
-  MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type)
+  fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_yy_old,fg_edgV_xx_old,fg_edgV_xy_old,&
+  fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,&
+  I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,&
+  G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_avg_old(:,:,:), Eg_edgV_old(:,:,:), Eg_edgH_old(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fxg_edgV_old(:,:,:), Fyg_edgH_old(:,:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: fg_avg_xx(:,:,:), fg_avg_xy(:,:,:), fg_avg_yy(:,:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: fg_avg_xx_old(:,:,:), fg_avg_xy_old(:,:,:), fg_avg_yy_old(:,:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: fg_avg_xx_old(:,:,:), fg_avg_yy_old(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: fg_edgV_xx_old(:,:,:), fg_edgV_xy_old(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: fg_edgH_yy_old(:,:,:), fg_edgH_xy_old(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
@@ -177,7 +176,6 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
 
   !Multigroup quasidiffusion tensors
   ALLOCATE(fg_avg_xx(N_x,N_y,N_g))
-  ALLOCATE(fg_avg_xy(N_x,N_y,N_g))
   ALLOCATE(fg_avg_yy(N_x,N_y,N_g))
   ALLOCATE(fg_edgV_xx(N_x+1,N_y,N_g))
   ALLOCATE(fg_edgV_xy(N_x+1,N_y,N_g))
@@ -186,7 +184,6 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
 
   !Multigroup quasidiffusion tensors (last time step)
   ALLOCATE(fg_avg_xx_old(N_x,N_y,N_g))
-  ALLOCATE(fg_avg_xy_old(N_x,N_y,N_g))
   ALLOCATE(fg_avg_yy_old(N_x,N_y,N_g))
   ALLOCATE(fg_edgV_xx_old(N_x+1,N_y,N_g))
   ALLOCATE(fg_edgV_xy_old(N_x+1,N_y,N_g))
@@ -244,14 +241,12 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   ALLOCATE(G_old(N_x,N_y,N_g),Pold_L(N_x,N_y,N_g),Pold_B(N_x,N_y,N_g),Pold_R(N_x,N_y,N_g),Pold_T(N_x,N_y,N_g))
 
   fg_avg_xx = 1d0/3d0
-  fg_avg_xy = 0d0
   fg_avg_yy = 1d0/3d0
   fg_edgV_xx = 1d0/3d0
   fg_edgV_xy = 0d0
   fg_edgH_yy = 1d0/3d0
   fg_edgH_xy = 0d0
   fg_avg_xx_old = 1d0/3d0
-  fg_avg_xy_old = 0d0
   fg_avg_yy_old = 1d0/3d0
   fg_edgV_xx_old = 1d0/3d0
   fg_edgV_xy_old = 0d0

@@ -366,9 +366,9 @@ END SUBROUTINE SCB_BGEN
 ! --> F is the first angular moment of I (vector)
 ! --> E is the zeroth angular moment of I (scalar)
 !==================================================================================================================================!
-SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_xy,&
-  Hg_avg_yy,Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,Eg_edgV,Eg_edgH,Eg_avg,Fxg_edgV,Fyg_edgH,E_edgV,E_edgH,E_avg,Fx_edgV,&
-  Fy_edgH)
+SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,&
+  Hg_avg_yy,Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,Eg_edgV,Eg_edgH,Eg_avg,Fxg_edgV,Fyg_edgH,E_edgV,E_edgH,E_avg,&
+  Fx_edgV,Fy_edgH)
 
   REAL*8,INTENT(IN):: I_avg(:,:,:,:)
   REAL*8,INTENT(IN):: I_edgV(:,:,:,:), I_edgH(:,:,:,:)
@@ -376,7 +376,7 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
   REAL*8,INTENT(IN):: Comp_Unit
   INTEGER,INTENT(IN):: Open_Threads
 
-  REAL*8,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_xy(:,:,:), Hg_avg_yy(:,:,:)
+  REAL*8,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_yy(:,:,:)
   REAL*8,INTENT(OUT):: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
   REAL*8,INTENT(OUT):: Hg_edgH_yy(:,:,:), Hg_edgH_xy(:,:,:)
   REAL*8,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
@@ -402,7 +402,6 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
 
   !Pre-setting arrays to zero
   Hg_avg_xx = 0d0
-  Hg_avg_xy = 0d0
   Hg_avg_yy = 0d0
   Hg_edgV_xx = 0d0
   Hg_edgV_xy = 0d0
@@ -430,7 +429,6 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
         DO i=1,N_x
           Hg_avg_xx(i,j,g) = Hg_avg_xx(i,j,g) + Omega_x(m)**2*quad_weight(m)*(I_avg(i,j,m,g) + eps)
           Hg_avg_yy(i,j,g) = Hg_avg_yy(i,j,g) + Omega_y(m)**2*quad_weight(m)*(I_avg(i,j,m,g) + eps)
-          Hg_avg_xy(i,j,g) = Hg_avg_xy(i,j,g) + Omega_x(m)*Omega_y(m)*quad_weight(m)*(I_avg(i,j,m,g) + eps)
           Eg_avg(i,j,g) = Eg_avg(i,j,g) + quad_weight(m)*(I_avg(i,j,m,g) + eps)
         END DO
       END DO

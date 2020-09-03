@@ -105,9 +105,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: HO_Fy_edgH_ID, Eg_avg_ID, Eg_edgV_ID, Eg_edgH_ID, HO_Eg_avg_ID, HO_Eg_edgV_ID, HO_Eg_edgH_ID
   INTEGER:: Fxg_edgV_ID, Fyg_edgH_ID, HO_Fxg_edgV_ID, HO_Fyg_edgH_ID, I_avg_ID, I_edgV_ID, I_edgH_ID
   INTEGER:: RT_Residual_ID, MGQD_Residual_ID, MGQD_BC_Residual_ID
-  INTEGER:: Del_T_ID, Del_E_avg_ID, Del_E_edgV_ID, Del_E_edgH_ID, Del_Fx_edgV_ID, Del_Fy_edgH_ID, Del_T_Norms_ID
-  INTEGER:: Del_E_avg_Norms_ID, Del_E_edgV_Norms_ID, Del_E_edgH_Norms_ID, Del_Fx_edgV_Norms_ID, Del_Fy_edgH_Norms_ID
+  INTEGER:: Del_T_ID, Del_E_avg_ID, Del_E_edgV_ID, Del_E_edgH_ID, Del_Fx_edgV_ID, Del_Fy_edgH_ID
   INTEGER:: RT_ItCount_ID, MGQD_ItCount_ID, GQD_ItCount_ID
+  INTEGER:: RT_Tnorm_ID, RT_Enorm_ID, MGQD_Tnorm_ID, MGQD_Enorm_ID, GQD_Tnorm_ID, GQD_Enorm_ID
+  INTEGER:: RT_Trho_ID, RT_Erho_ID, MGQD_Trho_ID, MGQD_Erho_ID, GQD_Trho_ID, GQD_Erho_ID
 
   !===========================================================================!
   !                                                                           !
@@ -130,6 +131,18 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   CALL TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,Tini,&
     Comp_Unit,Nu_g,Temp_Old)
 
+    ALLOCATE(Temp_RTold(SIZE(TEMP,1),SIZE(TEMP,2)))
+    ALLOCATE(Temp_RTold2(SIZE(TEMP,1),SIZE(TEMP,2)))
+    ALLOCATE(Temp_MGQDold(SIZE(TEMP,1),SIZE(TEMP,2)))
+    ALLOCATE(Temp_MGQDold2(SIZE(TEMP,1),SIZE(TEMP,2)))
+    ALLOCATE(HO_E_avg_RTold(SIZE(HO_E_avg,1),SIZE(HO_E_avg,2)))
+    ALLOCATE(HO_E_avg_RTold2(SIZE(HO_E_avg,1),SIZE(HO_E_avg,2)))
+    ALLOCATE(MGQD_E_avg_MGQDold(SIZE(MGQD_E_avg,1),SIZE(MGQD_E_avg,2)))
+    ALLOCATE(MGQD_E_avg_MGQDold2(SIZE(MGQD_E_avg,1),SIZE(MGQD_E_avg,2)))
+
+    ALLOCATE(RT_Residual(4,N_g,5),RT_ResLoc_x(4,N_g,5),RT_ResLoc_y(4,N_g,5))
+    ALLOCATE(MGQD_Residual(N_g,5,5),MGQD_ResLoc_x(N_g,5,5),MGQD_ResLoc_y(N_g,5,5),MGQD_BC_Residual(N_g,4))
+
   !===========================================================================!
   !                                                                           !
   !     INITIALIZING OUTPUT FILE                                              !
@@ -141,20 +154,9 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
     HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
     RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,Del_E_edgH_ID,&
-    Del_Fx_edgV_ID,Del_Fy_edgH_ID,Del_T_Norms_ID,Del_E_avg_Norms_ID,Del_E_edgV_Norms_ID,Del_E_edgH_Norms_ID,&
-    Del_Fx_edgV_Norms_ID,Del_Fy_edgH_Norms_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID)
-
-  ALLOCATE(Temp_RTold(SIZE(TEMP,1),SIZE(TEMP,2)))
-  ALLOCATE(Temp_RTold2(SIZE(TEMP,1),SIZE(TEMP,2)))
-  ALLOCATE(Temp_MGQDold(SIZE(TEMP,1),SIZE(TEMP,2)))
-  ALLOCATE(Temp_MGQDold2(SIZE(TEMP,1),SIZE(TEMP,2)))
-  ALLOCATE(HO_E_avg_RTold(SIZE(HO_E_avg,1),SIZE(HO_E_avg,2)))
-  ALLOCATE(HO_E_avg_RTold2(SIZE(HO_E_avg,1),SIZE(HO_E_avg,2)))
-  ALLOCATE(MGQD_E_avg_MGQDold(SIZE(MGQD_E_avg,1),SIZE(MGQD_E_avg,2)))
-  ALLOCATE(MGQD_E_avg_MGQDold2(SIZE(MGQD_E_avg,1),SIZE(MGQD_E_avg,2)))
-
-  ALLOCATE(RT_Residual(4,N_g,5),RT_ResLoc_x(4,N_g,5),RT_ResLoc_y(4,N_g,5))
-  ALLOCATE(MGQD_Residual(N_g,5,5),MGQD_ResLoc_x(N_g,5,5),MGQD_ResLoc_y(N_g,5,5),MGQD_BC_Residual(N_g,4))
+    Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,RT_Tnorm_ID,RT_Enorm_ID,&
+    MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,MGQD_Trho_ID,MGQD_Erho_ID,&
+    GQD_Trho_ID,GQD_Erho_ID)
 
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
@@ -173,12 +175,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   t = 0
   DO
 
+    !setting time and t to next time step
     t = t + 1
     Time = Time + Delt
 
+    !moving last time step data to _old arrays
     Temp_Old = Temp
     I_crn_old = I_crn
-
     fg_avg_xx_old = fg_avg_xx
     fg_avg_yy_old = fg_avg_yy
     fg_edgV_xx_old = fg_edgV_xx
@@ -194,11 +197,17 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     KapE_old = KapE
     KapR_old = KapR
 
+    !calculating coefficients for MGQD solve that only depend on the last time step solution
     CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
       fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
       Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T)
     ! CALL OLD_GREY_COEFS(c,Delt,Theta,cv,A,Gold,Temp_old,KapE_bar_old,E_avg_old,GQD_Src_old,Gold_Hat,Rhat_old)
 
+    !===========================================================================!
+    !                                                                           !
+    !     OUTER ITERATION LOOP (RTE ITERATIONS)                                 !
+    !                                                                           !
+    !===========================================================================!
     HO_E_avg_RTold2 = 0d0
     HO_E_avg_RTold = 0d0
     Temp_RTold2 = 0d0
@@ -209,36 +218,54 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     DO WHILE ((.NOT. RT_Conv).AND.(RT_Its .LT. Maxit_RTE))
       RT_Its = RT_Its + 1
 
+      !the RTE is not necessarily solved all the time
+      !only solving the RTE on and after the 2nd outer iteration for the mlqd algorithm
+      !for methods that don't use the RTE it is never solved
       IF (RT_Its .GE. RT_start_Its) THEN
 
+        !solving the RTE
         CALL TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega_y,Delx,Dely,A,&
           KapE,RT_Src,I_crn_old,c,Delt,Threads,RT_Residual,RT_ResLoc_x,RT_ResLoc_y,Res_Calc)
 
+        !writing norms of the RTE residual to the output file
         Status = nf90_put_var(outID,RT_Residual_ID,RT_Residual,(/1,1,1,RT_Its,t/),(/4,N_g,5,1,1/))
         CALL HANDLE_ERR(Status)
 
+        !calculating low-order quantities from the high-order intensities
         CALL COLLAPSE_INTENSITIES(Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_yy,&
           Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_edgV,HO_Eg_edgH,HO_Eg_avg,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_edgV,&
           HO_E_edgH,HO_E_avg,HO_Fx_edgV,HO_Fy_edgH)
 
+        !if ANY boundary is non-vaccuum (reflective) then the boundary intensities must be updated
         IF (MAXVAL(BC_Type) .GT. 0) THEN
+          !updating 'incoming' radiation intensities
           CALL RT_BC_UPDATE(BC_Type,bcT_left,bcT_bottom,bcT_right,bcT_top,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
+          !updating 'incoming' energy densities and fluxes accordingly
           CALL MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,&
             quad_weight,c,Comp_Unit)
         END IF
 
+        !calculating QD factors from the low-order quantities calculated from RTE solution
         CALL fg_Calc(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,Hg_avg_xx,Hg_avg_yy,&
           Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,c,Comp_Unit)
 
+        !calculating new MGQD boundary factors with the current iterate's intensities
         CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type)
 
       END IF
 
       IF ( run_type .EQ. 'tr_no_qd' ) THEN
+        !solve the MEB equation with the MGQD solution to find new Temp
         CALL MEB_SOLVE(Temp,HO_Eg_avg,Bg,KapE,Temp_old,Delt,cV,Kap0,Comp_Unit)
+        !update material properties with new Temp
         CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g)
 
       ELSE
+        !===========================================================================!
+        !                                                                           !
+        !     MGQD ITERATION LOOP                                                   !
+        !                                                                           !
+        !===========================================================================!
         MGQD_E_avg_MGQDold2 = 0d0
         MGQD_E_avg_MGQDold = HO_E_avg
         Temp_MGQDold2 = 0d0
@@ -248,53 +275,94 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
         DO WHILE ((.NOT. MGQD_conv).AND.(MGQD_Its .LT. Maxit_MLOQD))
           MGQD_Its = MGQD_Its + 1
 
+          !solve the MGQD linear system
           CALL MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
             fg_edgH_xy,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Src,KapE,KapR,&
             Delx,Dely,A,c,Delt,Theta,Threads,Res_Calc,MGQD_Residual,MGQD_ResLoc_x,MGQD_ResLoc_y,MGQD_BC_Residual,G_old,Pold_L,&
             Pold_B,Pold_R,Pold_T,Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old)
+
+          !calculate grey solution from MGQD solution
           CALL COLLAPSE_MG_EF(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Threads,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
             MGQD_Fy_edgH)
 
+          !!!!!!!!!!
           !Causes errors sometimes (bug somewhere)
           Status = nf90_put_var(outID,MGQD_BC_Residual_ID,MGQD_BC_Residual,(/1,1,MGQD_Its,RT_Its,t/),(/N_g,4,1,1,1/))
           CALL HANDLE_ERR(Status)
           Status = nf90_put_var(outID,MGQD_Residual_ID,MGQD_Residual,(/1,1,1,MGQD_Its,RT_Its,t/),(/N_g,5,5,1,1,1/))
           CALL HANDLE_ERR(Status)
+          !!!!!!!!!!
 
+          !solve the MEB equation with the MGQD solution to find new Temp
           CALL MEB_SOLVE(Temp,Eg_avg,Bg,KapE,Temp_old,Delt,cV,Kap0,Comp_Unit)
+          !update material properties with new Temp
           CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g)
 
+          !check convergence of MGQD solution (in grey form) for E, T
           Tconv = CONVERGENCE(Conv_Type,conv_lo,Temp,Temp_MGQDold,Temp_MGQDold2,MGQD_Its,&
             MGQD_Tnorm,MGQD_Trho)
           Econv = CONVERGENCE(Conv_Type,conv_lo,MGQD_E_avg,MGQD_E_avg_MGQDold,MGQD_E_avg_MGQDold2,MGQD_Its,&
             MGQD_Enorm,MGQD_Erho)
-          MGQD_conv = Tconv.AND.Econv
+          MGQD_conv = Tconv.AND.Econv !if both T and E are converged, the MGQD iterations have successfully converged
 
+          !writing MGQD convergence status (norms and spectral radii) to output file
+          Status = nf90_put_var(outID,MGQD_Tnorm_ID,(/MGQD_Tnorm/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,MGQD_Enorm_ID,(/MGQD_Enorm/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,MGQD_Trho_ID,(/MGQD_Trho/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,MGQD_Erho_ID,(/MGQD_Erho/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+          CALL HANDLE_ERR(Status)
+
+          !preparing for next iteration by moving current solution -> last iterate solution
           MGQD_E_avg_MGQDold2 = MGQD_E_avg_MGQDold
           MGQD_E_avg_MGQDold = MGQD_E_avg
           Temp_MGQDold2 = Temp_MGQDold
           Temp_MGQDold = Temp
 
+          !writing current iterate to terminal
           write(*,*) 'MGQD:     ',MGQD_Its, MGQD_Tnorm, MGQD_Enorm
 
         END DO
+
+        !writing the count of MGQD iterations to output file
+        Status = nf90_put_var(outID,MGQD_ItCount_ID,(/MGQD_Its/),(/RT_Its,t/),(/1,1/))
+        CALL HANDLE_ERR(Status)
 
       END IF
 
       Tconv = CONVERGENCE(Conv_Type,conv_ho,Temp,Temp_RTold,Temp_RTold2,RT_Its,TR_Tnorm,TR_Trho)
       Econv = CONVERGENCE(Conv_Type,conv_ho,HO_E_avg,HO_E_avg_RTold,HO_E_avg_RTold2,RT_Its,TR_Enorm,TR_Erho)
-      RT_conv = Tconv.AND.Econv
+      RT_conv = Tconv.AND.Econv !if both T and E are converged, the outer/RTE iterations have successfully converged
 
+      !writing RTE convergence status (norms and spectral radii) to output file
+      Status = nf90_put_var(outID,RT_Tnorm_ID,(/TR_Tnorm/),(/RT_Its,t/),(/1,1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,RT_Enorm_ID,(/TR_Enorm/),(/RT_Its,t/),(/1,1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,RT_Trho_ID,(/TR_Trho/),(/RT_Its,t/),(/1,1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,RT_Erho_ID,(/TR_Erho/),(/RT_Its,t/),(/1,1/))
+      CALL HANDLE_ERR(Status)
+
+      !preparing for next iteration by moving current solution -> last iterate solution
       HO_E_avg_RTold2 = HO_E_avg_RTold
       HO_E_avg_RTold = HO_E_avg
       Temp_RTold2 = Temp_RTold
       Temp_RTold = Temp
 
+      !writing current iterate to terminal
       write(*,*) RT_Its, MGQD_Its, TR_Tnorm, TR_Enorm
-      IF (RT_Its .GE. Maxit_RTE) EXIT
 
     END DO
+
+    !writing finished time step to terminal
     write(*,*) Time, RT_Its, TR_Tnorm, TR_Enorm
+
+    !writing the count of outer/RTE iterations to output file
+    Status = nf90_put_var(outID,RT_ItCount_ID,(/RT_Its/),(/t/),(/1/))
+    CALL HANDLE_ERR(Status)
 
     CALL NF_PUT_t_VAR(outID,Temp_ID,Temp,t)
     CALL NF_PUT_t_VAR(outID,MGQD_E_avg_ID,MGQD_E_avg,t)

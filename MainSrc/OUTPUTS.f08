@@ -233,11 +233,11 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
   MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
   HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
-  RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,Del_E_edgH_ID,&
-  Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,RT_Tnorm_ID,RT_Enorm_ID,&
-  MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,MGQD_Trho_ID,MGQD_Erho_ID,&
-  GQD_Trho_ID,GQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,Eg_in_T_ID,&
-  Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID)
+  KapB_ID,KapE_ID,KapR_ID,Bg_ID,RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,&
+  Del_E_edgV_ID,Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,&
+  RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,&
+  MGQD_Trho_ID,MGQD_Erho_ID,GQD_Trho_ID,GQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,&
+  Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID)
 
   INTEGER,INTENT(IN):: outID
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -246,6 +246,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   INTEGER,INTENT(OUT):: HO_E_edgV_ID, HO_E_edgH_ID, Fx_edgV_ID, Fy_edgH_ID, MGQD_Fx_edgV_ID, MGQD_Fy_edgH_ID, HO_Fx_edgV_ID
   INTEGER,INTENT(OUT):: HO_Fy_edgH_ID, Eg_avg_ID, Eg_edgV_ID, Eg_edgH_ID, HO_Eg_avg_ID, HO_Eg_edgV_ID, HO_Eg_edgH_ID
   INTEGER,INTENT(OUT):: Fxg_edgV_ID, Fyg_edgH_ID, HO_Fxg_edgV_ID, HO_Fyg_edgH_ID, I_avg_ID, I_edgV_ID, I_edgH_ID
+  INTEGER,INTENT(OUT):: KapB_ID, KapE_ID, KapR_ID, Bg_ID
   INTEGER,INTENT(OUT):: RT_Residual_ID, MGQD_Residual_ID, MGQD_BC_Residual_ID
   INTEGER,INTENT(OUT):: Del_T_ID, Del_E_avg_ID, Del_E_edgV_ID, Del_E_edgH_ID, Del_Fx_edgV_ID, Del_Fy_edgH_ID
   INTEGER,INTENT(OUT):: RT_ItCount_ID, MGQD_ItCount_ID, GQD_ItCount_ID
@@ -431,6 +432,21 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   !-------('horizontal' cell edges, x-const)---------!
   CALL NF_DEF_VAR(I_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_m_ID,N_g_ID,N_t_ID/),'I_edgH','Double')
   CALL NF_DEF_UNIT(outID,I_edgH_ID,'erg/(Ster*cm^3)')
+
+  !===========================================================================!
+  !--------------------------------------------------!
+  !                   Opacities                      !
+  !--------------------------------------------------!
+  CALL NF_DEF_VAR(KapB_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapB','Double')
+  CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
+
+  CALL NF_DEF_VAR(KapE_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapE','Double')
+  CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
+
+  CALL NF_DEF_VAR(KapR_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapR','Double')
+  CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
+
+  CALL NF_DEF_VAR(Bg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Bg','Double')
 
   !===========================================================================!
   !                                                                           !

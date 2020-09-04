@@ -104,6 +104,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: HO_E_edgV_ID, HO_E_edgH_ID, Fx_edgV_ID, Fy_edgH_ID, MGQD_Fx_edgV_ID, MGQD_Fy_edgH_ID, HO_Fx_edgV_ID
   INTEGER:: HO_Fy_edgH_ID, Eg_avg_ID, Eg_edgV_ID, Eg_edgH_ID, HO_Eg_avg_ID, HO_Eg_edgV_ID, HO_Eg_edgH_ID
   INTEGER:: Fxg_edgV_ID, Fyg_edgH_ID, HO_Fxg_edgV_ID, HO_Fyg_edgH_ID, I_avg_ID, I_edgV_ID, I_edgH_ID
+  INTEGER:: KapB_ID, KapE_ID, KapR_ID, Bg_ID
   INTEGER:: RT_Residual_ID, MGQD_Residual_ID, MGQD_BC_Residual_ID
   INTEGER:: Del_T_ID, Del_E_avg_ID, Del_E_edgV_ID, Del_E_edgH_ID, Del_Fx_edgV_ID, Del_Fy_edgH_ID
   INTEGER:: RT_ItCount_ID, MGQD_ItCount_ID, GQD_ItCount_ID
@@ -155,11 +156,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
     MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
     HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
-    RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,Del_E_edgH_ID,&
-    Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,RT_Tnorm_ID,RT_Enorm_ID,&
-    MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,MGQD_Trho_ID,MGQD_Erho_ID,&
-    GQD_Trho_ID,GQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,Eg_in_T_ID,&
-    Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID)
+    KapB_ID,KapE_ID,KapR_ID,Bg_ID,RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,&
+    Del_E_edgV_ID,Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,&
+    RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,&
+    MGQD_Trho_ID,MGQD_Erho_ID,GQD_Trho_ID,GQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,&
+    Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID)
 
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
@@ -393,6 +394,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     CALL NF_PUT_t_VAR(outID,I_avg_ID,I_avg,t)
     CALL NF_PUT_t_VAR(outID,I_edgV_ID,I_edgV,t)
     CALL NF_PUT_t_VAR(outID,I_edgH_ID,I_edgH,t)
+
+    CALL NF_PUT_t_VAR(outID,KapB_ID,KapB,t)
+    CALL NF_PUT_t_VAR(outID,KapE_ID,KapE,t)
+    CALL NF_PUT_t_VAR(outID,KapR_ID,KapR,t)
+    CALL NF_PUT_t_VAR(outID,Bg_ID,Bg,t)
 
     CALL NF_PUT_t_VAR(outID,Cg_L_ID,Cg_L,t)
     CALL NF_PUT_t_VAR(outID,Cg_B_ID,Cg_B,t)

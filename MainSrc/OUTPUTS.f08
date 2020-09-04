@@ -13,7 +13,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,c_ID,h_ID,pi_ID,erg_ID,Comp_Unit_ID,cv_ID,&
   c,h,pi,erg,Comp_Unit,cv,chi,conv_ho,conv_lo,conv_gr,line_src,xlen,ylen,Delx,Dely,tlen,Delt,bcT_left,bcT_bottom,&
   bcT_right,bcT_top,Tini,N_x,N_y,N_m,N_g,N_t,database_gen,use_grey,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,&
-  threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc)
+  threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta)
 
   INTEGER,INTENT(OUT):: outID
   INTEGER,INTENT(OUT):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -21,7 +21,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   INTEGER,INTENT(OUT):: c_ID, h_ID, pi_ID, erg_ID, Comp_Unit_ID, cv_ID
 
   REAL*8,INTENT(IN):: c, h, pi, erg, Comp_Unit, cv
-  REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt
+  REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt, Theta
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: database_gen, use_grey, maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads, BC_type(:)
@@ -134,6 +134,9 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   Status = nf90_put_att(outID,NF90_GLOBAL,'BC_type',BC_type)
   CALL HANDLE_ERR(Status)
 
+  Status = nf90_put_att(outID,NF90_GLOBAL,'Theta',Theta)
+  CALL HANDLE_ERR(Status)
+
   CALL NF_DEF_VAR(xlen_ID,outID,Z,'xlen','Double')
   CALL NF_DEF_UNIT(outID,xlen_ID,'cm')
   CALL NF_DEF_VAR(ylen_ID,outID,Z,'ylen','Double')
@@ -233,7 +236,8 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,Del_E_edgH_ID,&
   Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,RT_Tnorm_ID,RT_Enorm_ID,&
   MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,MGQD_Trho_ID,MGQD_Erho_ID,&
-  GQD_Trho_ID,GQD_Erho_ID)
+  GQD_Trho_ID,GQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,Eg_in_T_ID,&
+  Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID)
 
   INTEGER,INTENT(IN):: outID
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -247,6 +251,8 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   INTEGER,INTENT(OUT):: RT_ItCount_ID, MGQD_ItCount_ID, GQD_ItCount_ID
   INTEGER,INTENT(OUT):: RT_Tnorm_ID, RT_Enorm_ID, MGQD_Tnorm_ID, MGQD_Enorm_ID, GQD_Tnorm_ID, GQD_Enorm_ID
   INTEGER,INTENT(OUT):: RT_Trho_ID, RT_Erho_ID, MGQD_Trho_ID, MGQD_Erho_ID, GQD_Trho_ID, GQD_Erho_ID
+  INTEGER,INTENT(OUT):: Cg_L_ID, Cg_B_ID, Cg_R_ID, Cg_T_ID, Eg_in_L_ID, Eg_in_B_ID, Eg_in_R_ID, Eg_in_T_ID
+  INTEGER,INTENT(OUT):: Fg_in_L_ID, Fg_in_B_ID, Fg_in_R_ID, Fg_in_T_ID
 
   INTEGER:: Status
 
@@ -285,6 +291,24 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   !     DEFINING VARIABLES & UNITS                                            !
   !                                                                           !
   !===========================================================================!
+  !--------------------------------------------------!
+  !            Boundary Coefficients                 !
+  !--------------------------------------------------!
+  CALL NF_DEF_VAR(Cg_L_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Cg_L','Double')
+  CALL NF_DEF_VAR(Cg_B_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Cg_B','Double')
+  CALL NF_DEF_VAR(Cg_R_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Cg_R','Double')
+  CALL NF_DEF_VAR(Cg_T_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Cg_T','Double')
+
+  CALL NF_DEF_VAR(Eg_in_L_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Eg_in_L','Double')
+  CALL NF_DEF_VAR(Eg_in_B_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Eg_in_B','Double')
+  CALL NF_DEF_VAR(Eg_in_R_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Eg_in_R','Double')
+  CALL NF_DEF_VAR(Eg_in_T_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Eg_in_T','Double')
+
+  CALL NF_DEF_VAR(Fg_in_L_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Fg_in_L','Double')
+  CALL NF_DEF_VAR(Fg_in_B_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Fg_in_B','Double')
+  CALL NF_DEF_VAR(Fg_in_R_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Fg_in_R','Double')
+  CALL NF_DEF_VAR(Fg_in_T_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Fg_in_T','Double')
+
   !--------------------------------------------------!
   !                 Temperature                      !
   !--------------------------------------------------!

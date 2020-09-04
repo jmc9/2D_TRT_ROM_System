@@ -109,6 +109,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: RT_ItCount_ID, MGQD_ItCount_ID, GQD_ItCount_ID
   INTEGER:: RT_Tnorm_ID, RT_Enorm_ID, MGQD_Tnorm_ID, MGQD_Enorm_ID, GQD_Tnorm_ID, GQD_Enorm_ID
   INTEGER:: RT_Trho_ID, RT_Erho_ID, MGQD_Trho_ID, MGQD_Erho_ID, GQD_Trho_ID, GQD_Erho_ID
+  INTEGER:: Cg_L_ID, Cg_B_ID, Cg_R_ID, Cg_T_ID, Eg_in_L_ID, Eg_in_B_ID, Eg_in_R_ID, Eg_in_T_ID
+  INTEGER:: Fg_in_L_ID, Fg_in_B_ID, Fg_in_R_ID, Fg_in_T_ID
 
   !===========================================================================!
   !                                                                           !
@@ -156,7 +158,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,Del_E_edgH_ID,&
     Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,RT_Tnorm_ID,RT_Enorm_ID,&
     MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,MGQD_Trho_ID,MGQD_Erho_ID,&
-    GQD_Trho_ID,GQD_Erho_ID)
+    GQD_Trho_ID,GQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,Eg_in_T_ID,&
+    Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID)
 
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
@@ -390,6 +393,19 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     CALL NF_PUT_t_VAR(outID,I_avg_ID,I_avg,t)
     CALL NF_PUT_t_VAR(outID,I_edgV_ID,I_edgV,t)
     CALL NF_PUT_t_VAR(outID,I_edgH_ID,I_edgH,t)
+
+    CALL NF_PUT_t_VAR(outID,Cg_L_ID,Cg_L,t)
+    CALL NF_PUT_t_VAR(outID,Cg_B_ID,Cg_B,t)
+    CALL NF_PUT_t_VAR(outID,Cg_R_ID,Cg_R,t)
+    CALL NF_PUT_t_VAR(outID,Cg_T_ID,Cg_T,t)
+    CALL NF_PUT_t_VAR(outID,Eg_in_L_ID,Eg_in_L,t)
+    CALL NF_PUT_t_VAR(outID,Eg_in_B_ID,Eg_in_B,t)
+    CALL NF_PUT_t_VAR(outID,Eg_in_R_ID,Eg_in_R,t)
+    CALL NF_PUT_t_VAR(outID,Eg_in_T_ID,Eg_in_T,t)
+    CALL NF_PUT_t_VAR(outID,Fg_in_L_ID,Fg_in_L,t)
+    CALL NF_PUT_t_VAR(outID,Fg_in_B_ID,Fg_in_B,t)
+    CALL NF_PUT_t_VAR(outID,Fg_in_R_ID,Fg_in_R,t)
+    CALL NF_PUT_t_VAR(outID,Fg_in_T_ID,Fg_in_T,t)
 
     IF (Time .GE. tlen) EXIT
   END DO

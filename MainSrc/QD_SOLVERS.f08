@@ -207,6 +207,7 @@ SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,
   mat(k-1,k-2) = -MBx_C(N_x,1)
   mat(k-1,k-1) = Cp_R(1)
   mat(k-1,k)   = -MBx_T(N_x,1)
+  sol(k-1) = BC_R(1)
 
   !===========================================================================!
   !                                                                           !

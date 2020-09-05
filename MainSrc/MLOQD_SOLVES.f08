@@ -145,6 +145,10 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
         + Dely(j)*(Phat_L(i,j)-Phat_R(i,j)) + Delx(i)*(Phat_B(i,j)-Phat_T(i,j))
       END DO
     END DO
+    ! write(*,*) maxval(abs(pold_L)),maxval(abs(pold_B)),maxval(abs(pold_R)),maxval(abs(pold_T))
+    ! write(*,*) maxval(abs(Fxg_edgV_old)),maxval(abs(Fyg_edgH_old))
+    ! write(*,*) maxval(abs(phat_L)),maxval(abs(phat_B)),maxval(abs(phat_R)),maxval(abs(phat_T))
+    ! STOP
 
     DO j=1,N_y
       DO i=1,N_x

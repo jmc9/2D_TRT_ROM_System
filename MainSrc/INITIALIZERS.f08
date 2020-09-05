@@ -14,7 +14,7 @@ CONTAINS
 SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_yy,Hg_edgV_xx,&
   Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_avg,&
   HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,N_y,N_x,N_m,N_g,Tini,comp_unit,nu_g,bcT_left,bcT_right,&
-  bcT_upper,bcT_lower,BC_Type)
+  bcT_upper,bcT_lower,BC_Type,pi)
   REAL*8,ALLOCATABLE,INTENT(OUT):: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: I_crn(:,:,:,:), I_crn_old(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_yy(:,:,:)
@@ -26,7 +26,7 @@ SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx
   REAL*8,ALLOCATABLE,INTENT(OUT):: HO_Fx_edgV(:,:), HO_Fy_edgH(:,:)
 
   REAL*8,INTENT(IN):: Tini, bcT_left, bcT_right, bcT_upper, bcT_lower
-  REAL*8,INTENT(IN):: comp_unit, nu_g(:)
+  REAL*8,INTENT(IN):: comp_unit, nu_g(:), pi
   INTEGER,INTENT(IN):: N_y, N_x, N_m, N_g, BC_Type(:)
 
   REAL*8:: bg
@@ -76,6 +76,9 @@ SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx
   !Residuals for the transport solve
   ! ALLOCATE(RT_Residual(N_x*2,N_y*2,N_m,N_g,2,maxit_RTE))
 
+  HO_E_avg = 0d0
+  HO_E_edgV = 0d0
+  HO_E_edgH = 0d0
   DO g=1,N_g
     !black body radiation distribution at initial Temp
     bg = Bg_planck_calc(Tini,nu_g(g),nu_g(g+1),comp_unit)
@@ -85,7 +88,17 @@ SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx
     I_crn(:,:,:,g) = bg
     Ic_edgV(:,:,:,g) = bg
     Ic_edgH(:,:,:,g) = bg
+    HO_Eg_avg(:,:,g) = 4d0*pi*bg
+    HO_Eg_edgV(:,:,g) = 4d0*pi*bg
+    HO_Eg_edgH(:,:,g) = 4d0*pi*bg
+    HO_E_avg = HO_E_avg + 4d0*pi*bg
+    HO_E_edgV = HO_E_edgV + 4d0*pi*bg
+    HO_E_edgH = HO_E_edgH + 4d0*pi*bg
   END DO
+  HO_Fxg_edgV = 0d0
+  HO_Fyg_edgH = 0d0
+  HO_Fx_edgV = 0d0
+  HO_Fy_edgH = 0d0
 
   CALL RT_BC_UPDATE(BC_Type,bcT_left,bcT_lower,bcT_right,bcT_upper,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
   I_crn_old = I_crn
@@ -149,7 +162,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_yy_old,fg_edgV_xx_old,fg_edgV_xy_old,&
   fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,&
   I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,&
-  G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type)
+  G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type,Tini,nu_g,pi)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
@@ -170,9 +183,13 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
 
   REAL*8,INTENT(IN):: I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:)
-  REAL*8,INTENT(IN):: c, Comp_Unit
+  REAL*8,INTENT(IN):: Tini, nu_g(:)
+  REAL*8,INTENT(IN):: c, Comp_Unit, pi
   INTEGER,INTENT(IN):: N_y, N_x, N_g
   INTEGER,INTENT(IN):: BC_Type(:)
+
+  REAL*8:: bg
+  INTEGER:: g
 
   !Multigroup quasidiffusion tensors
   ALLOCATE(fg_avg_xx(N_x,N_y,N_g))
@@ -239,6 +256,24 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   ! ALLOCATE(MGQD_Residual(N_x,N_y,N_g,5,2,maxit_MLOQD,maxit_RTE))
 
   ALLOCATE(G_old(N_x,N_y,N_g),Pold_L(N_x,N_y,N_g),Pold_B(N_x,N_y,N_g),Pold_R(N_x,N_y,N_g),Pold_T(N_x,N_y,N_g))
+
+  MGQD_E_avg = 0d0
+  MGQD_E_edgV = 0d0
+  MGQD_E_edgH = 0d0
+  DO g=1,N_g
+    !black body radiation distribution at initial Temp
+    bg = Bg_planck_calc(Tini,nu_g(g),nu_g(g+1),comp_unit)
+    Eg_avg(:,:,g) = 4d0*pi*bg
+    Eg_edgV(:,:,g) = 4d0*pi*bg
+    Eg_edgH(:,:,g) = 4d0*pi*bg
+    MGQD_E_avg = MGQD_E_avg + 4d0*pi*bg
+    MGQD_E_edgV = MGQD_E_edgV + 4d0*pi*bg
+    MGQD_E_edgH = MGQD_E_edgH + 4d0*pi*bg
+  END DO
+  Fxg_edgV = 0d0
+  Fyg_edgH = 0d0
+  MGQD_Fx_edgV = 0d0
+  MGQD_Fy_edgH = 0d0
 
   fg_avg_xx = 1d0/3d0
   fg_avg_yy = 1d0/3d0

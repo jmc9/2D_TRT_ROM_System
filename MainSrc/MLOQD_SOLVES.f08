@@ -507,14 +507,14 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
         m1 = 1
         m2 = N_m/4
         DO m=m1,m2
-          Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
-          Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+          Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*I_edgV(1,i,m,g)
+          Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*I_edgV(1,i,m,g)
         END DO
         m1 = 3*N_m/4+1
         m2 = N_m
         DO m=m1,m2
-          Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
-          Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+          Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*I_edgV(1,i,m,g)
+          Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*I_edgV(1,i,m,g)
         END DO
       END DO
 
@@ -531,8 +531,8 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
       m2 = N_m/2
       DO i=1,N_x
         DO m=m1,m2
-          Fg_in_B(i,g) = Fg_in_B(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,1,m,g) + eps)
-          Eg_in_B(i,g) = Eg_in_B(i,g) + quad_weight(m)*(I_edgH(i,1,m,g) + eps)
+          Fg_in_B(i,g) = Fg_in_B(i,g) + Omega_y(m)*quad_weight(m)*I_edgH(i,1,m,g)
+          Eg_in_B(i,g) = Eg_in_B(i,g) + quad_weight(m)*I_edgH(i,1,m,g)
         END DO
       END DO
 
@@ -549,8 +549,8 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
       m2 = 3*N_m/4
       DO i=1,N_y
         DO m=m1,m2
-          Fg_in_R(i,g) = Fg_in_R(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
-          Eg_in_R(i,g) = Eg_in_R(i,g) + quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+          Fg_in_R(i,g) = Fg_in_R(i,g) + Omega_x(m)*quad_weight(m)*I_edgV(SIZE(I_edgV,1),i,m,g)
+          Eg_in_R(i,g) = Eg_in_R(i,g) + quad_weight(m)*I_edgV(SIZE(I_edgV,1),i,m,g)
         END DO
       END DO
 
@@ -567,8 +567,8 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
       m2 = N_m
       DO i=1,N_x
         DO m=m1,m2
-          Fg_in_T(i,g) = Fg_in_T(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
-          Eg_in_T(i,g) = Eg_in_T(i,g) + quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
+          Fg_in_T(i,g) = Fg_in_T(i,g) + Omega_y(m)*quad_weight(m)*I_edgH(i,SIZE(I_edgH,2),m,g)
+          Eg_in_T(i,g) = Eg_in_T(i,g) + quad_weight(m)*I_edgH(i,SIZE(I_edgH,2),m,g)
         END DO
       END DO
 

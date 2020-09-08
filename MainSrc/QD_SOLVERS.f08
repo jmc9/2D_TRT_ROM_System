@@ -380,7 +380,7 @@ SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,
   !     Just using a direct solve right now to test                           !
   !                                                                           !
   !===========================================================================!
-  CALL LP_MATSOLVE(mat,sol) !GAUSS_COMPLETE(mat,sol)
+  CALL GAUSS_COMPLETE(mat,sol)
 
   E_edgV(1,1) = sol(1) !left
   DO i=1,N_x

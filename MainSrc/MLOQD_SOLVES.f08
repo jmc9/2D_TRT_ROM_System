@@ -387,8 +387,9 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
         Cg_L(i,g) = Cg_L(i,g)/sum
       END DO
 
-    ELSE IF (BC_Type(1) .EQ. 1) THEN !vacuum condition implies Cg_L = 0
-      Cg_L(:,g) = 0d0
+    ELSE IF (BC_Type(1) .EQ. 1) THEN !reflective condition implies Cg_L = 0
+      ! Cg_L(:,g) = 0d0
+      CONTINUE
 
     END IF
 
@@ -407,8 +408,9 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
         Cg_B(i,g) = Cg_B(i,g)/sum
       END DO
 
-    ELSE IF (BC_Type(2) .EQ. 1) THEN !vacuum condition implies Cg_B = 0
-      Cg_B(:,g) = 0d0
+    ELSE IF (BC_Type(2) .EQ. 1) THEN !reflective condition implies Cg_B = 0
+      ! Cg_B(:,g) = 0d0
+      CONTINUE
 
     END IF
 
@@ -433,8 +435,9 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
         Cg_R(i,g) = Cg_R(i,g)/sum
       END DO
 
-    ELSE IF (BC_Type(3) .EQ. 1) THEN !vacuum condition implies Cg_R = 0
-      Cg_R(:,g) = 0d0
+    ELSE IF (BC_Type(3) .EQ. 1) THEN !reflective condition implies Cg_R = 0
+      ! Cg_R(:,g) = 0d0
+      CONTINUE
 
     END IF
 
@@ -453,8 +456,9 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
         Cg_T(i,g) = Cg_T(i,g)/sum
       END DO
 
-    ELSE IF (BC_Type(4) .EQ. 1) THEN !vacuum condition implies Cg_T = 0
-      Cg_T(:,g) = 0d0
+    ELSE IF (BC_Type(4) .EQ. 1) THEN !reflective condition implies Cg_T = 0
+      ! Cg_T(:,g) = 0d0
+      CONTINUE
 
     END IF
 
@@ -466,7 +470,7 @@ END SUBROUTINE Cg_Calc
 !
 !==================================================================================================================================!
 SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,&
-  quad_weight,c,Comp_Unit)
+  quad_weight,c,Comp_Unit,BC_Type)
 
   REAL*8,INTENT(OUT):: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
   REAL*8,INTENT(OUT):: Fg_in_L(:,:), Fg_in_B(:,:), Fg_in_R(:,:), Fg_in_T(:,:)
@@ -474,8 +478,8 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
   REAL*8,INTENT(IN):: I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:)
   REAL*8,INTENT(IN):: c, Comp_Unit
+  INTEGER,INTENT(IN):: BC_Type(:)
 
-  REAL*8:: eps
   INTEGER:: N_x, N_y, N_m, N_g
   INTEGER:: i, m, g, m1, m2
 
@@ -484,10 +488,6 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
   N_y = SIZE(Eg_in_L,1)
   N_m = SIZE(quad_weight,1)
   N_g = SIZE(Eg_in_L,2)
-
-  !setting base eps value and scaling this based on the computational units
-  eps=1d-25
-  eps=eps/comp_unit
 
   Eg_in_L = 0d0
   Fg_in_L = 0d0
@@ -499,47 +499,83 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
   Fg_in_T = 0d0
   DO g=1,N_g
 
-    DO i=1,N_y
+    !--------------------------------------------------!
+    !              Left Boundary Incoming              !
+    !--------------------------------------------------!
+    IF (BC_Type(1) .EQ. 0) THEN !incoming radiation condition, calculate incoming
+      DO i=1,N_y
+        m1 = 1
+        m2 = N_m/4
+        DO m=m1,m2
+          Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+          Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+        END DO
+        m1 = 3*N_m/4+1
+        m2 = N_m
+        DO m=m1,m2
+          Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+          Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+        END DO
+      END DO
+
+    ELSE IF (BC_Type(1) .EQ. 1) THEN !reflective condition implies incoming = 0
+      CONTINUE
+
+    END IF
+
+    !--------------------------------------------------!
+    !             Bottom Boundary Incoming             !
+    !--------------------------------------------------!
+    IF (BC_Type(2) .EQ. 0) THEN !incoming radiation condition, calculate incoming
       m1 = 1
-      m2 = N_m/4
-      DO m=m1,m2
-        Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
-        Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+      m2 = N_m/2
+      DO i=1,N_x
+        DO m=m1,m2
+          Fg_in_B(i,g) = Fg_in_B(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,1,m,g) + eps)
+          Eg_in_B(i,g) = Eg_in_B(i,g) + quad_weight(m)*(I_edgH(i,1,m,g) + eps)
+        END DO
       END DO
-      m1 = 3*N_m/4+1
+
+    ELSE IF (BC_Type(2) .EQ. 1) THEN !reflective condition implies incoming = 0
+      CONTINUE
+
+    END IF
+
+    !--------------------------------------------------!
+    !             Right Boundary Incoming              !
+    !--------------------------------------------------!
+    IF (BC_Type(3) .EQ. 0) THEN !incoming radiation condition, calculate incoming
+      m1 = N_m/4+1
+      m2 = 3*N_m/4
+      DO i=1,N_y
+        DO m=m1,m2
+          Fg_in_R(i,g) = Fg_in_R(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+          Eg_in_R(i,g) = Eg_in_R(i,g) + quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
+        END DO
+      END DO
+
+    ELSE IF (BC_Type(3) .EQ. 1) THEN !reflective condition implies incoming = 0
+      CONTINUE
+
+    END IF
+
+    !--------------------------------------------------!
+    !              Top Boundary Incoming               !
+    !--------------------------------------------------!
+    IF (BC_Type(4) .EQ. 0) THEN !incoming radiation condition, calculate incoming
+      m1 = N_m/2+1
       m2 = N_m
-      DO m=m1,m2
-        Fg_in_L(i,g) = Fg_in_L(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(1,i,m,g) + eps)
-        Eg_in_L(i,g) = Eg_in_L(i,g) + quad_weight(m)*(I_edgV(1,i,m,g) + eps)
+      DO i=1,N_x
+        DO m=m1,m2
+          Fg_in_T(i,g) = Fg_in_T(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
+          Eg_in_T(i,g) = Eg_in_T(i,g) + quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
+        END DO
       END DO
-    END DO
 
-    m1 = 1
-    m2 = N_m/2
-    DO i=1,N_x
-      DO m=m1,m2
-        Fg_in_B(i,g) = Fg_in_B(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,1,m,g) + eps)
-        Eg_in_B(i,g) = Eg_in_B(i,g) + quad_weight(m)*(I_edgH(i,1,m,g) + eps)
-      END DO
-    END DO
+    ELSE IF (BC_Type(4) .EQ. 1) THEN !reflective condition implies incoming = 0
+      CONTINUE
 
-    m1 = N_m/4+1
-    m2 = 3*N_m/4
-    DO i=1,N_y
-      DO m=m1,m2
-        Fg_in_R(i,g) = Fg_in_R(i,g) + Omega_x(m)*quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
-        Eg_in_R(i,g) = Eg_in_R(i,g) + quad_weight(m)*(I_edgV(SIZE(I_edgV,1),i,m,g) + eps)
-      END DO
-    END DO
-
-    m1 = N_m/2+1
-    m2 = N_m
-    DO i=1,N_x
-      DO m=m1,m2
-        Fg_in_T(i,g) = Fg_in_T(i,g) + Omega_y(m)*quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
-        Eg_in_T(i,g) = Eg_in_T(i,g) + quad_weight(m)*(I_edgH(i,SIZE(I_edgH,2),m,g) + eps)
-      END DO
-    END DO
+    END IF
 
   END DO
   Eg_in_L = Eg_in_L/c

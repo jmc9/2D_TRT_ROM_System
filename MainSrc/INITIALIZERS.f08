@@ -14,7 +14,7 @@ CONTAINS
 SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_yy,Hg_edgV_xx,&
   Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_avg,&
   HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,N_y,N_x,N_m,N_g,Tini,comp_unit,nu_g,bcT_left,bcT_right,&
-  bcT_upper,bcT_lower,BC_Type,pi)
+  bcT_upper,bcT_lower,BC_Type,pi,c)
   REAL*8,ALLOCATABLE,INTENT(OUT):: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: I_crn(:,:,:,:), I_crn_old(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Hg_avg_xx(:,:,:), Hg_avg_yy(:,:,:)
@@ -26,7 +26,7 @@ SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx
   REAL*8,ALLOCATABLE,INTENT(OUT):: HO_Fx_edgV(:,:), HO_Fy_edgH(:,:)
 
   REAL*8,INTENT(IN):: Tini, bcT_left, bcT_right, bcT_upper, bcT_lower
-  REAL*8,INTENT(IN):: comp_unit, nu_g(:), pi
+  REAL*8,INTENT(IN):: comp_unit, nu_g(:), pi, c
   INTEGER,INTENT(IN):: N_y, N_x, N_m, N_g, BC_Type(:)
 
   REAL*8:: bg
@@ -88,19 +88,20 @@ SUBROUTINE RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx
     I_crn(:,:,:,g) = bg
     Ic_edgV(:,:,:,g) = bg
     Ic_edgH(:,:,:,g) = bg
-    HO_Eg_avg(:,:,g) = 4d0*pi*bg
-    HO_Eg_edgV(:,:,g) = 4d0*pi*bg
-    HO_Eg_edgH(:,:,g) = 4d0*pi*bg
-    HO_E_avg = HO_E_avg + 4d0*pi*bg
-    HO_E_edgV = HO_E_edgV + 4d0*pi*bg
-    HO_E_edgH = HO_E_edgH + 4d0*pi*bg
+    HO_Eg_avg(:,:,g) = 4d0*pi*bg/c
+    HO_Eg_edgV(:,:,g) = 4d0*pi*bg/c
+    HO_Eg_edgH(:,:,g) = 4d0*pi*bg/c
+    HO_E_avg = HO_E_avg + 4d0*pi*bg/c
+    HO_E_edgV = HO_E_edgV + 4d0*pi*bg/c
+    HO_E_edgH = HO_E_edgH + 4d0*pi*bg/c
   END DO
   HO_Fxg_edgV = 0d0
   HO_Fyg_edgH = 0d0
   HO_Fx_edgV = 0d0
   HO_Fy_edgH = 0d0
 
-  CALL RT_BC_UPDATE(BC_Type,bcT_left,bcT_lower,bcT_right,bcT_upper,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
+  ! CALL RT_BC_UPDATE(BC_Type,bcT_left,bcT_lower,bcT_right,bcT_upper,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
+  CALL RT_BC_UPDATE((/0,0,0,0/),bcT_left,bcT_lower,bcT_right,bcT_upper,Comp_Unit,Nu_g,I_edgV,I_edgH,Ic_edgV,Ic_edgH)
   I_crn_old = I_crn
 
 END SUBROUTINE RT_INIT
@@ -131,12 +132,12 @@ SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,K
   ALLOCATE(Temp_Old(N_x,N_y))
 
   Temp = Tini
-  Temp_Old = Temp
+  ! Temp_Old = Temp
   CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g)
 
-  KapE_old = KapE
-  KapR_old = KapR
-  MGQD_Src_old = MGQD_Src
+  ! KapE_old = KapE
+  ! KapR_old = KapR
+  ! MGQD_Src_old = MGQD_Src
 
 END SUBROUTINE TEMP_INIT
 
@@ -263,12 +264,12 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   DO g=1,N_g
     !black body radiation distribution at initial Temp
     bg = Bg_planck_calc(Tini,nu_g(g),nu_g(g+1),comp_unit)
-    Eg_avg(:,:,g) = 4d0*pi*bg
-    Eg_edgV(:,:,g) = 4d0*pi*bg
-    Eg_edgH(:,:,g) = 4d0*pi*bg
-    MGQD_E_avg = MGQD_E_avg + 4d0*pi*bg
-    MGQD_E_edgV = MGQD_E_edgV + 4d0*pi*bg
-    MGQD_E_edgH = MGQD_E_edgH + 4d0*pi*bg
+    Eg_avg(:,:,g) = 4d0*pi*bg/c
+    Eg_edgV(:,:,g) = 4d0*pi*bg/c
+    Eg_edgH(:,:,g) = 4d0*pi*bg/c
+    MGQD_E_avg = MGQD_E_avg + 4d0*pi*bg/c
+    MGQD_E_edgV = MGQD_E_edgV + 4d0*pi*bg/c
+    MGQD_E_edgH = MGQD_E_edgH + 4d0*pi*bg/c
   END DO
   Fxg_edgV = 0d0
   Fyg_edgH = 0d0
@@ -308,13 +309,12 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
 
   IF (BC_Type(4) .EQ. 0) THEN
     Cg_T=0.5d0
-  ELSE IF (BC_Type(3) .EQ. 1) THEN
+  ELSE IF (BC_Type(4) .EQ. 1) THEN
     Cg_T=0d0
   END IF
 
-  ! CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit)
   CALL MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,&
-    quad_weight,c,Comp_Unit)
+    quad_weight,c,Comp_Unit,BC_Type)
 
 END SUBROUTINE MGQD_INIT
 

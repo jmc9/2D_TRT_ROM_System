@@ -8,7 +8,7 @@ CONTAINS
 !
 !==================================================================================================================================!
 
-FUNCTION kapB_calc(Temp,nu_low,nu_high)
+RECURSIVE FUNCTION kapB_calc(Temp,nu_low,nu_high)
 
   IMPLICIT NONE
   REAL*8,INTENT(IN):: Temp, nu_low, nu_high
@@ -87,7 +87,7 @@ END FUNCTION
 !
 !==================================================================================================================================!
 
-FUNCTION Bg_planck_calc(Tin,nu_low,nu_high,comp_unit)
+RECURSIVE FUNCTION Bg_planck_calc(Tin,nu_low,nu_high,comp_unit)
 
   IMPLICIT NONE
   REAL*8::Bg_planck_calc

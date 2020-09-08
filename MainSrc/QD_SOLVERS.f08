@@ -37,7 +37,7 @@ CONTAINS
 !   BC_[L,B,R,T] - right hand sides of the boundary conditions
 !
 !==================================================================================================================================!
-SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,MBy_T,MBy_L,MBy_R,&
+RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,MBy_T,MBy_L,MBy_R,&
   EB_RHS,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
 
   REAL*8,INTENT(OUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)

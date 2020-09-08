@@ -47,6 +47,10 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega
   KapE = KapE_in + 1d0/(c*Delt)
   Src = Src_in + I_crn_old/(c*Delt)
 
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,m1,m2,m,j,i,left,right,bot,top,B,Q)
+  !$OMP DO
   DO g=1,N_g
     !--------------------------------------------------!
     !            Omega_x > 0, Omega_y > 0              !
@@ -236,12 +240,18 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega
       END DO !end of y cell loop
     END DO !end of angle loop
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 
   !--------------------------------------------------!
   !              Residual Calculations               !
   !--------------------------------------------------!
   IF (Res_Calc) THEN
   RT_Residual=0d0
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,m2,m,j,i,k,left,right,bot,top,res,sums)
+  !$OMP DO
   DO g=1,N_g
     DO m=1,N_m
       m2 = 1 + INT(4*(m-1)/N_m)
@@ -308,6 +318,8 @@ SUBROUTINE TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega
 
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
   END IF
 
   DEALLOCATE(B,Q)
@@ -421,6 +433,10 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
   !--------------------------------------------------!
   !             Multigroup E's and F's               !
   !--------------------------------------------------!
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,m,j,i)
+  !$OMP DO
   DO g=1,N_g
     DO m=1,N_m
 
@@ -458,6 +474,8 @@ SUBROUTINE COLLAPSE_INTENSITIES(Open_Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y
     Eg_edgV(:,:,g) = Eg_edgV(:,:,g)/c
     Eg_edgH(:,:,g) = Eg_edgH(:,:,g)/c
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 
   !--------------------------------------------------!
   !             Multigroup E's and F's               !

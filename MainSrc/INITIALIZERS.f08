@@ -110,14 +110,14 @@ END SUBROUTINE RT_INIT
 !
 !==================================================================================================================================!
 SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,Tini,&
-  Comp_Unit,Nu_g,Temp_Old)
+  Comp_Unit,Nu_g,Temp_Old,Threads)
   REAL*8,ALLOCATABLE,INTENT(INOUT):: Temp(:,:), Temp_Old(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: RT_Src(:,:,:,:), MGQD_Src(:,:,:), MGQD_Src_old(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: KapE(:,:,:), KapB(:,:,:), KapR(:,:,:), Bg(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: KapE_old(:,:,:), KapR_old(:,:,:)
 
   REAL*8,INTENT(IN):: Tini, comp_unit, nu_g(:)
-  INTEGER,INTENT(IN):: N_y, N_x, N_m, N_g
+  INTEGER,INTENT(IN):: N_y, N_x, N_m, N_g, Threads
 
   ALLOCATE(RT_Src(N_x*2,N_y*2,N_m,N_g))
   ALLOCATE(MGQD_Src(N_x,N_y,N_g))
@@ -133,7 +133,7 @@ SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,K
 
   Temp = Tini
   ! Temp_Old = Temp
-  CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g)
+  CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads)
 
   ! KapE_old = KapE
   ! KapR_old = KapR
@@ -163,7 +163,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_yy_old,fg_edgV_xx_old,fg_edgV_xy_old,&
   fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,&
   I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,&
-  G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type,Tini,nu_g,pi)
+  G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type,Tini,nu_g,pi,Open_Threads)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
@@ -187,7 +187,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   REAL*8,INTENT(IN):: Tini, nu_g(:)
   REAL*8,INTENT(IN):: c, Comp_Unit, pi
   INTEGER,INTENT(IN):: N_y, N_x, N_g
-  INTEGER,INTENT(IN):: BC_Type(:)
+  INTEGER,INTENT(IN):: BC_Type(:), Open_Threads
 
   REAL*8:: bg
   INTEGER:: g
@@ -314,7 +314,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   END IF
 
   CALL MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,&
-    quad_weight,c,Comp_Unit,BC_Type)
+    quad_weight,c,Comp_Unit,BC_Type,Open_Threads)
 
 END SUBROUTINE MGQD_INIT
 

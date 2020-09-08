@@ -11,7 +11,7 @@ CONTAINS
 !==================================================================================================================================!
 SUBROUTINE OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
   fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,Src_old,Delx,Dely,A,c,Delt,Theta,&
-  G_old,Pold_L,Pold_B,Pold_R,Pold_T)
+  G_old,Pold_L,Pold_B,Pold_R,Pold_T,Open_Threads)
 
   REAL*8,INTENT(IN):: Eg_avg_old(:,:,:), Eg_edgV_old(:,:,:), Eg_edgH_old(:,:,:)
   REAL*8,INTENT(IN):: Fxg_edgV_old(:,:,:), Fyg_edgH_old(:,:,:)
@@ -21,15 +21,20 @@ SUBROUTINE OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_ed
   REAL*8,INTENT(IN):: KapE_old(:,:,:), KapR_old(:,:,:), Src_old(:,:,:)
   REAL*8,INTENT(IN):: Delx(:), Dely(:), A(:,:)
   REAL*8,INTENT(IN):: c, Delt, Theta
+  INTEGER,INTENT(IN):: Open_Threads
 
   REAL*8,INTENT(OUT):: G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
 
-  INTEGER:: N_x, N_y, N_g, i, j, g
+  INTEGER:: N_x, N_y, N_g, i, j, g, Threads
 
   N_x = SIZE(Eg_avg_old,1)
   N_y = SIZE(Eg_avg_old,2)
   N_g = SIZE(Eg_avg_old,3)
 
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,j,i)
+  !$OMP DO
   DO g=1,N_g
     DO j=1,N_y
       DO i=1,N_x
@@ -62,7 +67,8 @@ SUBROUTINE OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_ed
       END DO
     END DO
   END DO
-
+  !$OMP END DO
+  !$OMP END PARALLEL
 
 END SUBROUTINE OLD_MGQD_COEFS
 
@@ -130,6 +136,12 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
 
   ALLOCATE(E1(N_x,N_y),E2(N_x+1,N_y),E3(N_x,N_y+1))
 
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,j,i,Xi,Phat_L,Phat_B,Phat_R,Phat_T,Ghat, &
+  !$OMP& EB_L,EB_B,EB_C,EB_R,EB_T,MBx_B,MBx_C,MBx_R,MBx_T,MBy_L,MBy_C,MBy_R,MBy_T,Cp_L,Cp_B,Cp_R,Cp_T, &
+  !$OMP& BC_L,BC_B,BC_R,BC_T,MBx_RHS,MBy_RHS,E1,E2,E3)
+  !$OMP DO
   DO g=1,N_g
 
     DO j=1,N_y
@@ -145,10 +157,6 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
         + Dely(j)*(Phat_L(i,j)-Phat_R(i,j)) + Delx(i)*(Phat_B(i,j)-Phat_T(i,j))
       END DO
     END DO
-    ! write(*,*) maxval(abs(pold_L)),maxval(abs(pold_B)),maxval(abs(pold_R)),maxval(abs(pold_T))
-    ! write(*,*) maxval(abs(Fxg_edgV_old)),maxval(abs(Fyg_edgH_old))
-    ! write(*,*) maxval(abs(phat_L)),maxval(abs(phat_B)),maxval(abs(phat_R)),maxval(abs(phat_T))
-    ! STOP
 
     DO j=1,N_y
       DO i=1,N_x
@@ -240,6 +248,8 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
     END DO
 
   END DO !End loop over N_g
+  !$OMP END DO
+  !$OMP END PARALLEL
 
   !--------------------------------------------------!
   !              Residual Calculations               !
@@ -247,6 +257,8 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
   IF (Res_Calc) THEN
   MGQD_Residual = 0d0
   MGQD_BC_Residual = 0d0
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,j,i,k,z,res,sums)
+  !$OMP DO
   DO g=1,N_g
     sums=0d0
     DO j=1,N_y
@@ -323,6 +335,8 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
     END DO
 
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
   END IF
 
   DEALLOCATE(Xi)
@@ -345,16 +359,16 @@ END SUBROUTINE MLOQD_FV
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type)
+SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type,Open_Threads)
   REAL*8,INTENT(OUT):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
   REAL*8,INTENT(IN):: I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:)
   REAL*8,INTENT(IN):: Comp_Unit
-  INTEGER,INTENT(IN):: BC_Type(:)
+  INTEGER,INTENT(IN):: BC_Type(:), Open_Threads
 
   REAL*8:: sum, eps
   INTEGER:: N_x, N_y, N_m, N_g
-  INTEGER:: i, m, g, m1, m2
+  INTEGER:: i, m, g, m1, m2, Threads
 
   !Determining array sizes
   N_x = SIZE(Cg_B,1)
@@ -366,11 +380,15 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
   eps=1d-25
   eps=eps/comp_unit
 
-  Cg_L = 0d0
-  Cg_B = 0d0
-  Cg_R = 0d0
-  Cg_T = 0d0
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,i,m,m1,m2,sum)
+  !$OMP DO
   DO g=1,N_g
+    Cg_L(:,g) = 0d0
+    Cg_B(:,g) = 0d0
+    Cg_R(:,g) = 0d0
+    Cg_T(:,g) = 0d0
 
     !--------------------------------------------------!
     !            Left Boundary Coefficient             !
@@ -388,7 +406,6 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
       END DO
 
     ELSE IF (BC_Type(1) .EQ. 1) THEN !reflective condition implies Cg_L = 0
-      ! Cg_L(:,g) = 0d0
       CONTINUE
 
     END IF
@@ -409,7 +426,6 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
       END DO
 
     ELSE IF (BC_Type(2) .EQ. 1) THEN !reflective condition implies Cg_B = 0
-      ! Cg_B(:,g) = 0d0
       CONTINUE
 
     END IF
@@ -436,7 +452,6 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
       END DO
 
     ELSE IF (BC_Type(3) .EQ. 1) THEN !reflective condition implies Cg_R = 0
-      ! Cg_R(:,g) = 0d0
       CONTINUE
 
     END IF
@@ -457,12 +472,13 @@ SUBROUTINE Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight
       END DO
 
     ELSE IF (BC_Type(4) .EQ. 1) THEN !reflective condition implies Cg_T = 0
-      ! Cg_T(:,g) = 0d0
       CONTINUE
 
     END IF
 
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 
 END SUBROUTINE Cg_Calc
 
@@ -470,7 +486,7 @@ END SUBROUTINE Cg_Calc
 !
 !==================================================================================================================================!
 SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,&
-  quad_weight,c,Comp_Unit,BC_Type)
+  quad_weight,c,Comp_Unit,BC_Type,Open_Threads)
 
   REAL*8,INTENT(OUT):: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
   REAL*8,INTENT(OUT):: Fg_in_L(:,:), Fg_in_B(:,:), Fg_in_R(:,:), Fg_in_T(:,:)
@@ -478,10 +494,10 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
   REAL*8,INTENT(IN):: I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:)
   REAL*8,INTENT(IN):: c, Comp_Unit
-  INTEGER,INTENT(IN):: BC_Type(:)
+  INTEGER,INTENT(IN):: BC_Type(:), Open_Threads
 
   INTEGER:: N_x, N_y, N_m, N_g
-  INTEGER:: i, m, g, m1, m2
+  INTEGER:: i, m, g, m1, m2, Threads
 
   !Determining array sizes
   N_x = SIZE(Eg_in_B,1)
@@ -489,15 +505,19 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
   N_m = SIZE(quad_weight,1)
   N_g = SIZE(Eg_in_L,2)
 
-  Eg_in_L = 0d0
-  Fg_in_L = 0d0
-  Eg_in_B = 0d0
-  Fg_in_B = 0d0
-  Eg_in_R = 0d0
-  Fg_in_R = 0d0
-  Eg_in_T = 0d0
-  Fg_in_T = 0d0
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,i,m,m1,m2)
+  !$OMP DO
   DO g=1,N_g
+    Eg_in_L(:,g) = 0d0
+    Fg_in_L(:,g) = 0d0
+    Eg_in_B(:,g) = 0d0
+    Fg_in_B(:,g) = 0d0
+    Eg_in_R(:,g) = 0d0
+    Fg_in_R(:,g) = 0d0
+    Eg_in_T(:,g) = 0d0
+    Fg_in_T(:,g) = 0d0
 
     !--------------------------------------------------!
     !              Left Boundary Incoming              !
@@ -577,11 +597,14 @@ SUBROUTINE MGQD_In_Calc(Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,
 
     END IF
 
+    Eg_in_L(:,g) = Eg_in_L(:,g)/c
+    Eg_in_B(:,g) = Eg_in_B(:,g)/c
+    Eg_in_R(:,g) = Eg_in_R(:,g)/c
+    Eg_in_T(:,g) = Eg_in_T(:,g)/c
+
   END DO
-  Eg_in_L = Eg_in_L/c
-  Eg_in_B = Eg_in_B/c
-  Eg_in_R = Eg_in_R/c
-  Eg_in_T = Eg_in_T/c
+  !$OMP END DO
+  !$OMP END PARALLEL
 
 END SUBROUTINE MGQD_In_Calc
 
@@ -589,7 +612,7 @@ END SUBROUTINE MGQD_In_Calc
 !
 !==================================================================================================================================!
 SUBROUTINE fg_Calc(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,Hg_avg_xx,Hg_avg_yy,&
-  Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,c,Comp_Unit)
+  Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,c,Open_Threads)
 
   REAL*8,INTENT(OUT):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:)
   REAL*8,INTENT(OUT):: fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:)
@@ -599,9 +622,10 @@ SUBROUTINE fg_Calc(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_
   REAL*8,INTENT(IN):: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
   REAL*8,INTENT(IN):: Hg_edgH_yy(:,:,:), Hg_edgH_xy(:,:,:)
   REAL*8,INTENT(IN):: HO_Eg_avg(:,:,:), HO_Eg_edgV(:,:,:), HO_Eg_edgH(:,:,:)
-  REAL*8,INTENT(IN):: c, Comp_Unit
+  REAL*8,INTENT(IN):: c
+  INTEGER,INTENT(IN):: Open_Threads
 
-  REAL*8:: eps
+  INTEGER:: Threads
   INTEGER:: N_x, N_y, N_g
   INTEGER:: i, j, g
 
@@ -610,10 +634,10 @@ SUBROUTINE fg_Calc(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_
   N_y = SIZE(fg_avg_xx,2)
   N_g = SIZE(fg_avg_xx,3)
 
-  !setting base eps value and scaling this based on the computational units
-  eps=1d-25
-  eps=eps/comp_unit
-
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,j,i)
+  !$OMP DO
   DO g=1,N_g
     DO j=1,N_y
       DO i=1,N_x
@@ -642,6 +666,8 @@ SUBROUTINE fg_Calc(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_
       END DO
     END DO
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 
 END SUBROUTINE fg_Calc
 

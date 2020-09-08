@@ -107,14 +107,15 @@ END SUBROUTINE RT_BC_UPDATE
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g)
+SUBROUTINE MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Open_Threads)
   REAL*8,INTENT(OUT):: RT_Src(:,:,:,:), MGQD_Src(:,:,:)
   REAL*8,INTENT(OUT):: KapE(:,:,:), KapB(:,:,:), KapR(:,:,:), Bg(:,:,:)
 
   REAL*8,INTENT(IN):: Temp(:,:), comp_unit, nu_g(:)
+  INTEGER,INTENT(IN):: Open_Threads
 
   REAL*8,PARAMETER:: pi=4d0*ATAN(1d0)
-  INTEGER:: N_y, N_x, N_m, N_g
+  INTEGER:: N_y, N_x, N_m, N_g, Threads
   INTEGER:: i, j, g, m
 
   N_x = SIZE(Temp,1)
@@ -122,6 +123,10 @@ SUBROUTINE MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g
   N_m = SIZE(RT_Src,3)
   N_g = SIZE(Nu_g,1)-1
 
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. N_g) Threads = N_g
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,j,i)
+  !$OMP DO
   DO g=1,N_g
     DO j=1,N_y
       DO i=1,N_x
@@ -145,6 +150,8 @@ SUBROUTINE MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g
     END DO
 
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 
 END SUBROUTINE
 

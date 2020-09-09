@@ -300,7 +300,7 @@ END SUBROUTINE GQD_In_Calc
 SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,Its,Temp_Mold,KapE_bar_Mold,Theta,&
   Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,&
   DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,&
-  T_Bound_Low,Eps1,Eps2,Use_Line_Search,Use_Safety_Search)
+  T_Bound_Low,Eps1,Eps2,Maxits,Use_Line_Search,Use_Safety_Search)
 
   !OUTPUTS
   REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Temp(:,:), KapE_Bar(:,:)
@@ -321,6 +321,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
   REAL*8,INTENT(IN):: Gold_Hat(:,:), Rhat_old(:,:)
   REAL*8,INTENT(IN):: Kap0, cv, Comp_Unit
   REAL*8,INTENT(IN):: Chi, line_src, E_Bound_Low, T_Bound_Low, Eps1, Eps2
+  INTEGER,INTENT(IN):: Maxits
   LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search
 
   !INTERNALS(ARRAYS)
@@ -389,7 +390,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
   !===========================================================================!
   Converged = .FALSE.
   Its = 0
-  Newton_Its: DO WHILE (.NOT.Converged)
+  Newton_Its: DO WHILE ((.NOT.Converged).AND.(Its .LT. Maxits))
     Its = Its + 1
 
     !calculating source and source T-derivative

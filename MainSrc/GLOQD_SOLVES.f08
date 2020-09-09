@@ -45,8 +45,8 @@ END SUBROUTINE OLD_GREY_COEFS
 !
 !==================================================================================================================================!
 SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
-  fg_edgH_xy,KapE,KapR,Delx,Dely,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,&
-  DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
+  fg_edgH_xy,KapE,KapR,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,&
+  DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
 
   REAL*8,INTENT(IN):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,INTENT(IN):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
@@ -54,7 +54,7 @@ SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_
   REAL*8,INTENT(IN):: fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:)
   REAL*8,INTENT(IN):: fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
   REAL*8,INTENT(IN):: KapE(:,:,:), KapR(:,:,:)
-  REAL*8,INTENT(IN):: Delx(:), Dely(:), A(:,:)
+  REAL*8,INTENT(IN):: A(:,:)
   REAL*8,INTENT(IN):: c, Delt, Theta
   REAL*8,INTENT(IN):: Pold_L(:,:,:), Pold_R(:,:,:), Pold_B(:,:,:), Pold_T(:,:,:)
 
@@ -91,9 +91,9 @@ SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_
       DO i=1,N_x
         Tilde_KapR = KapR(i,j,g) + 1d0/(Theta*c*Delt)
         KapE_Bar(i,j) = KapE_Bar(i,j) + KapE(i,j,g)*Eg_avg(i,j,g)
-        DC_xx(i,j) = DC_xx(i,j) + fg_avg_xx(i,j,g)*Eg_avg(i,j,g)/Tilde_KapR
 
         !D parameters
+        DC_xx(i,j) = DC_xx(i,j) + fg_avg_xx(i,j,g)*Eg_avg(i,j,g)/Tilde_KapR
         DL_xx(i,j) = DL_xx(i,j) + fg_edgV_xx(i,j,g)*Eg_edgV(i,j,g)/Tilde_KapR
         DR_xx(i,j) = DR_xx(i,j) + fg_edgV_xx(i+1,j,g)*Eg_edgV(i+1,j,g)/Tilde_KapR
         DC_yy(i,j) = DC_yy(i,j) + fg_avg_yy(i,j,g)*Eg_avg(i,j,g)/Tilde_KapR
@@ -215,7 +215,7 @@ SUBROUTINE Cbar_Calc(Cb_L,Cb_B,Cb_R,Cb_T,Cg_L,Cg_B,Cg_R,Cg_T,Eg_avg,Eg_edgV,Eg_e
       sum1 = sum1 + q
       !Top-boundary grey condition
       q = Eg_edgH(i,N_y+1,g) - Eg_in_T(i,g)
-      Cb_T(i) = Cb_T(i) + Cg_R(i,g)*q
+      Cb_T(i) = Cb_T(i) + Cg_T(i,g)*q
       sum2 = sum2 + q
     END DO
     !dividing by respective weights
@@ -1028,7 +1028,7 @@ FUNCTION dr_MB_Calc(c,A,Delx,Dely,DC_yy,DB_yy,DL_xy,DR_xy,PB,Fy_edgH_B,E_avg,E_e
   REAL*8,INTENT(IN):: DC_yy, DB_yy, DL_xy, DR_xy, PB
   REAL*8,INTENT(IN):: Fy_edgH_B, E_avg, E_edgH_B, E_edgV_R, E_edgV_L
 
-  dr_MB_Calc = A*Fy_edgH_B/2d0 + c*Delx*(DC_yy*E_avg - DB_yy*E_edgH_B) + c*Delx*(DR_xy*E_edgV_R - DL_xy*E_edgV_L)/2d0 - PB
+  dr_MB_Calc = A*Fy_edgH_B/2d0 + c*Delx*(DC_yy*E_avg - DB_yy*E_edgH_B) + c*Dely*(DR_xy*E_edgV_R - DL_xy*E_edgV_L)/2d0 - PB
 
 END FUNCTION dr_MB_Calc
 
@@ -1041,7 +1041,7 @@ FUNCTION dr_MT_Calc(c,A,Delx,Dely,DT_yy,DC_yy,DL_xy,DR_xy,PT,Fy_edgH_T,E_edgH_T,
   REAL*8,INTENT(IN):: DT_yy, DC_yy, DL_xy, DR_xy, PT
   REAL*8,INTENT(IN):: Fy_edgH_T, E_edgH_T, E_avg, E_edgV_R, E_edgV_L
 
-  dr_MT_Calc = A*Fy_edgH_T/2d0 + c*Delx*(DT_yy*E_edgH_T - DC_yy*E_avg) + c*Delx*(DR_xy*E_edgV_R - DL_xy*E_edgV_L)/2d0 - PT
+  dr_MT_Calc = A*Fy_edgH_T/2d0 + c*Delx*(DT_yy*E_edgH_T - DC_yy*E_avg) + c*Dely*(DR_xy*E_edgV_R - DL_xy*E_edgV_L)/2d0 - PT
 
 END FUNCTION dr_MT_Calc
 

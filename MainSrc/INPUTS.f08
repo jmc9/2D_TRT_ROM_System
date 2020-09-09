@@ -7,13 +7,14 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr,&
-  comp_unit,line_src,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,threads,kapE_dT_flag,enrgy_strc,&
-  Nwt_upbnd,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,Tini,sig_R,ar,&
-  pi,c,h,delx,dely,cv,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,GREY_F_out,&
-  GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,TEMP_outfile,&
-  GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,res_history_outfile,&
-  E_ho_out,E_ho_outfile,nu_g,N_g,Omega_x,Omega_y,quad_weight,tpoints,quadrature,BC_Type)
+SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr1,&
+  conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
+  threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
+  Tini,sig_R,ar,pi,c,h,delx,dely,cv,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,&
+  GREY_F_out,GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,&
+  TEMP_outfile,GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,&
+  res_history_outfile,E_ho_out,E_ho_outfile,nu_g,N_g,Omega_x,Omega_y,quad_weight,tpoints,quadrature,BC_Type,&
+  Use_Line_Search,Use_Safety_Search)
 
   IMPLICIT NONE
 
@@ -26,9 +27,10 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   INTEGER,INTENT(OUT):: database_gen, database_add, use_grey
   CHARACTER(100),INTENT(OUT):: run_type, restart_infile
 
-  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr, line_src, Nwt_upbnd
+  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
   CHARACTER(100),INTENT(OUT):: kapE_dT_flag, enrgy_strc, quadrature
+  LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:)
@@ -62,8 +64,9 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
 
   CALL INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_infile,use_grey)
 
-  CALL INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_src,maxit_RTE,maxit_MLOQD,maxit_GLOQD,&
-    conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,Nwt_upbnd)
+  CALL INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_unit,line_src,maxit_RTE,maxit_MLOQD,&
+    maxit_GLOQD,conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,E_Bound_Low,T_Bound_Low,Use_Line_Search,&
+    Use_Safety_Search)
 
   sig_R=2d0*pi**5/(15d0*c**2*h**3*erg**4*comp_unit) !(erg/(ev**4 cm**2 sh))
   aR=4d0*sig_R/c
@@ -234,8 +237,9 @@ END SUBROUTINE INPUT_RUN_STATE
 !
 !==================================================================================================================================!
 
-SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_src,maxit_RTE,maxit_MLOQD,maxit_GLOQD,&
-  conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,Nwt_upbnd)
+SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_unit,line_src,maxit_RTE,maxit_MLOQD,&
+  maxit_GLOQD,conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,E_Bound_Low,T_Bound_Low,Use_Line_Search,&
+  Use_Safety_Search)
 
   IMPLICIT NONE
 
@@ -243,9 +247,11 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_
   INTEGER,INTENT(IN):: inpunit
 
   !OUTPUT VARIABLES
-  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr, comp_unit, line_src, Nwt_upbnd
+  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, comp_unit, line_src
+  REAL*8,INTENT(OUT):: E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
   CHARACTER(100),INTENT(OUT):: kapE_dT_flag, enrgy_strc, quadrature
+  LOGICAL:: Use_Line_Search, Use_Safety_Search
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
@@ -253,7 +259,7 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_
   CHARACTER(100):: block
   CHARACTER(100),DIMENSION(3):: args
   INTEGER:: io, io2, block_found
-  INTEGER:: conv_ho_flag, conv_lo_flag, conv_gr_flag
+  INTEGER:: conv_ho_flag, conv_lo_flag, conv_gr_flag, bnd_flag
 
   !DEFAULT VALUES
   maxit_RTE = 25
@@ -263,17 +269,23 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_
   chi = 0.7d0
   conv_ho = 1d-8
   conv_lo = 1d-9
+  conv_gr1 = 1d-10
+  conv_gr2 = 1d-15
   conv_type = 1
   quadrature = 'abu36'
   threads = 1
   enrgy_strc = 'JCP'
   comp_unit = 1d13
-  line_src = 5d0
-  Nwt_upbnd = 1d10
+  Use_Line_Search = .TRUE.
+  line_src = 2d0
+  Use_Safety_Search = .FALSE.
+  E_Bound_Low = -HUGE(1d0)
+  T_Bound_Low = -HUGE(1d0)
 
   conv_ho_flag = 0
   conv_lo_flag = 0
   conv_gr_flag = 0
+  bnd_flag = 0
 
   block = '[SOLVER_OPTS]'
   CALL LOCATE_BLOCK(inpunit,block,block_found)
@@ -376,20 +388,23 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_
         END IF
 
       ELSE IF (trim(key) .EQ. 'conv_gr') THEN
-        READ(args(1),*) conv_gr
+        READ(args(1),*) conv_gr1
+        READ(args(2),*) conv_gr2
         conv_gr_flag = 1
-        IF (conv_gr .LE. 0) THEN
+        IF ((conv_gr1 .LE. 0).OR.(conv_gr2 .LE. 0)) THEN
           WRITE(*,*)
           WRITE(*,'(A)') '*** WARNING ***'
-          WRITE(*,'(A)') '"conv_lo" cannot have a negative value'
-          WRITE(*,'(A)') 'Setting conv_lo to default'
-          conv_gr = 1d-10
-        ELSE IF (conv_gr .GE. 1) THEN
+          WRITE(*,'(A)') '"conv_gr" cannot have a negative value'
+          WRITE(*,'(A)') 'Setting conv_gr to default'
+          conv_gr1 = 1d-10
+          conv_gr2 = 1d-15
+        ELSE IF ((conv_gr1 .GE. 1).OR.(conv_gr2 .GE. 1)) THEN
           WRITE(*,*)
           WRITE(*,'(A)') '*** WARNING ***'
-          WRITE(*,'(A)') '"conv_lo" cannot have a value greater than 1'
-          WRITE(*,'(A)') 'Setting conv_lo to default'
-          conv_gr = 1d-10
+          WRITE(*,'(A)') '"conv_gr" cannot have a value greater than 1'
+          WRITE(*,'(A)') 'Setting conv_gr to default'
+          conv_gr1 = 1d-10
+          conv_gr2 = 1d-15
         END IF
 
       ELSE IF (trim(key) .EQ. 'conv_type') THEN
@@ -440,10 +455,33 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_
         END IF
 
       ELSE IF (trim(key) .EQ. 'line_src') THEN
-        READ(args(1),*) line_src
+        IF ( ANY( trim(args(1)) .EQ. (/'off','Off','OFF'/) ) ) THEN
+          Use_Line_Search = .FALSE.
+          line_src = 1d0
+        ELSE
+          Use_Line_Search = .TRUE.
+          READ(args(1),*) line_src
+        END IF
 
-      ELSE IF (trim(key) .EQ. 'Nwt_upbnd') THEN
-        READ(args(1),*) Nwt_upbnd
+      ELSE IF (trim(key) .EQ. 'E_low_bnd') THEN
+        bnd_flag = bnd_flag + 1
+        IF ( ANY( trim(args(1)) .EQ. (/'off','Off','OFF'/) ) ) THEN
+          IF (bnd_flag .EQ. 1) Use_Safety_Search = .FALSE.
+          E_Bound_Low = -HUGE(1d0)
+        ELSE
+          Use_Safety_Search = .TRUE.
+          READ(args(1),*) E_Bound_Low
+        END IF
+
+      ELSE IF (trim(key) .EQ. 'T_low_bnd') THEN
+        bnd_flag = bnd_flag + 1
+        IF ( ANY( trim(args(1)) .EQ. (/'off','Off','OFF'/) ) ) THEN
+          IF (bnd_flag .EQ. 1) Use_Safety_Search = .FALSE.
+          E_Bound_Low = -HUGE(1d0)
+        ELSE
+          Use_Safety_Search = .TRUE.
+          READ(args(1),*) E_Bound_Low
+        END IF
 
       END IF
 
@@ -454,19 +492,19 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr,comp_unit,line_
 
   IF (conv_ho_flag .EQ. 1) THEN
     IF (conv_lo_flag .EQ. 1) THEN
-      IF (conv_gr_flag .EQ. 0) conv_gr = conv_lo/10d0
+      IF (conv_gr_flag .EQ. 0) conv_gr1 = conv_lo/10d0
     ELSE
       conv_lo = conv_ho/10d0
-      IF (conv_gr_flag .EQ. 0) conv_gr = conv_ho/100d0
+      IF (conv_gr_flag .EQ. 0) conv_gr1 = conv_ho/100d0
     END IF
   ELSE
     IF (conv_lo_flag .EQ. 1) THEN
       conv_ho = conv_lo*10d0
-      IF (conv_gr_flag .EQ. 0) conv_gr = conv_lo/10d0
+      IF (conv_gr_flag .EQ. 0) conv_gr1 = conv_lo/10d0
     ELSE
       IF (conv_gr_flag .EQ. 1) THEN
-        conv_ho = conv_gr*100d0
-        conv_lo = conv_gr*10d0
+        conv_ho = conv_gr1*100d0
+        conv_lo = conv_gr1*10d0
       ELSE
         CONTINUE
       END IF

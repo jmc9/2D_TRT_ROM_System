@@ -18,22 +18,23 @@ CONTAINS
 !
 !==================================================================================================================================!
 SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tlen,Theta,Start_Time,c,cV,h,pi,Kap0,&
-  erg,Comp_Unit,Conv_ho,Conv_lo,Conv_gr,bcT_left,bcT_bottom,bcT_right,bcT_top,Tini,chi,line_src,database_gen,&
-  use_grey,Conv_Type,Maxit_RTE,Threads,BC_Type,Maxit_MLOQD,Maxit_GLOQD,N_x,N_y,N_m,N_g,N_t,Res_Calc,run_type,&
-  kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,&
-  MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID)
+  erg,Comp_Unit,Conv_ho,Conv_lo,Conv_gr1,Conv_gr2,bcT_left,bcT_bottom,bcT_right,bcT_top,Tini,chi,line_src,E_Bound_Low,&
+  T_Bound_Low,database_gen,use_grey,Conv_Type,Maxit_RTE,Threads,BC_Type,Maxit_MLOQD,Maxit_GLOQD,N_x,N_y,N_m,N_g,&
+  N_t,Res_Calc,Use_Line_Search,Use_Safety_Search,run_type,kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,&
+  N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
+  Boundaries_ID)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:)
   REAL*8,INTENT(IN):: Delx(:), Dely(:), Delt, Theta, tlen
   REAL*8,INTENT(IN):: Start_Time
   REAL*8,INTENT(IN):: c, cV, h, pi, Kap0, erg
-  REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr
+  REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr1, Conv_gr2
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
-  REAL*8,INTENT(IN):: chi, line_src
+  REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: database_gen, use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
-  LOGICAL,INTENT(IN):: Res_Calc
+  LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search
   CHARACTER(*),INTENT(IN):: run_type, kapE_dT_flag
 
   !----------------Output File ID's------------------!
@@ -82,8 +83,22 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
   !-------------------EGP Solution-------------------!
   REAL*8,ALLOCATABLE:: Temp(:,:), Temp_old(:,:)
-  ! REAL*8,ALLOCATABLE:: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
-  ! REAL*8,ALLOCATABLE:: Fx_edgV(:,:), Fy_edgH(:,:)
+  !!!!!
+  !UNINITIALIZED
+  REAL*8,ALLOCATABLE:: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
+  REAL*8,ALLOCATABLE:: Fx_edgV(:,:), Fy_edgH(:,:)
+  REAL*8,ALLOCATABLE:: E_avg_old(:,:), KapE_bar_old(:,:),  GQD_Src_old(:,:)
+  REAL*8,ALLOCATABLE:: Gold_Hat(:,:), Rhat_old(:,:)
+  REAL*8,ALLOCATABLE:: KapE_Bar(:,:), GQD_Src(:,:)
+  REAL*8,ALLOCATABLE:: DC_xx(:,:), DL_xx(:,:), DR_xx(:,:)
+  REAL*8,ALLOCATABLE:: DC_yy(:,:), DB_yy(:,:), DT_yy(:,:)
+  REAL*8,ALLOCATABLE:: DL_xy(:,:), DR_xy(:,:), DB_xy(:,:), DT_xy(:,:)
+  REAL*8,ALLOCATABLE:: PL(:,:), PR(:,:), PB(:,:), PT(:,:)
+  REAL*8,ALLOCATABLE:: Cb_L(:), Cb_B(:), Cb_R(:), Cb_T(:)
+  REAL*8,ALLOCATABLE:: E_in_L(:), E_in_B(:), E_in_R(:), E_in_T(:)
+  REAL*8,ALLOCATABLE:: F_in_L(:), F_in_B(:), F_in_R(:), F_in_T(:)
+  REAL*8,ALLOCATABLE:: KapE_bar_MGQDold(:,:)
+  !!!!!
 
   !--------------------------------------------------!
   REAL*8,ALLOCATABLE:: RT_Residual(:,:,:), MGQD_Residual(:,:,:), MGQD_BC_Residual(:,:)
@@ -95,7 +110,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8:: TR_Tnorm, TR_Enorm, TR_Trho, TR_Erho
   REAL*8:: MGQD_Tnorm, MGQD_Enorm, MGQD_Trho, MGQD_Erho
   REAL*8:: Time
-  INTEGER:: MGQD_Its, Status
+  INTEGER:: MGQD_Its, EGP_Its, Status
   INTEGER:: RT_Its, RT_start_Its, t
   LOGICAL:: RT_Conv, MGQD_conv, Tconv, Econv
 
@@ -128,6 +143,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,I_edgV,&
     I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,&
     G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type,Tini,nu_g,pi,Threads)
+  CALL GQD_INIT(E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,E_avg_old,KapE_bar_old,GQD_Src_old,Gold_Hat,Rhat_old,&
+    KapE_Bar,GQD_Src,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,PL,PB,PR,PT,Cb_L,Cb_B,Cb_R,Cb_T,&
+    E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,KapE_bar_MGQDold,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,&
+    Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Tini,nu_g,c,Comp_Unit,pi,N_y,N_x,N_g,BC_Type)
   CALL TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,Tini,&
     Comp_Unit,Nu_g,Temp_Old,Threads)
 
@@ -202,7 +221,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     CALL OLD_MGQD_COEFS(Eg_avg_old,Eg_edgV_old,Eg_edgH_old,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx_old,fg_avg_yy_old,&
       fg_edgV_xx_old,fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,KapE_old,KapR_old,MGQD_Src_old,Delx,Dely,A,c,Delt,&
       Theta,G_old,Pold_L,Pold_B,Pold_R,Pold_T,Threads)
-    ! CALL OLD_GREY_COEFS(c,Delt,Theta,cv,A,Gold,Temp_old,KapE_bar_old,E_avg_old,GQD_Src_old,Gold_Hat,Rhat_old)
+    CALL OLD_GREY_COEFS(c,Delt,Theta,cv,A,G_old,Temp_old,KapE_bar_old,E_avg_old,GQD_Src_old,Gold_Hat,Rhat_old)
 
     !===========================================================================!
     !                                                                           !
@@ -286,13 +305,36 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           CALL COLLAPSE_MG_EF(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Threads,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
             MGQD_Fy_edgH)
 
+          !writing MGQD residuals to output file
           Status = nf90_put_var(outID,MGQD_BC_Residual_ID,MGQD_BC_Residual,(/1,1,MGQD_Its,RT_Its,t/),(/N_g,4,1,1,1/))
           CALL HANDLE_ERR(Status)
           Status = nf90_put_var(outID,MGQD_Residual_ID,MGQD_Residual,(/1,1,1,MGQD_Its,RT_Its,t/),(/N_g,5,5,1,1,1/))
           CALL HANDLE_ERR(Status)
 
-          !solve the MEB equation with the MGQD solution to find new Temp
-          CALL MEB_SOLVE(Temp,Eg_avg,Bg,KapE,Temp_old,Delt,cV,Kap0,Comp_Unit)
+          IF (use_grey .EQ. 1) THEN
+            !===========================================================================!
+            !                                                                           !
+            !     EFFECTIVE GREY PROBLEM                                                !
+            !                                                                           !
+            !===========================================================================!
+            !calculating all coefficients needed for the EGP solve
+            KapE_bar_MGQDold = KapE_bar
+            CALL GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
+              fg_edgH_xy,KapE,KapR,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,&
+              DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
+
+            !solve the nonlinear EGP with newton iterations
+            CALL EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,GQD_Src,EGP_Its,Temp_MGQDold,KapE_bar_MGQDold,Theta,&
+              Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,&
+              DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,&
+              T_Bound_Low,Conv_gr1,Conv_gr2,Use_Line_Search,Use_Safety_Search)
+
+          ELSE
+            !solve the MEB equation with the MGQD solution to find new Temp
+            CALL MEB_SOLVE(Temp,Eg_avg,Bg,KapE,Temp_old,Delt,cV,Kap0,Comp_Unit)
+
+          END IF
+
           !update material properties with new Temp
           CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads)
 

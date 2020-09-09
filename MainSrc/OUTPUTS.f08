@@ -11,9 +11,10 @@ CONTAINS
 !==================================================================================================================================!
 SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,&
   MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,c_ID,h_ID,pi_ID,erg_ID,Comp_Unit_ID,cv_ID,&
-  c,h,pi,erg,Comp_Unit,cv,chi,conv_ho,conv_lo,conv_gr,line_src,xlen,ylen,Delx,Dely,tlen,Delt,bcT_left,bcT_bottom,&
-  bcT_right,bcT_top,Tini,N_x,N_y,N_m,N_g,N_t,database_gen,use_grey,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,&
-  threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta)
+  c,h,pi,erg,Comp_Unit,cv,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,line_src,xlen,ylen,Delx,Dely,tlen,Delt,bcT_left,&
+  bcT_bottom,bcT_right,bcT_top,Tini,E_Bound_Low,T_Bound_Low,N_x,N_y,N_m,N_g,N_t,database_gen,use_grey,maxit_RTE,&
+  maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
+  Use_Line_Search,Use_Safety_Search)
 
   INTEGER,INTENT(OUT):: outID
   INTEGER,INTENT(OUT):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -21,11 +22,12 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   INTEGER,INTENT(OUT):: c_ID, h_ID, pi_ID, erg_ID, Comp_Unit_ID, cv_ID
 
   REAL*8,INTENT(IN):: c, h, pi, erg, Comp_Unit, cv
-  REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt, Theta
-  REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
+  REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt, Theta
+  REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: database_gen, use_grey, maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads, BC_type(:)
   CHARACTER(*),INTENT(IN):: outfile, run_type, kapE_dT_flag, quadrature, enrgy_strc
+  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search
 
   INTEGER:: Status
   INTEGER:: xlen_ID, ylen_ID
@@ -113,7 +115,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   Status = nf90_put_att(outID,NF90_GLOBAL,'conv_lo',conv_lo)
   CALL HANDLE_ERR(Status)
 
-  Status = nf90_put_att(outID,NF90_GLOBAL,'conv_gr',conv_gr)
+  Status = nf90_put_att(outID,NF90_GLOBAL,'conv_gr',(/conv_gr1,conv_gr2/))
   CALL HANDLE_ERR(Status)
 
   Status = nf90_put_att(outID,NF90_GLOBAL,'conv_type',conv_type)
@@ -128,14 +130,37 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   Status = nf90_put_att(outID,NF90_GLOBAL,'enrgy_strc',enrgy_strc)
   CALL HANDLE_ERR(Status)
 
-  Status = nf90_put_att(outID,NF90_GLOBAL,'line_src',line_src)
-  CALL HANDLE_ERR(Status)
-
   Status = nf90_put_att(outID,NF90_GLOBAL,'BC_type',BC_type)
   CALL HANDLE_ERR(Status)
 
   Status = nf90_put_att(outID,NF90_GLOBAL,'Theta',Theta)
   CALL HANDLE_ERR(Status)
+
+  IF (Use_Line_Search) THEN
+    Status = nf90_put_att(outID,NF90_GLOBAL,'Use_Line_Search','True')
+    CALL HANDLE_ERR(Status)
+    Status = nf90_put_att(outID,NF90_GLOBAL,'line_src',line_src)
+    CALL HANDLE_ERR(Status)
+
+  ELSE
+    Status = nf90_put_att(outID,NF90_GLOBAL,'Use_Line_Search','False')
+    CALL HANDLE_ERR(Status)
+
+  END IF
+
+  IF (Use_Safety_Search) THEN
+    Status = nf90_put_att(outID,NF90_GLOBAL,'Use_Safety_Search','True')
+    CALL HANDLE_ERR(Status)
+    Status = nf90_put_att(outID,NF90_GLOBAL,'E_Bound_Low',E_Bound_Low)
+    CALL HANDLE_ERR(Status)
+    Status = nf90_put_att(outID,NF90_GLOBAL,'T_Bound_Low',T_Bound_Low)
+    CALL HANDLE_ERR(Status)
+
+  ELSE
+    Status = nf90_put_att(outID,NF90_GLOBAL,'Use_Safety_Search','False')
+    CALL HANDLE_ERR(Status)
+
+  END IF
 
   CALL NF_DEF_VAR(xlen_ID,outID,Z,'xlen','Double')
   CALL NF_DEF_UNIT(outID,xlen_ID,'cm')

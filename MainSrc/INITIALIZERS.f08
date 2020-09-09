@@ -3,6 +3,7 @@ MODULE INITIALIZERS
   USE UPDATES
   USE LA_TOOLS
   USE MLOQD_SOLVES
+  USE GLOQD_SOLVES
 
   IMPLICIT NONE
 
@@ -132,12 +133,7 @@ SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,K
   ALLOCATE(Temp_Old(N_x,N_y))
 
   Temp = Tini
-  ! Temp_Old = Temp
   CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads)
-
-  ! KapE_old = KapE
-  ! KapR_old = KapR
-  ! MGQD_Src_old = MGQD_Src
 
 END SUBROUTINE TEMP_INIT
 
@@ -282,12 +278,12 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   fg_edgV_xy = 0d0
   fg_edgH_yy = 1d0/3d0
   fg_edgH_xy = 0d0
-  fg_avg_xx_old = 1d0/3d0
-  fg_avg_yy_old = 1d0/3d0
-  fg_edgV_xx_old = 1d0/3d0
-  fg_edgV_xy_old = 0d0
-  fg_edgH_yy_old = 1d0/3d0
-  fg_edgH_xy_old = 0d0
+  ! fg_avg_xx_old = 1d0/3d0
+  ! fg_avg_yy_old = 1d0/3d0
+  ! fg_edgV_xx_old = 1d0/3d0
+  ! fg_edgV_xy_old = 0d0
+  ! fg_edgH_yy_old = 1d0/3d0
+  ! fg_edgH_xy_old = 0d0
 
   IF (BC_Type(1) .EQ. 0) THEN
     Cg_L=-0.5d0
@@ -317,6 +313,112 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
     quad_weight,c,Comp_Unit,BC_Type,Open_Threads)
 
 END SUBROUTINE MGQD_INIT
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE GQD_INIT(E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,E_avg_old,KapE_bar_old,GQD_Src_old,Gold_Hat,Rhat_old,&
+  KapE_Bar,GQD_Src,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,PL,PB,PR,PT,Cb_L,Cb_B,Cb_R,Cb_T,&
+  E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,KapE_bar_MGQDold,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,&
+  Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Tini,nu_g,c,Comp_Unit,pi,N_y,N_x,N_g,BC_Type)
+
+  REAL*8,ALLOCATABLE,INTENT(OUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: E_avg_old(:,:), KapE_bar_old(:,:),  GQD_Src_old(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Gold_Hat(:,:), Rhat_old(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: KapE_Bar(:,:), GQD_Src(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: DC_xx(:,:), DL_xx(:,:), DR_xx(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: DC_yy(:,:), DB_yy(:,:), DT_yy(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: DL_xy(:,:), DB_xy(:,:), DR_xy(:,:), DT_xy(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: PL(:,:), PB(:,:), PR(:,:), PT(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Cb_L(:), Cb_B(:), Cb_R(:), Cb_T(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: E_in_L(:), E_in_B(:), E_in_R(:), E_in_T(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: F_in_L(:), F_in_B(:), F_in_R(:), F_in_T(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: KapE_bar_MGQDold(:,:)
+
+  REAL*8,INTENT(IN):: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
+  REAL*8,INTENT(IN):: Fg_in_L(:,:), Fg_in_B(:,:), Fg_in_R(:,:), Fg_in_T(:,:)
+  REAL*8,INTENT(IN):: Tini, nu_g(:), c, Comp_Unit, pi
+  INTEGER,INTENT(IN):: N_y, N_x, N_g, BC_Type(:)
+
+  REAL*8:: bg
+  INTEGER:: g
+
+  !Total radiation energy densitites
+  ALLOCATE(E_avg(N_x,N_y))
+  ALLOCATE(E_edgV(N_x+1,N_y))
+  ALLOCATE(E_edgH(N_x,N_y+1))
+  ALLOCATE(E_avg_old(N_x,N_y))
+
+  !Total radiation fluxes
+  ALLOCATE(Fx_edgV(N_x+1,N_y))
+  ALLOCATE(Fy_edgH(N_x,N_y+1))
+
+  !grey opacities/source
+  ALLOCATE(KapE_Bar(N_x,N_y))
+  ALLOCATE(GQD_Src(N_x,N_y))
+  ALLOCATE(GQD_Src_old(N_x,N_y))
+  ALLOCATE(KapE_Bar_old(N_x,N_y))
+  ALLOCATE(KapE_bar_MGQDold(N_x,N_y))
+
+  !quantities dependent only on previous time step
+  ALLOCATE(Gold_Hat(N_x,N_y))
+  ALLOCATE(Rhat_old(N_x,N_y))
+
+  !grey coefficients
+  ALLOCATE(DC_xx(N_x,N_y),DL_xx(N_x,N_y),DR_xx(N_x,N_y))
+  ALLOCATE(DC_yy(N_x,N_y),DB_yy(N_x,N_y),DT_yy(N_x,N_y))
+  ALLOCATE(DL_xy(N_x,N_y),DB_xy(N_x,N_y),DR_xy(N_x,N_y),DT_xy(N_x,N_y))
+  ALLOCATE(PL(N_x,N_y),PB(N_x,N_y),PR(N_x,N_y),PT(N_x,N_y))
+
+  !C_bar BC coefficients
+  ALLOCATE(Cb_L(N_y),Cb_B(N_x),Cb_R(N_y),Cb_T(N_x))
+
+  !Incoming E/F on each boundary
+  ALLOCATE(E_in_L(N_y),E_in_B(N_x),E_in_R(N_y),E_in_T(N_x))
+  ALLOCATE(F_in_L(N_y),F_in_B(N_x),F_in_R(N_y),F_in_T(N_x))
+
+  E_avg = 0d0
+  E_edgV = 0d0
+  E_edgH = 0d0
+  DO g=1,N_g
+    !black body radiation distribution at initial Temp
+    bg = Bg_planck_calc(Tini,nu_g(g),nu_g(g+1),comp_unit)
+    E_avg = E_avg + 4d0*pi*bg/c
+    E_edgV = E_edgV + 4d0*pi*bg/c
+    E_edgH = E_edgH + 4d0*pi*bg/c
+  END DO
+  Fx_edgV = 0d0
+  Fy_edgH = 0d0
+
+  IF (BC_Type(1) .EQ. 0) THEN
+    Cb_L=-0.5d0
+  ELSE IF (BC_Type(1) .EQ. 1) THEN
+    Cb_L=0d0
+  END IF
+
+  IF (BC_Type(2) .EQ. 0) THEN
+    Cb_B=-0.5d0
+  ELSE IF (BC_Type(2) .EQ. 1) THEN
+    Cb_B=0d0
+  END IF
+
+  IF (BC_Type(3) .EQ. 0) THEN
+    Cb_R=0.5d0
+  ELSE IF (BC_Type(3) .EQ. 1) THEN
+    Cb_R=0d0
+  END IF
+
+  IF (BC_Type(4) .EQ. 0) THEN
+    Cb_T=0.5d0
+  ELSE IF (BC_Type(4) .EQ. 1) THEN
+    Cb_T=0d0
+  END IF
+
+  CALL GQD_In_Calc(E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,&
+    Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T)
+
+END SUBROUTINE GQD_INIT
 
 !==================================================================================================================================!
 !

@@ -34,8 +34,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: database_gen, use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
-  LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search
-  CHARACTER(*),INTENT(IN):: run_type, kapE_dT_flag
+  LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search, kapE_dT_flag
+  CHARACTER(*),INTENT(IN):: run_type
 
   !----------------Output File ID's------------------!
   INTEGER,INTENT(IN):: outID
@@ -87,7 +87,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: Fx_edgV(:,:), Fy_edgH(:,:)
   REAL*8,ALLOCATABLE:: E_avg_old(:,:), KapE_bar_old(:,:),  GQD_Src_old(:,:)
   REAL*8,ALLOCATABLE:: Gold_Hat(:,:), Rhat_old(:,:)
-  REAL*8,ALLOCATABLE:: KapE_Bar(:,:), GQD_Src(:,:)
+  REAL*8,ALLOCATABLE:: KapE_Bar(:,:), KapE_Bar_dT(:,:), GQD_Src(:,:)
   REAL*8,ALLOCATABLE:: DC_xx(:,:), DL_xx(:,:), DR_xx(:,:)
   REAL*8,ALLOCATABLE:: DC_yy(:,:), DB_yy(:,:), DT_yy(:,:)
   REAL*8,ALLOCATABLE:: DL_xy(:,:), DR_xy(:,:), DB_xy(:,:), DT_xy(:,:)
@@ -98,7 +98,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: KapE_bar_MGQDold(:,:)
 
   !--------------------------------------------------!
-  REAL*8,ALLOCATABLE:: RT_Residual(:,:,:), MGQD_Residual(:,:,:), MGQD_BC_Residual(:,:), Deltas(:,:)
+  REAL*8,ALLOCATABLE:: RT_Residual(:,:,:), MGQD_Residual(:,:,:), MGQD_BC_Residual(:,:), Deltas(:,:), dres(:,:)
   INTEGER,ALLOCATABLE:: RT_ResLoc_x(:,:,:), RT_ResLoc_y(:,:,:)
   REAL*8,ALLOCATABLE:: Temp_RTold(:,:), Temp_RTold2(:,:)
   REAL*8,ALLOCATABLE:: Temp_MGQDold(:,:), Temp_MGQDold2(:,:)
@@ -128,6 +128,9 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: F_in_L_ID, F_in_B_ID, F_in_R_ID, F_in_T_ID
   INTEGER:: fg_avg_xx_ID, fg_avg_yy_ID, fg_edgV_xx_ID, fg_edgV_xy_ID, fg_edgH_yy_ID, fg_edgH_xy_ID
   INTEGER:: DC_xx_ID, DL_xx_ID, DR_xx_ID, DC_yy_ID, DB_yy_ID, DT_yy_ID, DL_xy_ID, DB_xy_ID, DR_xy_ID, DT_xy_ID
+  INTEGER:: G_old_ID, Pold_L_ID, Pold_B_ID, Pold_R_ID, Pold_T_ID
+  INTEGER:: Gold_hat_ID, Rhat_old_ID, PL_ID, PB_ID, PR_ID, PT_ID
+  INTEGER:: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
 
   !===========================================================================!
   !                                                                           !
@@ -145,9 +148,9 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,&
     G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type,Tini,nu_g,pi,Threads)
   CALL GQD_INIT(E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,E_avg_old,KapE_bar_old,GQD_Src_old,Gold_Hat,Rhat_old,&
-    KapE_Bar,GQD_Src,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,PL,PB,PR,PT,Cb_L,Cb_B,Cb_R,Cb_T,&
-    E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,KapE_bar_MGQDold,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,&
-    Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Tini,nu_g,c,Comp_Unit,pi,N_y,N_x,N_g,BC_Type)
+    KapE_Bar,KapE_Bar_dT,GQD_Src,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,PL,PB,PR,PT,Cb_L,&
+    Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,KapE_bar_MGQDold,Eg_in_L,Eg_in_B,&
+    Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Tini,nu_g,c,Comp_Unit,pi,N_y,N_x,N_g,BC_Type)
   CALL TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,Tini,&
     Comp_Unit,Nu_g,Temp_Old,Threads)
 
@@ -182,7 +185,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,&
     E_in_B_ID,E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,&
     fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,&
-    DR_xy_ID,DT_xy_ID)
+    DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,&
+    PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,dr_MB_ID,dr_MR_ID,dr_MT_ID)
 
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
@@ -342,11 +346,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
               DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
 
             !solve the nonlinear EGP with newton iterations
-            CALL EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,GQD_Src,EGP_Its,Deltas,Temp_MGQDold,&
-              KapE_bar_MGQDold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,&
-              F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,&
-              Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,T_Bound_Low,Conv_gr1,Conv_gr2,Maxit_GLOQD,Use_Line_Search,&
-              Use_Safety_Search,Res_Calc)
+            CALL EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,GQD_Src,KapE_Bar_dT,EGP_Its,Deltas,dres,&
+              Temp_MGQDold,KapE_bar_MGQDold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,&
+              F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,&
+              Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,T_Bound_Low,Conv_gr1,Conv_gr2,Maxit_GLOQD,MGQD_Its,&
+              Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag)
 
             !writing the count of EGP iterations to output file
             IF (Res_Calc) THEN
@@ -361,6 +365,19 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
               Status = nf90_put_var(outID,Del_Fx_EdgV_ID,Deltas(:,5),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
               CALL HANDLE_ERR(Status)
               Status = nf90_put_var(outID,Del_Fy_EdgH_ID,Deltas(:,6),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+
+              Status = nf90_put_var(outID,dr_T_ID,dres(:,1),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,dr_B_ID,dres(:,2),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,dr_ML_ID,dres(:,3),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,dr_MB_ID,dres(:,4),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,dr_MR_ID,dres(:,5),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,dr_MT_ID,dres(:,6),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
               CALL HANDLE_ERR(Status)
             END IF
 
@@ -470,6 +487,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     CALL NF_PUT_t_VAR(outID,I_edgV_ID,I_edgV,t)
     CALL NF_PUT_t_VAR(outID,I_edgH_ID,I_edgH,t)
 
+    CALL NF_PUT_t_VAR(outID,KapE_Bar_ID,KapE_Bar,t)
     CALL NF_PUT_t_VAR(outID,KapB_ID,KapB,t)
     CALL NF_PUT_t_VAR(outID,KapE_ID,KapE,t)
     CALL NF_PUT_t_VAR(outID,KapR_ID,KapR,t)
@@ -494,6 +512,12 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     CALL NF_PUT_t_VAR(outID,fg_edgV_xy_ID,fg_edgV_xy,t)
     CALL NF_PUT_t_VAR(outID,fg_edgH_yy_ID,fg_edgH_yy,t)
     CALL NF_PUT_t_VAR(outID,fg_edgH_xy_ID,fg_edgH_xy,t)
+
+    CALL NF_PUT_t_VAR(outID,G_old_ID,G_old,t)
+    CALL NF_PUT_t_VAR(outID,Pold_L_ID,Pold_L,t)
+    CALL NF_PUT_t_VAR(outID,Pold_B_ID,Pold_B,t)
+    CALL NF_PUT_t_VAR(outID,Pold_R_ID,Pold_R,t)
+    CALL NF_PUT_t_VAR(outID,Pold_T_ID,Pold_T,t)
 
     IF (use_grey .EQ. 1) THEN
       CALL NF_PUT_t_VAR(outID,E_avg_ID,E_avg,t)
@@ -525,6 +549,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       CALL NF_PUT_t_VAR(outID,DB_xy_ID,DB_xy,t)
       CALL NF_PUT_t_VAR(outID,DR_xy_ID,DR_xy,t)
       CALL NF_PUT_t_VAR(outID,DT_xy_ID,DT_xy,t)
+
+      CALL NF_PUT_t_VAR(outID,Gold_hat_ID,Gold_hat,t)
+      CALL NF_PUT_t_VAR(outID,Rhat_old_ID,Rhat_old,t)
+      CALL NF_PUT_t_VAR(outID,PL_ID,PL,t)
+      CALL NF_PUT_t_VAR(outID,PB_ID,PB,t)
+      CALL NF_PUT_t_VAR(outID,PR_ID,PR,t)
+      CALL NF_PUT_t_VAR(outID,PT_ID,PT,t)
     END IF
 
     IF (Time .GE. tlen) EXIT

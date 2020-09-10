@@ -318,15 +318,15 @@ END SUBROUTINE MGQD_INIT
 !
 !==================================================================================================================================!
 SUBROUTINE GQD_INIT(E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,E_avg_old,KapE_bar_old,GQD_Src_old,Gold_Hat,Rhat_old,&
-  KapE_Bar,GQD_Src,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,PL,PB,PR,PT,Cb_L,Cb_B,Cb_R,Cb_T,&
-  E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,KapE_bar_MGQDold,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,&
-  Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Tini,nu_g,c,Comp_Unit,pi,N_y,N_x,N_g,BC_Type)
+  KapE_Bar,KapE_Bar_dT,GQD_Src,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,PL,PB,PR,PT,Cb_L,&
+  Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,KapE_bar_MGQDold,Eg_in_L,Eg_in_B,&
+  Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Tini,nu_g,c,Comp_Unit,pi,N_y,N_x,N_g,BC_Type)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: E_avg_old(:,:), KapE_bar_old(:,:),  GQD_Src_old(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Gold_Hat(:,:), Rhat_old(:,:)
-  REAL*8,ALLOCATABLE,INTENT(OUT):: KapE_Bar(:,:), GQD_Src(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: KapE_Bar(:,:), KapE_Bar_dT(:,:), GQD_Src(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: DC_xx(:,:), DL_xx(:,:), DR_xx(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: DC_yy(:,:), DB_yy(:,:), DT_yy(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: DL_xy(:,:), DB_xy(:,:), DR_xy(:,:), DT_xy(:,:)
@@ -355,7 +355,7 @@ SUBROUTINE GQD_INIT(E_avg,E_edgV,E_edgH,Fx_edgV,Fy_edgH,E_avg_old,KapE_bar_old,G
   ALLOCATE(Fy_edgH(N_x,N_y+1))
 
   !grey opacities/source
-  ALLOCATE(KapE_Bar(N_x,N_y))
+  ALLOCATE(KapE_Bar(N_x,N_y),KapE_Bar_dT(N_x,N_y))
   ALLOCATE(GQD_Src(N_x,N_y))
   ALLOCATE(GQD_Src_old(N_x,N_y))
   ALLOCATE(KapE_Bar_old(N_x,N_y))

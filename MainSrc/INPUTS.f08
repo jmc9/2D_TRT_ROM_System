@@ -29,8 +29,8 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
 
   REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
-  CHARACTER(100),INTENT(OUT):: kapE_dT_flag, enrgy_strc, quadrature
-  LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search, Res_Calc
+  CHARACTER(100),INTENT(OUT):: enrgy_strc, quadrature
+  LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search, Res_Calc, kapE_dT_flag
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:)
@@ -260,8 +260,8 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_
   REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, comp_unit, line_src
   REAL*8,INTENT(OUT):: E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
-  CHARACTER(100),INTENT(OUT):: kapE_dT_flag, enrgy_strc, quadrature
-  LOGICAL:: Use_Line_Search, Use_Safety_Search
+  CHARACTER(100),INTENT(OUT):: enrgy_strc, quadrature
+  LOGICAL:: Use_Line_Search, Use_Safety_Search, kapE_dT_flag
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
@@ -275,7 +275,7 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_
   maxit_RTE = 25
   maxit_MLOQD = 500
   maxit_GLOQD = 100
-  kapE_dT_flag = 'off'
+  kapE_dT_flag = .TRUE.
   chi = 0.7d0
   conv_ho = 1d-8
   conv_lo = 1d-9
@@ -444,15 +444,20 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_
         READ(args(1),*) enrgy_strc
 
       ELSE IF (trim(key) .EQ. 'kapE_dT') THEN
-        READ(args(1),*) kapE_dT_flag
-        IF ( ALL(kapE_dT_flag .NE. (/ 'on ' , 'off' /)) ) THEN
+        ! READ(args(1),*) kapE_dT_flag
+        IF ( ALL(args(1) .NE. (/ 'on ' , 'off' /)) ) THEN
           WRITE(*,*)
           WRITE(*,'(A)') '*** WARNING ***'
           WRITE(*,'(A)') 'unknown flag detected for "kapE_dT" input'
           WRITE(*,'(A)') 'acceptable "kapE_dT" inputs are [on, off]'
           WRITE(*,'(A)') 'Setting kapE_dT_flag to default (off)'
-          kapE_dT_flag = 'off'
+          kapE_dT_flag = .FALSE.
+        ELSE IF (args(1) .EQ. 'on') THEN
+          kapE_dT_flag = .TRUE.
+        ELSE IF (args(1) .EQ. 'off') THEN
+          kapE_dT_flag = .FALSE.
         END IF
+
 
       ELSE IF (trim(key) .EQ. 'comp_unit') THEN
         READ(args(1),*) comp_unit

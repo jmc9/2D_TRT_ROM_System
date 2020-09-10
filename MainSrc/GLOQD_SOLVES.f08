@@ -297,16 +297,16 @@ END SUBROUTINE GQD_In_Calc
 !   The Newton iterations employ a line search and safety bounds
 !
 !==================================================================================================================================!
-SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,Its,Deltas,Temp_Mold,KapE_bar_Mold,Theta,&
-  Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,&
-  DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,&
-  T_Bound_Low,Eps1,Eps2,Maxits,Use_Line_Search,Use_Safety_Search,Res_Calc)
+SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,KapE_Bar_dT,Its,Deltas,dresiduals,Temp_Mold,&
+  KapE_bar_Mold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,&
+  DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,&
+  line_src,E_Bound_Low,T_Bound_Low,Eps1,Eps2,Maxits,MGQD_It,Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag)
 
   !OUTPUTS
   REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Temp(:,:), KapE_Bar(:,:)
-  REAL*8,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:), Q_bar(:,:)
+  REAL*8,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:), Q_bar(:,:), KapE_Bar_dT(:,:)
   INTEGER,INTENT(OUT):: Its
-  REAL*8,ALLOCATABLE,INTENT(OUT):: Deltas(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Deltas(:,:), dresiduals(:,:)
 
   !INPUTS
   REAL*8,INTENT(IN):: Temp_Mold(:,:), KapE_bar_Mold(:,:)
@@ -322,13 +322,13 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
   REAL*8,INTENT(IN):: Gold_Hat(:,:), Rhat_old(:,:)
   REAL*8,INTENT(IN):: Kap0, cv, Comp_Unit
   REAL*8,INTENT(IN):: Chi, line_src, E_Bound_Low, T_Bound_Low, Eps1, Eps2
-  INTEGER,INTENT(IN):: Maxits
-  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, Res_Calc
+  INTEGER,INTENT(IN):: Maxits, MGQD_It
+  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, Res_Calc, kapE_dT_flag
 
   !INTERNALS(ARRAYS)
   REAL*8,ALLOCATABLE:: Del_T(:,:), Del_E_avg(:,:), Del_E_edgV(:,:), Del_E_edgH(:,:)
   REAL*8,ALLOCATABLE:: Del_Fx_edgV(:,:), Del_Fy_edgH(:,:)
-  REAL*8,ALLOCATABLE:: Q_bar_dT(:,:), KapE_Bar_dT(:,:)
+  REAL*8,ALLOCATABLE:: Q_bar_dT(:,:)!, KapE_Bar_dT(:,:)
   REAL*8,ALLOCATABLE:: EB_L(:,:), EB_B(:,:), EB_C(:,:), EB_R(:,:), EB_T(:,:)
   REAL*8,ALLOCATABLE:: MBx_C(:,:), MBx_R(:,:), MBx_B(:,:), MBx_T(:,:)
   REAL*8,ALLOCATABLE:: MBy_C(:,:), MBy_T(:,:), MBy_L(:,:), MBy_R(:,:)
@@ -367,7 +367,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
   !allocating all internal arrays
   ALLOCATE(Del_T(N_x,N_y),Del_E_avg(N_x,N_y),Del_E_edgV(N_x+1,N_y),Del_E_edgH(N_x,N_y+1))
   ALLOCATE(Del_Fx_edgV(N_x+1,N_y),Del_Fy_edgH(N_x,N_y+1))
-  ALLOCATE(Q_bar_dT(N_x,N_y),KapE_Bar_dT(N_x,N_y))
+  ALLOCATE(Q_bar_dT(N_x,N_y))
   ALLOCATE(EB_L(N_x,N_y),EB_B(N_x,N_y),EB_C(N_x,N_y),EB_R(N_x,N_y),EB_T(N_x,N_y))
   ALLOCATE(MBx_C(N_x,N_y),MBx_R(N_x-1,N_y),MBx_B(N_x,N_y),MBx_T(N_x,N_y))
   ALLOCATE(MBy_C(N_x,N_y),MBy_T(N_x,N_y-1),MBy_L(N_x,N_y),MBy_R(N_x,N_y))
@@ -378,12 +378,18 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
   ALLOCATE(KapE_dT_Org(N_x,N_y))
 
   !calculating KapE_Bar derivative with respect to temperature
-  DO j=1,N_y
-    DO i=1,N_x
-      KapE_Bar_dT(i,j) = FC_KapE_Bar_dT(Temp(i,j),Temp_Mold(i,j),KapE_Bar(i,j),KapE_Bar_Mold(i,j))
+  IF ((MGQD_It .GT. 1).AND.(kapE_dT_flag)) THEN
+    DO j=1,N_y
+      DO i=1,N_x
+        KapE_Bar_dT(i,j) = FC_KapE_Bar_dT(Temp(i,j),Temp_Mold(i,j),KapE_Bar(i,j),KapE_Bar_Mold(i,j))
+      END DO
     END DO
-  END DO
-  KapE_dT_Org = KapE_Bar_dT !storing KapE_Bar_dT for restoration at each Newton iteration
+    KapE_dT_Org = KapE_Bar_dT !storing KapE_Bar_dT for restoration at each Newton iteration
+
+  ELSE
+    KapE_Bar_dT = 0d0
+
+  END IF
 
   !===========================================================================!
   !                                                                           !
@@ -403,15 +409,17 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
       END DO
     END DO
 
-    !damping KapE_Bar_dT when/where too large
-    KapE_Bar_dT = KapE_dT_Org !restoring original KapE_Bar derivative
-    DO j=1,N_y
-      DO i=1,N_x
-        !if KapE_Bar_dT exceeds the given bound in cell (i,j), reduce for this iteration
-        KapE_Bound = (cv/Delt + Q_bar_dT(i,j))/(c*E_avg(i,j))
-        IF (KapE_Bar_dT(i,j) .GT. chi*KapE_Bound) KapE_Bar_dT(i,j) = chi*KapE_Bound
+    IF ((MGQD_It .GT. 1).AND.(kapE_dT_flag)) THEN
+      !damping KapE_Bar_dT when/where too large
+      KapE_Bar_dT = KapE_dT_Org !restoring original KapE_Bar derivative
+      DO j=1,N_y
+        DO i=1,N_x
+          !if KapE_Bar_dT exceeds the given bound in cell (i,j), reduce for this iteration
+          KapE_Bound = (cv/Delt + Q_bar_dT(i,j))/(c*E_avg(i,j))
+          IF (KapE_Bar_dT(i,j) .GT. chi*KapE_Bound) KapE_Bar_dT(i,j) = chi*KapE_Bound
+        END DO
       END DO
-    END DO
+    END IF
 
     !===========================================================================!
     !                                                                           !
@@ -910,19 +918,39 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
         Deltas(Its,5) = Fx_Norm
         Deltas(Its,6) = Fy_Norm
 
+        ALLOCATE(dresiduals(1,6))
+        dresiduals(Its,1) = MAXVAL(ABS(dr_T))
+        dresiduals(Its,2) = MAXVAL(ABS(dr_B))
+        dresiduals(Its,3) = MAXVAL(ABS(dr_ML))
+        dresiduals(Its,4) = MAXVAL(ABS(dr_MB))
+        dresiduals(Its,5) = MAXVAL(ABS(dr_MR))
+        dresiduals(Its,6) = MAXVAL(ABS(dr_MT))
+
       ELSE
         ALLOCATE(Deltas2(Its-1,6))
         Deltas2 = Deltas
         DEALLOCATE(Deltas)
         ALLOCATE(Deltas(Its,6))
         Deltas(1:Its-1,:) = Deltas2
-        DEALLOCATE(Deltas2)
+        ! DEALLOCATE(Deltas2)
         Deltas(Its,1) = T_Norm
         Deltas(Its,2) = Ea_Norm
         Deltas(Its,3) = Ev_Norm
         Deltas(Its,4) = Eh_Norm
         Deltas(Its,5) = Fx_Norm
         Deltas(Its,6) = Fy_Norm
+
+        Deltas2 = dresiduals
+        DEALLOCATE(dresiduals)
+        ALLOCATE(dresiduals(Its,6))
+        dresiduals(1:Its-1,:) = Deltas2
+        DEALLOCATE(Deltas2)
+        dresiduals(Its,1) = MAXVAL(ABS(dr_T))
+        dresiduals(Its,2) = MAXVAL(ABS(dr_B))
+        dresiduals(Its,3) = MAXVAL(ABS(dr_ML))
+        dresiduals(Its,4) = MAXVAL(ABS(dr_MB))
+        dresiduals(Its,5) = MAXVAL(ABS(dr_MR))
+        dresiduals(Its,6) = MAXVAL(ABS(dr_MT))
 
       END IF
     END IF

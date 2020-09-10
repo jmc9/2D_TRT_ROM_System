@@ -44,10 +44,10 @@ program main
     CHARACTER(100):: outfile, restart_outfile, decomp_outfile, TEMP_outfile, GREY_E_outfile, HO_E_outfile
     CHARACTER(100):: GREY_F_outfile, GREY_kap_outfile, GREY_fsmall_outfile, MG_fsmall_outfile, res_history_outfile
     CHARACTER(100):: run_type, restart_infile
-    CHARACTER(100):: kapE_dT_flag, enrgy_strc, quadrature
+    CHARACTER(100):: enrgy_strc, quadrature
     REAL*8,ALLOCATABLE:: Omega_x(:), Omega_y(:), quad_weight(:)
     REAL*8:: Theta=1d0
-    LOGICAL:: Res_Calc != .TRUE.
+    LOGICAL:: Res_Calc, kapE_dT_flag
     LOGICAL:: Use_Line_Search, Use_Safety_Search
 
     !--------------------------------------------------!

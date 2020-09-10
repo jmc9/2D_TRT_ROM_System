@@ -26,8 +26,8 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: database_gen, use_grey, maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads, BC_type(:)
-  CHARACTER(*),INTENT(IN):: outfile, run_type, kapE_dT_flag, quadrature, enrgy_strc
-  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search
+  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc
+  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, kapE_dT_flag
 
   INTEGER:: Status
   INTEGER:: xlen_ID, ylen_ID
@@ -103,7 +103,11 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   Status = nf90_put_att(outID,NF90_GLOBAL,'maxit_GLOQD',maxit_GLOQD)
   CALL HANDLE_ERR(Status)
 
-  Status = nf90_put_att(outID,NF90_GLOBAL,'kapE_dT_flag',kapE_dT_flag)
+  IF (kapE_dT_flag) THEN
+    Status = nf90_put_att(outID,NF90_GLOBAL,'kapE_dT_flag','on')
+  ELSE
+    Status = nf90_put_att(outID,NF90_GLOBAL,'kapE_dT_flag','off')
+  END IF
   CALL HANDLE_ERR(Status)
 
   Status = nf90_put_att(outID,NF90_GLOBAL,'chi',chi)
@@ -265,7 +269,8 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,&
   E_in_B_ID,E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,&
   fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,&
-  DB_xy_ID,DR_xy_ID,DT_xy_ID)
+  DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,&
+  PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,dr_MB_ID,dr_MR_ID,dr_MT_ID)
 
   INTEGER,INTENT(IN):: outID
   LOGICAL,INTENT(IN):: Res_Calc
@@ -287,6 +292,9 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   INTEGER,INTENT(OUT):: F_in_L_ID, F_in_B_ID, F_in_R_ID, F_in_T_ID
   INTEGER,INTENT(OUT):: fg_avg_xx_ID, fg_avg_yy_ID, fg_edgV_xx_ID, fg_edgV_xy_ID, fg_edgH_yy_ID, fg_edgH_xy_ID
   INTEGER,INTENT(OUT):: DC_xx_ID, DL_xx_ID, DR_xx_ID, DC_yy_ID, DB_yy_ID, DT_yy_ID, DL_xy_ID, DB_xy_ID, DR_xy_ID, DT_xy_ID
+  INTEGER,INTENT(OUT):: G_old_ID, Pold_L_ID, Pold_B_ID, Pold_R_ID, Pold_T_ID
+  INTEGER,INTENT(OUT):: Gold_hat_ID, Rhat_old_ID, PL_ID, PB_ID, PR_ID, PT_ID
+  INTEGER,INTENT(OUT):: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
 
   INTEGER:: Status
 
@@ -510,6 +518,12 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   CALL NF_DEF_VAR(fg_edgH_yy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_yy','Double')
   CALL NF_DEF_VAR(fg_edgH_xy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_xy','Double')
 
+  CALL NF_DEF_VAR(G_old_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Gold_L','Double')
+  CALL NF_DEF_VAR(Pold_L_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_L','Double')
+  CALL NF_DEF_VAR(Pold_B_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_B','Double')
+  CALL NF_DEF_VAR(Pold_R_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_R','Double')
+  CALL NF_DEF_VAR(Pold_T_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_T','Double')
+
   CALL NF_DEF_VAR(DC_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DC_xx','Double')
   CALL NF_DEF_VAR(DL_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DL_xx','Double')
   CALL NF_DEF_VAR(DR_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DR_xx','Double')
@@ -520,6 +534,13 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   CALL NF_DEF_VAR(DB_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DB_xy','Double')
   CALL NF_DEF_VAR(DR_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DR_xy','Double')
   CALL NF_DEF_VAR(DT_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DT_xy','Double')
+
+  CALL NF_DEF_VAR(Gold_hat_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'Gold_hat','Double')
+  CALL NF_DEF_VAR(Rhat_old_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'Rhat_old','Double')
+  CALL NF_DEF_VAR(PL_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PL','Double')
+  CALL NF_DEF_VAR(PB_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PB','Double')
+  CALL NF_DEF_VAR(PR_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PR','Double')
+  CALL NF_DEF_VAR(PT_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PT','Double')
 
   !===========================================================================!
   !                                                                           !
@@ -540,6 +561,13 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
     CALL NF_DEF_VAR(Del_E_edgH_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_E_edgH','Real')
     CALL NF_DEF_VAR(Del_Fx_edgV_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_Fx_edgV','Real')
     CALL NF_DEF_VAR(Del_Fy_edgH_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_Fy_edgH','Real')
+
+    CALL NF_DEF_VAR(dr_T_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_T','Real')
+    CALL NF_DEF_VAR(dr_B_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_B','Real')
+    CALL NF_DEF_VAR(dr_ML_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_ML','Real')
+    CALL NF_DEF_VAR(dr_MR_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_MR','Real')
+    CALL NF_DEF_VAR(dr_MB_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_MB','Real')
+    CALL NF_DEF_VAR(dr_MT_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_MT','Real')
   END IF
 
   !===========================================================================!

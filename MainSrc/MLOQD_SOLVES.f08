@@ -114,7 +114,7 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
   REAL*8,ALLOCATABLE:: BC_L(:), BC_B(:), BC_R(:), BC_T(:)
   REAL*8,ALLOCATABLE:: E1(:,:),E2(:,:),E3(:,:)
 
-  REAL*8:: res(5), sums(5,4)
+  REAL*8:: res(5)
   INTEGER:: N_g, N_x, N_y, Threads
   INTEGER:: i, j, g, k, z
 
@@ -257,10 +257,9 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
   IF (Res_Calc) THEN
   MGQD_Residual = 0d0
   MGQD_BC_Residual = 0d0
-  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,j,i,k,z,res,sums)
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g,j,i,k,z,res)
   !$OMP DO
   DO g=1,N_g
-    sums=0d0
     DO j=1,N_y
       DO i=1,N_x
 
@@ -299,23 +298,18 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
             MGQD_ResLoc_x(g,k,1) = i
             MGQD_ResLoc_y(g,k,1) = j
           END IF
-          sums(k,1) = sums(k,1) + res(k)
-          sums(k,2) = sums(k,2) + res(k)**2
-          sums(k,3) = sums(k,3) + A(i,j)*res(k)
-          sums(k,4) = sums(k,4) + A(i,j)*res(k)**2
+          MGQD_Residual(g,k,2) = MGQD_Residual(g,k,2) + res(k)
+          MGQD_Residual(g,k,3) = MGQD_Residual(g,k,3) + res(k)**2
+          MGQD_Residual(g,k,4) = MGQD_Residual(g,k,4) + A(i,j)*res(k)
+          MGQD_Residual(g,k,5) = MGQD_Residual(g,k,5) + A(i,j)*res(k)**2
         END DO
 
       END DO
     END DO
 
-    DO z=1,5
-    DO k=1,4
-      IF (sums(z,k) .GT. MGQD_Residual(g,z,k+1)) THEN
-        MGQD_Residual(g,z,k+1) = sums(z,k)
-        MGQD_ResLoc_x(g,z,k+1) = i
-        MGQD_ResLoc_y(g,z,k+1) = j
-      END IF
-    END DO
+    DO k=1,5
+      MGQD_Residual(g,k,3) = SQRT(MGQD_Residual(g,k,3))
+      MGQD_Residual(g,k,5) = SQRT(MGQD_Residual(g,k,5))
     END DO
 
     DO j=1,N_y

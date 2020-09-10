@@ -14,7 +14,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   GREY_F_out,GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,&
   TEMP_outfile,GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,&
   res_history_outfile,E_ho_out,E_ho_outfile,nu_g,N_g,Omega_x,Omega_y,quad_weight,tpoints,quadrature,BC_Type,&
-  Use_Line_Search,Use_Safety_Search)
+  Use_Line_Search,Use_Safety_Search,Res_Calc)
 
   IMPLICIT NONE
 
@@ -30,7 +30,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
   CHARACTER(100),INTENT(OUT):: kapE_dT_flag, enrgy_strc, quadrature
-  LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search
+  LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search, Res_Calc
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:)
@@ -62,7 +62,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
       STOP
   END IF
 
-  CALL INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_infile,use_grey)
+  CALL INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_infile,use_grey,Res_Calc)
 
   CALL INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_unit,line_src,maxit_RTE,maxit_MLOQD,&
     maxit_GLOQD,conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,E_Bound_Low,T_Bound_Low,Use_Line_Search,&
@@ -149,7 +149,7 @@ END SUBROUTINE LOCATE_BLOCK
 !
 !==================================================================================================================================!
 
-SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_infile,use_grey)
+SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_infile,use_grey,Res_Calc)
 
   IMPLICIT NONE
 
@@ -159,6 +159,7 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_in
   !OUTPUT VARIABLES
   INTEGER,INTENT(OUT):: database_gen, database_add, use_grey
   CHARACTER(100),INTENT(OUT):: run_type, restart_infile
+  LOGICAL,INTENT(OUT):: Res_Calc
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
@@ -169,6 +170,7 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_in
 
   !DEFAULT VALUES
   run_type = 'mlqd'
+  Res_Calc = .TRUE.
   restart_infile = ''
   database_gen = 0
   database_add = 0
@@ -212,6 +214,14 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_in
 
       ELSE IF (trim(key) .EQ. 'use_grey') THEN
         READ(args(1),*) use_grey
+
+      ELSE IF (trim(key) .EQ. 'res_calc') THEN
+        READ(args(1),*) io
+        IF (io .EQ. 1) THEN
+          Res_Calc = .TRUE.
+        ELSE
+          Res_Calc = .FALSE.
+        END IF
 
       END IF
 

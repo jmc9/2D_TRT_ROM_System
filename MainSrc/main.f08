@@ -47,7 +47,7 @@ program main
     CHARACTER(100):: kapE_dT_flag, enrgy_strc, quadrature
     REAL*8,ALLOCATABLE:: Omega_x(:), Omega_y(:), quad_weight(:)
     REAL*8:: Theta=1d0
-    LOGICAL:: Res_Calc = .TRUE.
+    LOGICAL:: Res_Calc != .TRUE.
     LOGICAL:: Use_Line_Search, Use_Safety_Search
 
     !--------------------------------------------------!
@@ -84,7 +84,7 @@ program main
       GREY_F_out,GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,&
       TEMP_outfile,GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,&
       res_history_outfile,HO_E_out,HO_E_outfile,nu_g,N_g,Omega_x,Omega_y,quad_weight,N_t,quadrature,BC_Type,&
-      Use_Line_Search,Use_Safety_Search)
+      Use_Line_Search,Use_Safety_Search,Res_Calc)
 
     CALL OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,&
       MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,c_ID,h_ID,pi_ID,erg_ID,Comp_Unit_ID,cv_ID,&

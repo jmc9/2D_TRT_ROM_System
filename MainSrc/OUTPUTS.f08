@@ -253,7 +253,7 @@ END SUBROUTINE OUTFILE_INIT
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,&
+SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,&
   RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,&
   MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
   MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
@@ -268,6 +268,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   DB_xy_ID,DR_xy_ID,DT_xy_ID)
 
   INTEGER,INTENT(IN):: outID
+  LOGICAL,INTENT(IN):: Res_Calc
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
   INTEGER,INTENT(IN):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID, MGQD_ResTypes_ID, Boundaries_ID
   INTEGER,INTENT(OUT):: Temp_ID, E_avg_ID, E_edgV_ID, E_edgH_ID, MGQD_E_avg_ID, MGQD_E_edgV_ID, MGQD_E_edgH_ID, HO_E_avg_ID
@@ -525,19 +526,21 @@ SUBROUTINE OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_
   !     DEFINING RESIDUALS                                                    !
   !                                                                           !
   !===========================================================================!
-  CALL NF_DEF_VAR(RT_Residual_ID,outID,(/Quads_ID,N_g_ID,Norm_Types_ID,RT_Its_ID,N_t_ID/),'RT_Residual','Real')
+  IF (Res_Calc) THEN
+    CALL NF_DEF_VAR(RT_Residual_ID,outID,(/Quads_ID,N_g_ID,Norm_Types_ID,RT_Its_ID,N_t_ID/),'RT_Residual','Real')
 
-  CALL NF_DEF_VAR(MGQD_Residual_ID,outID,&
-   (/N_g_ID,MGQD_ResTypes_ID,Norm_Types_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Residual','Real')
-  CALL NF_DEF_VAR(MGQD_BC_Residual_ID,outID,&
-   (/N_g_ID,Boundaries_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_BC_Residual','Real')
+    CALL NF_DEF_VAR(MGQD_Residual_ID,outID,&
+     (/N_g_ID,MGQD_ResTypes_ID,Norm_Types_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Residual','Real')
+    CALL NF_DEF_VAR(MGQD_BC_Residual_ID,outID,&
+     (/N_g_ID,Boundaries_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_BC_Residual','Real')
 
-  CALL NF_DEF_VAR(Del_T_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_T','Real')
-  CALL NF_DEF_VAR(Del_E_avg_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_E_avg','Real')
-  CALL NF_DEF_VAR(Del_E_edgV_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_E_edgV','Real')
-  CALL NF_DEF_VAR(Del_E_edgH_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_E_edgH','Real')
-  CALL NF_DEF_VAR(Del_Fx_edgV_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_Fx_edgV','Real')
-  CALL NF_DEF_VAR(Del_Fy_edgH_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_Fy_edgH','Real')
+    CALL NF_DEF_VAR(Del_T_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_T','Real')
+    CALL NF_DEF_VAR(Del_E_avg_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_E_avg','Real')
+    CALL NF_DEF_VAR(Del_E_edgV_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_E_edgV','Real')
+    CALL NF_DEF_VAR(Del_E_edgH_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_E_edgH','Real')
+    CALL NF_DEF_VAR(Del_Fx_edgV_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_Fx_edgV','Real')
+    CALL NF_DEF_VAR(Del_Fy_edgH_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'Delta_Fy_edgH','Real')
+  END IF
 
   !===========================================================================!
   !                                                                           !

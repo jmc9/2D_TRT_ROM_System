@@ -98,8 +98,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: KapE_bar_MGQDold(:,:)
 
   !--------------------------------------------------!
-  REAL*8,ALLOCATABLE:: RT_Residual(:,:,:), MGQD_Residual(:,:,:), MGQD_BC_Residual(:,:)
-  INTEGER,ALLOCATABLE:: RT_ResLoc_x(:,:,:), RT_ResLoc_y(:,:,:), MGQD_ResLoc_x(:,:,:), MGQD_ResLoc_y(:,:,:)
+  REAL*8,ALLOCATABLE:: RT_Residual(:,:,:), MGQD_Residual(:,:,:), MGQD_BC_Residual(:,:), Deltas(:,:)
+  INTEGER,ALLOCATABLE:: RT_ResLoc_x(:,:,:), RT_ResLoc_y(:,:,:)
   REAL*8,ALLOCATABLE:: Temp_RTold(:,:), Temp_RTold2(:,:)
   REAL*8,ALLOCATABLE:: Temp_MGQDold(:,:), Temp_MGQDold2(:,:)
   REAL*8,ALLOCATABLE:: HO_E_avg_RTold(:,:), HO_E_avg_RTold2(:,:)
@@ -160,15 +160,17 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   ALLOCATE(MGQD_E_avg_MGQDold(SIZE(MGQD_E_avg,1),SIZE(MGQD_E_avg,2)))
   ALLOCATE(MGQD_E_avg_MGQDold2(SIZE(MGQD_E_avg,1),SIZE(MGQD_E_avg,2)))
 
-  ALLOCATE(RT_Residual(4,N_g,5),RT_ResLoc_x(4,N_g,5),RT_ResLoc_y(4,N_g,5))
-  ALLOCATE(MGQD_Residual(N_g,5,5),MGQD_ResLoc_x(N_g,5,5),MGQD_ResLoc_y(N_g,5,5),MGQD_BC_Residual(N_g,4))
+  IF (Res_Calc) THEN
+    ALLOCATE(RT_Residual(4,N_g,5),RT_ResLoc_x(4,N_g,5),RT_ResLoc_y(4,N_g,5))
+    ALLOCATE(MGQD_Residual(N_g,5,5),MGQD_BC_Residual(N_g,4))
+  END IF
 
   !===========================================================================!
   !                                                                           !
   !     INITIALIZING OUTPUT FILE                                              !
   !                                                                           !
   !===========================================================================!
-  CALL OUTFILE_VARDEFS(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,&
+  CALL OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,&
     RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,&
     MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
     MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
@@ -213,11 +215,14 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     fg_edgH_yy_old = fg_edgH_yy
     fg_edgH_xy_old = fg_edgH_xy
     MGQD_Src_old = MGQD_Src
+    GQD_Src_old = GQD_Src
+    E_avg_old = E_avg
     Eg_avg_old = Eg_avg
     Eg_edgV_old = Eg_edgV
     Eg_edgH_old = Eg_edgH
     Fxg_edgV_old = Fxg_edgV
     Fyg_edgH_old = Fyg_edgH
+    KapE_Bar_old = KapE_Bar
     KapE_old = KapE
     KapR_old = KapR
 
@@ -252,8 +257,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           KapE,RT_Src,I_crn_old,c,Delt,Threads,RT_Residual,RT_ResLoc_x,RT_ResLoc_y,Res_Calc)
 
         !writing norms of the RTE residual to the output file
-        Status = nf90_put_var(outID,RT_Residual_ID,RT_Residual,(/1,1,1,RT_Its,t/),(/4,N_g,5,1,1/))
-        CALL HANDLE_ERR(Status)
+        IF (Res_Calc) THEN
+          Status = nf90_put_var(outID,RT_Residual_ID,RT_Residual,(/1,1,1,RT_Its,t/),(/4,N_g,5,1,1/))
+          CALL HANDLE_ERR(Status)
+        END IF
 
         !calculating low-order quantities from the high-order intensities
         CALL COLLAPSE_INTENSITIES(Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_yy,&
@@ -304,19 +311,21 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
           !solve the MGQD linear system
           CALL MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
-            fg_edgH_xy,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Src,KapE,KapR,&
-            Delx,Dely,A,c,Delt,Theta,Threads,Res_Calc,MGQD_Residual,MGQD_ResLoc_x,MGQD_ResLoc_y,MGQD_BC_Residual,G_old,Pold_L,&
-            Pold_B,Pold_R,Pold_T,Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old)
+            fg_edgH_xy,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Src,KapE,&
+            KapR,Delx,Dely,A,c,Delt,Theta,Threads,Res_Calc,MGQD_Residual,MGQD_BC_Residual,G_old,Pold_L,Pold_B,Pold_R,&
+            Pold_T,Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old)
 
           !calculate grey solution from MGQD solution
           CALL COLLAPSE_MG_EF(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Threads,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
             MGQD_Fy_edgH)
 
           !writing MGQD residuals to output file
-          Status = nf90_put_var(outID,MGQD_BC_Residual_ID,MGQD_BC_Residual,(/1,1,MGQD_Its,RT_Its,t/),(/N_g,4,1,1,1/))
-          CALL HANDLE_ERR(Status)
-          Status = nf90_put_var(outID,MGQD_Residual_ID,MGQD_Residual,(/1,1,1,MGQD_Its,RT_Its,t/),(/N_g,5,5,1,1,1/))
-          CALL HANDLE_ERR(Status)
+          IF (Res_Calc) THEN
+            Status = nf90_put_var(outID,MGQD_BC_Residual_ID,MGQD_BC_Residual,(/1,1,MGQD_Its,RT_Its,t/),(/N_g,4,1,1,1/))
+            CALL HANDLE_ERR(Status)
+            Status = nf90_put_var(outID,MGQD_Residual_ID,MGQD_Residual,(/1,1,1,MGQD_Its,RT_Its,t/),(/N_g,5,5,1,1,1/))
+            CALL HANDLE_ERR(Status)
+          END IF
 
           IF (use_grey .EQ. 1) THEN
             !===========================================================================!
@@ -333,10 +342,27 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
               DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
 
             !solve the nonlinear EGP with newton iterations
-            CALL EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,GQD_Src,EGP_Its,Temp_MGQDold,KapE_bar_MGQDold,Theta,&
-              Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,&
-              DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,&
-              T_Bound_Low,Conv_gr1,Conv_gr2,Maxit_GLOQD,Use_Line_Search,Use_Safety_Search)
+            CALL EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,GQD_Src,EGP_Its,Deltas,Temp_MGQDold,&
+              KapE_bar_MGQDold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,&
+              F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,&
+              Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,T_Bound_Low,Conv_gr1,Conv_gr2,Maxit_GLOQD,Use_Line_Search,&
+              Use_Safety_Search,Res_Calc)
+
+            !writing the count of EGP iterations to output file
+            IF (Res_Calc) THEN
+              Status = nf90_put_var(outID,Del_T_ID,Deltas(:,1),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,Del_E_avg_ID,Deltas(:,2),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,Del_E_EdgV_ID,Deltas(:,3),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,Del_E_EdgH_ID,Deltas(:,4),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,Del_Fx_EdgV_ID,Deltas(:,5),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+              Status = nf90_put_var(outID,Del_Fy_EdgH_ID,Deltas(:,6),(/1,MGQD_Its,RT_Its,t/),(/EGP_Its,1,1,1/))
+              CALL HANDLE_ERR(Status)
+            END IF
 
             !writing the count of EGP iterations to output file
             Status = nf90_put_var(outID,GQD_ItCount_ID,(/EGP_Its/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))

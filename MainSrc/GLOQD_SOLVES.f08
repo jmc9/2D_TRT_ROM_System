@@ -297,15 +297,16 @@ END SUBROUTINE GQD_In_Calc
 !   The Newton iterations employ a line search and safety bounds
 !
 !==================================================================================================================================!
-SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,Its,Temp_Mold,KapE_bar_Mold,Theta,&
+SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,Its,Deltas,Temp_Mold,KapE_bar_Mold,Theta,&
   Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,&
   DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,&
-  T_Bound_Low,Eps1,Eps2,Maxits,Use_Line_Search,Use_Safety_Search)
+  T_Bound_Low,Eps1,Eps2,Maxits,Use_Line_Search,Use_Safety_Search,Res_Calc)
 
   !OUTPUTS
   REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Temp(:,:), KapE_Bar(:,:)
   REAL*8,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:), Q_bar(:,:)
   INTEGER,INTENT(OUT):: Its
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Deltas(:,:)
 
   !INPUTS
   REAL*8,INTENT(IN):: Temp_Mold(:,:), KapE_bar_Mold(:,:)
@@ -322,7 +323,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
   REAL*8,INTENT(IN):: Kap0, cv, Comp_Unit
   REAL*8,INTENT(IN):: Chi, line_src, E_Bound_Low, T_Bound_Low, Eps1, Eps2
   INTEGER,INTENT(IN):: Maxits
-  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search
+  LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, Res_Calc
 
   !INTERNALS(ARRAYS)
   REAL*8,ALLOCATABLE:: Del_T(:,:), Del_E_avg(:,:), Del_E_edgV(:,:), Del_E_edgH(:,:)
@@ -336,6 +337,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
   REAL*8,ALLOCATABLE:: MBx_RHS(:,:), MBy_RHS(:,:), W(:,:)
   REAL*8,ALLOCATABLE:: dr_B(:,:), dr_T(:,:), dr_ML(:,:), dr_MB(:,:), dr_MR(:,:), dr_MT(:,:), dr_G(:,:)
   REAL*8,ALLOCATABLE:: KapE_dT_Org(:,:)
+  REAL*8,ALLOCATABLE:: Deltas2(:,:)
 
   !INTERNALS(NON-ARRAYS)
   REAL*8,PARAMETER:: h=6.62613d-19    !erg*sh
@@ -500,10 +502,10 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
 
     !bottom/top boundary condition coefficients and right hand sides
     DO i=1,N_x
-      Cp_B(j) = c*Cb_B(i) - 2d0*c*Delx(i)*DB_yy(i,1)/A(i,1)
-      Cp_T(j) = c*Cb_T(i) + 2d0*c*Delx(i)*DT_yy(i,N_y)/A(i,N_y)
-      BC_B(j) = c*Cb_B(i)*(E_in_B(i) - E_edgH(i,1)) + Fy_edgH(i,1) - F_in_B(i) - 2d0*dr_MB(i,1)/A(i,1)
-      BC_T(j) = c*Cb_T(i)*(E_in_T(i) - E_edgH(i,N_y+1)) + Fy_edgH(i,N_y+1) - F_in_T(i) - 2d0*dr_MT(i,N_y)/A(i,N_y)
+      Cp_B(i) = c*Cb_B(i) - 2d0*c*Delx(i)*DB_yy(i,1)/A(i,1)
+      Cp_T(i) = c*Cb_T(i) + 2d0*c*Delx(i)*DT_yy(i,N_y)/A(i,N_y)
+      BC_B(i) = c*Cb_B(i)*(E_in_B(i) - E_edgH(i,1)) + Fy_edgH(i,1) - F_in_B(i) - 2d0*dr_MB(i,1)/A(i,1)
+      BC_T(i) = c*Cb_T(i)*(E_in_T(i) - E_edgH(i,N_y+1)) + Fy_edgH(i,N_y+1) - F_in_T(i) - 2d0*dr_MT(i,N_y)/A(i,N_y)
     END DO
 
     !===========================================================================!
@@ -531,7 +533,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
 
         !Delta Fy on bottom(j-1/2) edges
         Del_Fy_edgH(i,j) = -2d0*c*Delx(i)*(DC_yy(i,j)*Del_E_avg(i,j) - DB_yy(i,j)*Del_E_edgH(i,j))/A(i,j) -&
-         c*Dely(j)*(DR_xy(i,j)*Del_E_edgH(i+1,j) - DB_xy(i,j)*Del_E_edgH(i,j))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
+         c*Dely(j)*(DR_xy(i,j)*Del_E_edgV(i+1,j) - DB_xy(i,j)*Del_E_edgV(i,j))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
       END DO
       !Delta Fx on right-most edge
       i = N_x
@@ -543,7 +545,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
     DO i=1,N_x
       !Delta Fy on top-most edge
       Del_Fy_edgH(i,j+1) = -2d0*c*Delx(i)*(Dt_yy(i,j)*Del_E_edgH(i,j+1) - Dc_yy(i,j)*Del_E_avg(i,j))/A(i,j) -&
-       c*Dely(j)*(DR_xy(i,j)*Del_E_edgH(i+1,j) - DB_xy(i,j)*Del_E_edgH(i,j))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
+       c*Dely(j)*(DR_xy(i,j)*Del_E_edgV(i+1,j) - DB_xy(i,j)*Del_E_edgV(i,j))/A(i,j) - 2d0*dr_MB(i,j)/A(i,j)
     END DO
 
     !===========================================================================!
@@ -558,7 +560,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
     Fx_edgV = Fx_edgV + Del_Fx_edgV
     Fy_edgH = Fy_edgH + Del_Fy_edgH
     KapE_Bar = KapE_Bar + KapE_Bar_dT*Del_T
-    Q_bar(i,j) = 15d0*kap0*c*aR*Temp(i,j)/pi**4
+    Q_bar = 15d0*kap0*c*aR*Temp/pi**4
 
     !===========================================================================!
     !                                                                           !
@@ -897,6 +899,33 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,I
     IF (Eh_Norm .GT. Eh_Eps) Converged = .FALSE.
     IF (Fx_Norm .GT. Fx_Eps) Converged = .FALSE.
     IF (Fy_Norm .GT. Fy_Eps) Converged = .FALSE.
+
+    IF (Res_Calc) THEN
+      IF (Its .EQ. 1) THEN
+        ALLOCATE(Deltas(1,6))
+        Deltas(Its,1) = T_Norm
+        Deltas(Its,2) = Ea_Norm
+        Deltas(Its,3) = Ev_Norm
+        Deltas(Its,4) = Eh_Norm
+        Deltas(Its,5) = Fx_Norm
+        Deltas(Its,6) = Fy_Norm
+
+      ELSE
+        ALLOCATE(Deltas2(Its-1,6))
+        Deltas2 = Deltas
+        DEALLOCATE(Deltas)
+        ALLOCATE(Deltas(Its,6))
+        Deltas(1:Its-1,:) = Deltas2
+        DEALLOCATE(Deltas2)
+        Deltas(Its,1) = T_Norm
+        Deltas(Its,2) = Ea_Norm
+        Deltas(Its,3) = Ev_Norm
+        Deltas(Its,4) = Eh_Norm
+        Deltas(Its,5) = Fx_Norm
+        Deltas(Its,6) = Fy_Norm
+
+      END IF
+    END IF
 
   END DO Newton_Its
 

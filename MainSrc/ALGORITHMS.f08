@@ -86,6 +86,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
   REAL*8,ALLOCATABLE:: Fx_edgV(:,:), Fy_edgH(:,:)
   REAL*8,ALLOCATABLE:: E_avg_old(:,:), KapE_bar_old(:,:),  GQD_Src_old(:,:)
+  REAL*8,ALLOCATABLE:: Fx_edgV_old(:,:), Fy_edgH_old(:,:)
   REAL*8,ALLOCATABLE:: Gold_Hat(:,:), Rhat_old(:,:)
   REAL*8,ALLOCATABLE:: KapE_Bar(:,:), KapE_Bar_dT(:,:), GQD_Src(:,:)
   REAL*8,ALLOCATABLE:: DC_xx(:,:), DL_xx(:,:), DR_xx(:,:)
@@ -341,13 +342,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
             !calculating all coefficients needed for the EGP solve
             KapE_bar_MGQDold = KapE_bar
-            CALL GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
+            CALL GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
               fg_edgH_xy,KapE,KapR,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,&
               DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
 
             !solve the nonlinear EGP with newton iterations
             CALL EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,GQD_Src,KapE_Bar_dT,EGP_Its,Deltas,dres,&
-              Temp_MGQDold,KapE_bar_MGQDold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,&
+              Temp_MGQDold2,KapE_bar_MGQDold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,&
               F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,&
               Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,T_Bound_Low,Conv_gr1,Conv_gr2,Maxit_GLOQD,MGQD_Its,&
               Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag)
@@ -418,7 +419,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           Temp_MGQDold = Temp
 
           !writing current iterate to terminal
-          ! write(*,*) 'MGQD:     ',MGQD_Its, MGQD_Tnorm, MGQD_Enorm
+          write(*,*) 'MGQD:     ',MGQD_Its, EGP_Its, MGQD_Tnorm, MGQD_Enorm
 
         END DO
 

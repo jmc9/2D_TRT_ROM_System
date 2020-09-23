@@ -46,7 +46,7 @@ program main
     CHARACTER(100):: run_type, restart_infile
     CHARACTER(100):: enrgy_strc, quadrature
     REAL*8,ALLOCATABLE:: Omega_x(:), Omega_y(:), quad_weight(:)
-    REAL*8:: Theta=1d0
+    REAL*8:: Theta
     LOGICAL:: Res_Calc, kapE_dT_flag
     LOGICAL:: Use_Line_Search, Use_Safety_Search
 
@@ -78,7 +78,7 @@ program main
     CALL SYSTEM_CLOCK(solve_time1)
 
     CALL INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr1,&
-      conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
+      conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,Theta,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
       threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_top,bcT_bottom,&
       Tini,sig_R,ar,pi,c,h,delx,dely,cv,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,&
       GREY_F_out,GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,&

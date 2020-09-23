@@ -264,8 +264,8 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
   KapE_Bar_ID,KapB_ID,KapE_ID,KapR_ID,Bg_ID,RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,&
   Del_E_edgV_ID,Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,&
-  RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,GQD_Tnorm_ID,GQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,&
-  MGQD_Trho_ID,MGQD_Erho_ID,GQD_Trho_ID,GQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,&
+  RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,&
+  MGQD_Trho_ID,MGQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,&
   Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,&
   E_in_B_ID,E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,&
   fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,&
@@ -284,8 +284,8 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   INTEGER,INTENT(OUT):: RT_Residual_ID, MGQD_Residual_ID, MGQD_BC_Residual_ID
   INTEGER,INTENT(OUT):: Del_T_ID, Del_E_avg_ID, Del_E_edgV_ID, Del_E_edgH_ID, Del_Fx_edgV_ID, Del_Fy_edgH_ID
   INTEGER,INTENT(OUT):: RT_ItCount_ID, MGQD_ItCount_ID, GQD_ItCount_ID
-  INTEGER,INTENT(OUT):: RT_Tnorm_ID, RT_Enorm_ID, MGQD_Tnorm_ID, MGQD_Enorm_ID, GQD_Tnorm_ID, GQD_Enorm_ID
-  INTEGER,INTENT(OUT):: RT_Trho_ID, RT_Erho_ID, MGQD_Trho_ID, MGQD_Erho_ID, GQD_Trho_ID, GQD_Erho_ID
+  INTEGER,INTENT(OUT):: RT_Tnorm_ID, RT_Enorm_ID, MGQD_Tnorm_ID, MGQD_Enorm_ID
+  INTEGER,INTENT(OUT):: RT_Trho_ID, RT_Erho_ID, MGQD_Trho_ID, MGQD_Erho_ID
   INTEGER,INTENT(OUT):: Cg_L_ID, Cg_B_ID, Cg_R_ID, Cg_T_ID, Eg_in_L_ID, Eg_in_B_ID, Eg_in_R_ID, Eg_in_T_ID
   INTEGER,INTENT(OUT):: Fg_in_L_ID, Fg_in_B_ID, Fg_in_R_ID, Fg_in_T_ID
   INTEGER,INTENT(OUT):: Cb_L_ID, Cb_B_ID, Cb_R_ID, Cb_T_ID, E_in_L_ID, E_in_B_ID, E_in_R_ID, E_in_T_ID
@@ -318,15 +318,11 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   CALL NF_DEF_VAR(RT_Enorm_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Enorm','Real')
   CALL NF_DEF_VAR(MGQD_Tnorm_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Tnorm','Real')
   CALL NF_DEF_VAR(MGQD_Enorm_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Enorm','Real')
-  CALL NF_DEF_VAR(GQD_Tnorm_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'GQD_Tnorm','Real')
-  CALL NF_DEF_VAR(GQD_Enorm_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'GQD_Enorm','Real')
 
   CALL NF_DEF_VAR(RT_Trho_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Trho','Real')
   CALL NF_DEF_VAR(RT_Erho_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Erho','Real')
   CALL NF_DEF_VAR(MGQD_Trho_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Trho','Real')
   CALL NF_DEF_VAR(MGQD_Erho_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Erho','Real')
-  CALL NF_DEF_VAR(GQD_Trho_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'GQD_Trho','Real')
-  CALL NF_DEF_VAR(GQD_Erho_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'GQD_Erho','Real')
 
   !===========================================================================!
   !                                                                           !

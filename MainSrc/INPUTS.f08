@@ -8,7 +8,7 @@ CONTAINS
 !
 !==================================================================================================================================!
 SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr1,&
-  conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
+  conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,Theta,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
   threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,&
   GREY_F_out,GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,&
@@ -27,7 +27,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   INTEGER,INTENT(OUT):: database_gen, database_add, use_grey
   CHARACTER(100),INTENT(OUT):: run_type, restart_infile
 
-  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, E_Bound_Low, T_Bound_Low
+  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, E_Bound_Low, T_Bound_Low, Theta
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
   CHARACTER(100),INTENT(OUT):: enrgy_strc, quadrature
   LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search, Res_Calc, kapE_dT_flag
@@ -66,7 +66,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
 
   CALL INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_unit,line_src,maxit_RTE,maxit_MLOQD,&
     maxit_GLOQD,conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,E_Bound_Low,T_Bound_Low,Use_Line_Search,&
-    Use_Safety_Search)
+    Use_Safety_Search,Theta)
 
   sig_R=2d0*pi**5/(15d0*c**2*h**3*erg**4*comp_unit) !(erg/(ev**4 cm**2 sh))
   aR=4d0*sig_R/c
@@ -249,7 +249,7 @@ END SUBROUTINE INPUT_RUN_STATE
 
 SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_unit,line_src,maxit_RTE,maxit_MLOQD,&
   maxit_GLOQD,conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,E_Bound_Low,T_Bound_Low,Use_Line_Search,&
-  Use_Safety_Search)
+  Use_Safety_Search,Theta)
 
   IMPLICIT NONE
 
@@ -257,7 +257,7 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_
   INTEGER,INTENT(IN):: inpunit
 
   !OUTPUT VARIABLES
-  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, comp_unit, line_src
+  REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, comp_unit, line_src, Theta
   REAL*8,INTENT(OUT):: E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
   CHARACTER(100),INTENT(OUT):: enrgy_strc, quadrature
@@ -277,6 +277,7 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_
   maxit_GLOQD = 100
   kapE_dT_flag = .TRUE.
   chi = 0.7d0
+  Theta = 1d0
   conv_ho = 1d-8
   conv_lo = 1d-9
   conv_gr1 = 1d-10
@@ -361,6 +362,28 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_
           WRITE(*,'(A)') '"chi" cannot have a value greater than or equal to 1'
           WRITE(*,'(A)') 'Setting chi to default (0.7)'
           chi = 0.7d0
+        END IF
+
+      ELSE IF (trim(key) .EQ. 'theta') THEN
+        READ(args(1),*) Theta
+        IF (Theta .LT. 0) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') '"Theta" cannot have a negative value'
+          WRITE(*,'(A)') 'Setting Theta to default (1)'
+          Theta = 1d0
+        ELSE IF (Theta .GT. 1) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') '"Theta" cannot have a value greater than 1'
+          WRITE(*,'(A)') 'Setting Theta to default (1)'
+          Theta = 1d0
+        ELSE IF (Theta .EQ. 0) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') '"Theta" cannot be =0 due to 1/Theta terms included in the discretization'
+          WRITE(*,'(A)') 'Setting Theta to 0.00001, but continue with caution - this may cause numerical issues'
+          Theta = 1d-5
         END IF
 
       ELSE IF (trim(key) .EQ. 'conv_ho') THEN

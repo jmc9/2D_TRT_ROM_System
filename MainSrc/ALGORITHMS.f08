@@ -22,7 +22,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   T_Bound_Low,database_gen,use_grey,Conv_Type,Maxit_RTE,Threads,BC_Type,Maxit_MLOQD,Maxit_GLOQD,N_x,N_y,N_m,N_g,&
   N_t,Res_Calc,Use_Line_Search,Use_Safety_Search,run_type,kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,&
   N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
-  Boundaries_ID)
+  Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
+  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:)
@@ -41,6 +42,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER,INTENT(IN):: outID
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
   INTEGER,INTENT(IN):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID, MGQD_ResTypes_ID, Boundaries_ID
+  INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+  INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
+  INTEGER,INTENT(IN):: E_out, F_out, D_out
+  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out
 
   !---------------Material Properties----------------!
   REAL*8,ALLOCATABLE:: Bg(:,:,:), KapE(:,:,:), KapB(:,:,:), KapR(:,:,:), A(:,:)
@@ -174,20 +179,20 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   !     INITIALIZING OUTPUT FILE                                              !
   !                                                                           !
   !===========================================================================!
-  CALL OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,&
-    RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,&
-    MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
-    MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
-    HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
-    KapE_Bar_ID,KapB_ID,KapE_ID,KapR_ID,Bg_ID,RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,&
-    Del_E_edgV_ID,Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,&
-    RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,&
-    MGQD_Trho_ID,MGQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,&
-    Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,&
-    E_in_B_ID,E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,&
-    fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,&
-    DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,&
-    PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,dr_MB_ID,dr_MR_ID,dr_MT_ID)
+  CALL OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
+    MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,N_x_ID,N_y_ID,N_m_ID,N_g_ID,&
+    N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
+    Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,&
+    HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,&
+    Eg_edgH_ID,HO_Eg_avg_ID,HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,&
+    I_edgV_ID,I_edgH_ID,KapE_Bar_ID,KapB_ID,KapE_ID,KapR_ID,Bg_ID,RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,&
+    Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,&
+    GQD_ItCount_ID,RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,MGQD_Trho_ID,MGQD_Erho_ID,&
+    Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,&
+    Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,E_in_B_ID,E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,&
+    F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,&
+    DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,&
+    Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,dr_MB_ID,dr_MR_ID,dr_MT_ID)
 
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
@@ -383,8 +388,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
             END IF
 
             !writing the count of EGP iterations to output file
-            Status = nf90_put_var(outID,GQD_ItCount_ID,(/EGP_Its/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
-            CALL HANDLE_ERR(Status)
+            IF (its_out .EQ. 1) THEN !checking if iteration counts are to be output
+              Status = nf90_put_var(outID,GQD_ItCount_ID,(/EGP_Its/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+              CALL HANDLE_ERR(Status)
+            END IF
 
           ELSE
             !solve the MEB equation with the MGQD solution to find new Temp
@@ -403,14 +410,16 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           MGQD_conv = Tconv.AND.Econv !if both T and E are converged, the MGQD iterations have successfully converged
 
           !writing MGQD convergence status (norms and spectral radii) to output file
-          Status = nf90_put_var(outID,MGQD_Tnorm_ID,(/MGQD_Tnorm/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
-          CALL HANDLE_ERR(Status)
-          Status = nf90_put_var(outID,MGQD_Enorm_ID,(/MGQD_Enorm/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
-          CALL HANDLE_ERR(Status)
-          Status = nf90_put_var(outID,MGQD_Trho_ID,(/MGQD_Trho/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
-          CALL HANDLE_ERR(Status)
-          Status = nf90_put_var(outID,MGQD_Erho_ID,(/MGQD_Erho/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
-          CALL HANDLE_ERR(Status)
+          IF (conv_out .EQ. 1) THEN !checking if convergence info is to be output
+            Status = nf90_put_var(outID,MGQD_Tnorm_ID,(/MGQD_Tnorm/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+            CALL HANDLE_ERR(Status)
+            Status = nf90_put_var(outID,MGQD_Enorm_ID,(/MGQD_Enorm/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+            CALL HANDLE_ERR(Status)
+            Status = nf90_put_var(outID,MGQD_Trho_ID,(/MGQD_Trho/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+            CALL HANDLE_ERR(Status)
+            Status = nf90_put_var(outID,MGQD_Erho_ID,(/MGQD_Erho/),(/MGQD_Its,RT_Its,t/),(/1,1,1/))
+            CALL HANDLE_ERR(Status)
+          END IF
 
           !preparing for next iteration by moving current solution -> last iterate solution
           MGQD_E_avg_MGQDold2 = MGQD_E_avg_MGQDold
@@ -419,13 +428,15 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           Temp_MGQDold = Temp
 
           !writing current iterate to terminal
-          write(*,*) 'MGQD:     ',MGQD_Its, EGP_Its, MGQD_Tnorm, MGQD_Enorm
+          ! write(*,*) 'MGQD:     ',MGQD_Its, EGP_Its, MGQD_Tnorm, MGQD_Enorm
 
         END DO
 
         !writing the count of MGQD iterations to output file
-        Status = nf90_put_var(outID,MGQD_ItCount_ID,(/MGQD_Its/),(/RT_Its,t/),(/1,1/))
-        CALL HANDLE_ERR(Status)
+        IF (its_out .EQ. 1) THEN !checking if iteration counts are to be output
+          Status = nf90_put_var(outID,MGQD_ItCount_ID,(/MGQD_Its/),(/RT_Its,t/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+        END IF
 
       END IF
 
@@ -434,14 +445,16 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       RT_conv = Tconv.AND.Econv !if both T and E are converged, the outer/RTE iterations have successfully converged
 
       !writing RTE convergence status (norms and spectral radii) to output file
-      Status = nf90_put_var(outID,RT_Tnorm_ID,(/TR_Tnorm/),(/RT_Its,t/),(/1,1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,RT_Enorm_ID,(/TR_Enorm/),(/RT_Its,t/),(/1,1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,RT_Trho_ID,(/TR_Trho/),(/RT_Its,t/),(/1,1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,RT_Erho_ID,(/TR_Erho/),(/RT_Its,t/),(/1,1/))
-      CALL HANDLE_ERR(Status)
+      IF (conv_out .EQ. 1) THEN !checking if convergence info is to be output
+        Status = nf90_put_var(outID,RT_Tnorm_ID,(/TR_Tnorm/),(/RT_Its,t/),(/1,1/))
+        CALL HANDLE_ERR(Status)
+        Status = nf90_put_var(outID,RT_Enorm_ID,(/TR_Enorm/),(/RT_Its,t/),(/1,1/))
+        CALL HANDLE_ERR(Status)
+        Status = nf90_put_var(outID,RT_Trho_ID,(/TR_Trho/),(/RT_Its,t/),(/1,1/))
+        CALL HANDLE_ERR(Status)
+        Status = nf90_put_var(outID,RT_Erho_ID,(/TR_Erho/),(/RT_Its,t/),(/1,1/))
+        CALL HANDLE_ERR(Status)
+      END IF
 
       !preparing for next iteration by moving current solution -> last iterate solution
       HO_E_avg_RTold2 = HO_E_avg_RTold
@@ -458,106 +471,27 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     write(*,*) Time, RT_Its, TR_Tnorm, TR_Enorm
 
     !writing the count of outer/RTE iterations to output file
-    Status = nf90_put_var(outID,RT_ItCount_ID,(/RT_Its/),(/t/),(/1/))
-    CALL HANDLE_ERR(Status)
-
-    CALL NF_PUT_t_VAR(outID,Temp_ID,Temp,t)
-    CALL NF_PUT_t_VAR(outID,MGQD_E_avg_ID,MGQD_E_avg,t)
-    CALL NF_PUT_t_VAR(outID,MGQD_E_edgV_ID,MGQD_E_edgV,t)
-    CALL NF_PUT_t_VAR(outID,MGQD_E_edgH_ID,MGQD_E_edgH,t)
-    CALL NF_PUT_t_VAR(outID,MGQD_Fx_edgV_ID,MGQD_Fx_edgV,t)
-    CALL NF_PUT_t_VAR(outID,MGQD_Fy_edgH_ID,MGQD_Fy_edgH,t)
-    CALL NF_PUT_t_VAR(outID,HO_E_avg_ID,HO_E_avg,t)
-    CALL NF_PUT_t_VAR(outID,HO_E_edgV_ID,HO_E_edgV,t)
-    CALL NF_PUT_t_VAR(outID,HO_E_edgH_ID,HO_E_edgH,t)
-    CALL NF_PUT_t_VAR(outID,HO_Fx_edgV_ID,HO_Fx_edgV,t)
-    CALL NF_PUT_t_VAR(outID,HO_Fy_edgH_ID,HO_Fy_edgH,t)
-
-    CALL NF_PUT_t_VAR(outID,Eg_avg_ID,Eg_avg,t)
-    CALL NF_PUT_t_VAR(outID,Eg_edgV_ID,Eg_edgV,t)
-    CALL NF_PUT_t_VAR(outID,Eg_edgH_ID,Eg_edgH,t)
-    CALL NF_PUT_t_VAR(outID,Fxg_edgV_ID,Fxg_edgV,t)
-    CALL NF_PUT_t_VAR(outID,Fyg_edgH_ID,Fyg_edgH,t)
-    CALL NF_PUT_t_VAR(outID,HO_Eg_avg_ID,HO_Eg_avg,t)
-    CALL NF_PUT_t_VAR(outID,HO_Eg_edgV_ID,HO_Eg_edgV,t)
-    CALL NF_PUT_t_VAR(outID,HO_Eg_edgH_ID,HO_Eg_edgH,t)
-    CALL NF_PUT_t_VAR(outID,HO_Fxg_edgV_ID,HO_Fxg_edgV,t)
-    CALL NF_PUT_t_VAR(outID,HO_Fyg_edgH_ID,HO_Fyg_edgH,t)
-
-    CALL NF_PUT_t_VAR(outID,I_avg_ID,I_avg,t)
-    CALL NF_PUT_t_VAR(outID,I_edgV_ID,I_edgV,t)
-    CALL NF_PUT_t_VAR(outID,I_edgH_ID,I_edgH,t)
-
-    CALL NF_PUT_t_VAR(outID,KapE_Bar_ID,KapE_Bar,t)
-    CALL NF_PUT_t_VAR(outID,KapB_ID,KapB,t)
-    CALL NF_PUT_t_VAR(outID,KapE_ID,KapE,t)
-    CALL NF_PUT_t_VAR(outID,KapR_ID,KapR,t)
-    CALL NF_PUT_t_VAR(outID,Bg_ID,Bg,t)
-
-    CALL NF_PUT_t_VAR(outID,Cg_L_ID,Cg_L,t)
-    CALL NF_PUT_t_VAR(outID,Cg_B_ID,Cg_B,t)
-    CALL NF_PUT_t_VAR(outID,Cg_R_ID,Cg_R,t)
-    CALL NF_PUT_t_VAR(outID,Cg_T_ID,Cg_T,t)
-    CALL NF_PUT_t_VAR(outID,Eg_in_L_ID,Eg_in_L,t)
-    CALL NF_PUT_t_VAR(outID,Eg_in_B_ID,Eg_in_B,t)
-    CALL NF_PUT_t_VAR(outID,Eg_in_R_ID,Eg_in_R,t)
-    CALL NF_PUT_t_VAR(outID,Eg_in_T_ID,Eg_in_T,t)
-    CALL NF_PUT_t_VAR(outID,Fg_in_L_ID,Fg_in_L,t)
-    CALL NF_PUT_t_VAR(outID,Fg_in_B_ID,Fg_in_B,t)
-    CALL NF_PUT_t_VAR(outID,Fg_in_R_ID,Fg_in_R,t)
-    CALL NF_PUT_t_VAR(outID,Fg_in_T_ID,Fg_in_T,t)
-
-    CALL NF_PUT_t_VAR(outID,fg_avg_xx_ID,fg_avg_xx,t)
-    CALL NF_PUT_t_VAR(outID,fg_avg_yy_ID,fg_avg_yy,t)
-    CALL NF_PUT_t_VAR(outID,fg_edgV_xx_ID,fg_edgV_xx,t)
-    CALL NF_PUT_t_VAR(outID,fg_edgV_xy_ID,fg_edgV_xy,t)
-    CALL NF_PUT_t_VAR(outID,fg_edgH_yy_ID,fg_edgH_yy,t)
-    CALL NF_PUT_t_VAR(outID,fg_edgH_xy_ID,fg_edgH_xy,t)
-
-    CALL NF_PUT_t_VAR(outID,G_old_ID,G_old,t)
-    CALL NF_PUT_t_VAR(outID,Pold_L_ID,Pold_L,t)
-    CALL NF_PUT_t_VAR(outID,Pold_B_ID,Pold_B,t)
-    CALL NF_PUT_t_VAR(outID,Pold_R_ID,Pold_R,t)
-    CALL NF_PUT_t_VAR(outID,Pold_T_ID,Pold_T,t)
-
-    IF (use_grey .EQ. 1) THEN
-      CALL NF_PUT_t_VAR(outID,E_avg_ID,E_avg,t)
-      CALL NF_PUT_t_VAR(outID,E_edgV_ID,E_edgV,t)
-      CALL NF_PUT_t_VAR(outID,E_edgH_ID,E_edgH,t)
-      CALL NF_PUT_t_VAR(outID,Fx_edgV_ID,Fx_edgV,t)
-      CALL NF_PUT_t_VAR(outID,Fy_edgH_ID,Fy_edgH,t)
-
-      CALL NF_PUT_t_VAR(outID,Cb_L_ID,Cb_L,t)
-      CALL NF_PUT_t_VAR(outID,Cb_B_ID,Cb_B,t)
-      CALL NF_PUT_t_VAR(outID,Cb_R_ID,Cb_R,t)
-      CALL NF_PUT_t_VAR(outID,Cb_T_ID,Cb_T,t)
-      CALL NF_PUT_t_VAR(outID,E_in_L_ID,E_in_L,t)
-      CALL NF_PUT_t_VAR(outID,E_in_B_ID,E_in_B,t)
-      CALL NF_PUT_t_VAR(outID,E_in_R_ID,E_in_R,t)
-      CALL NF_PUT_t_VAR(outID,E_in_T_ID,E_in_T,t)
-      CALL NF_PUT_t_VAR(outID,F_in_L_ID,F_in_L,t)
-      CALL NF_PUT_t_VAR(outID,F_in_B_ID,F_in_B,t)
-      CALL NF_PUT_t_VAR(outID,F_in_R_ID,F_in_R,t)
-      CALL NF_PUT_t_VAR(outID,F_in_T_ID,F_in_T,t)
-
-      CALL NF_PUT_t_VAR(outID,DC_xx_ID,DC_xx,t)
-      CALL NF_PUT_t_VAR(outID,DL_xx_ID,DL_xx,t)
-      CALL NF_PUT_t_VAR(outID,DR_xx_ID,DR_xx,t)
-      CALL NF_PUT_t_VAR(outID,DC_yy_ID,DC_yy,t)
-      CALL NF_PUT_t_VAR(outID,DB_yy_ID,DB_yy,t)
-      CALL NF_PUT_t_VAR(outID,DT_yy_ID,DT_yy,t)
-      CALL NF_PUT_t_VAR(outID,DL_xy_ID,DL_xy,t)
-      CALL NF_PUT_t_VAR(outID,DB_xy_ID,DB_xy,t)
-      CALL NF_PUT_t_VAR(outID,DR_xy_ID,DR_xy,t)
-      CALL NF_PUT_t_VAR(outID,DT_xy_ID,DT_xy,t)
-
-      CALL NF_PUT_t_VAR(outID,Gold_hat_ID,Gold_hat,t)
-      CALL NF_PUT_t_VAR(outID,Rhat_old_ID,Rhat_old,t)
-      CALL NF_PUT_t_VAR(outID,PL_ID,PL,t)
-      CALL NF_PUT_t_VAR(outID,PB_ID,PB,t)
-      CALL NF_PUT_t_VAR(outID,PR_ID,PR,t)
-      CALL NF_PUT_t_VAR(outID,PT_ID,PT,t)
+    IF (its_out .EQ. 1) THEN !checking if iteration counts are to be output
+      Status = nf90_put_var(outID,RT_ItCount_ID,(/RT_Its/),(/t/),(/1/))
+      CALL HANDLE_ERR(Status)
     END IF
+
+    CALL TIMESTEP_OUTS(outID,t,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
+      QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,use_grey,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,&
+      MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
+      MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
+      HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
+      KapE_Bar_ID,KapB_ID,KapE_ID,KapR_ID,Bg_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,&
+      Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,E_in_B_ID,&
+      E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,&
+      fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,&
+      DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,&
+      PB_ID,PR_ID,PT_ID, Temp,E_avg,E_edgV,E_edgH,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,HO_E_avg,HO_E_edgV,HO_E_edgH,&
+      Fx_edgV,Fy_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,HO_Fx_edgV,HO_Fy_edgH,Eg_avg,Eg_edgV,Eg_edgH,HO_Eg_avg,HO_Eg_edgV,&
+      HO_Eg_edgH,Fxg_edgV,Fyg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,I_avg,I_edgV,I_edgH,KapE_Bar,KapB,KapE,KapR,Bg,Cg_L,Cg_B,&
+      Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,&
+      E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,DC_xx,&
+      DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,G_old,Pold_L,Pold_B,Pold_R,Pold_T,Gold_hat,Rhat_old,PL,PB,PR,PT)
 
     IF (Time .GE. tlen) EXIT
   END DO

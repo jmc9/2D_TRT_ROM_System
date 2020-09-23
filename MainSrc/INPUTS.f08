@@ -10,11 +10,9 @@ CONTAINS
 SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr1,&
   conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,Theta,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
   threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
-  Tini,sig_R,ar,pi,c,h,delx,dely,cv,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,&
-  GREY_F_out,GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,&
-  TEMP_outfile,GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,&
-  res_history_outfile,E_ho_out,E_ho_outfile,nu_g,N_g,Omega_x,Omega_y,quad_weight,tpoints,quadrature,BC_Type,&
-  Use_Line_Search,Use_Safety_Search,Res_Calc)
+  Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
+  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
+  quad_weight,tpoints,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc)
 
   IMPLICIT NONE
 
@@ -36,12 +34,11 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:)
   INTEGER,INTENT(OUT):: N_x, N_y, tpoints, BC_Type(:)
 
-  REAL*8,ALLOCATABLE,INTENT(OUT):: out_times(:)
-  INTEGER,ALLOCATABLE,INTENT(OUT):: out_time_steps(:)
-  INTEGER,INTENT(OUT):: n_out_times, restart_outlen, TEMP_out, GREY_E_out, GREY_F_out, E_ho_out
-  INTEGER,INTENT(OUT):: GREY_kap_out, GREY_fsmall_out, MG_fsmall_out, res_history_out
-  CHARACTER(100),INTENT(OUT):: outfile, restart_outfile, decomp_outfile, TEMP_outfile, GREY_E_outfile, E_ho_outfile
-  CHARACTER(100),INTENT(OUT):: GREY_F_outfile, GREY_kap_outfile, GREY_fsmall_outfile, MG_fsmall_outfile, res_history_outfile
+  CHARACTER(100),INTENT(OUT):: outfile
+  INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+  INTEGER,INTENT(OUT):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
+  INTEGER,INTENT(OUT):: E_out, F_out, D_out
+  INTEGER,INTENT(OUT):: old_parms_out, its_out, conv_out, kap_out, Src_out
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: nu_g(:)
   INTEGER,INTENT(OUT):: N_g
@@ -85,10 +82,8 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
 
   CALL INPUT_QUAD(quadrature,N_m,Omega_x,Omega_y,quad_weight)
 
-  CALL INPUT_OUTPUT_OPTS(inpunit,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,GREY_F_out,&
-    GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,TEMP_outfile,&
-    GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,res_history_outfile,&
-    E_ho_out,E_ho_outfile)
+  CALL INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
+    MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
 
   CLOSE ( inpunit, STATUS='KEEP')
 
@@ -832,20 +827,20 @@ END SUBROUTINE INPUT_PARAMETERS
 !
 !==================================================================================================================================!
 
-SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,GREY_F_out,&
-  GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,TEMP_outfile,&
-  GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,res_history_outfile,&
-  E_ho_out,E_ho_outfile)
+SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
+  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
 
   IMPLICIT NONE
 
+  !INPUT VARIABLES
+  INTEGER,INTENT(IN):: inpunit
+
   !OUTPUT VARIABLES
-  REAL*8,ALLOCATABLE,INTENT(OUT):: out_times(:)
-  INTEGER,ALLOCATABLE,INTENT(OUT):: out_time_steps(:)
-  INTEGER,INTENT(OUT):: inpunit, n_out_times, restart_outlen, TEMP_out, GREY_E_out, GREY_F_out, E_ho_out
-  INTEGER,INTENT(OUT):: GREY_kap_out, GREY_fsmall_out, MG_fsmall_out, res_history_out
-  CHARACTER(100),INTENT(OUT):: outfile, restart_outfile, decomp_outfile, TEMP_outfile, GREY_E_outfile, E_ho_outfile
-  CHARACTER(100),INTENT(OUT):: GREY_F_outfile, GREY_kap_outfile, GREY_fsmall_outfile, MG_fsmall_outfile, res_history_outfile
+  CHARACTER(100),INTENT(OUT):: outfile
+  INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+  INTEGER,INTENT(OUT):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
+  INTEGER,INTENT(OUT):: E_out, F_out, D_out
+  INTEGER,INTENT(OUT):: old_parms_out, its_out, conv_out, kap_out, Src_out
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
@@ -855,27 +850,26 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,out_times,out_time_steps,n_out_times,restar
   INTEGER:: io, io2, block_found
 
   !DEFAULT VALUES
-  n_out_times = 0
-  restart_outlen = 0
-  TEMP_out = 0
-  GREY_E_out = 0
-  E_ho_out = 0
-  GREY_F_out = 0
-  GREY_kap_out = 0
-  GREY_fsmall_out = 0
-  MG_fsmall_out = 0
-  res_history_out = 0
-  outfile = 'output.out'
-  restart_outfile = 'restart.out'
-  decomp_outfile = 'MG_QD_decomp.out'
-  TEMP_outfile = 'TEMP.out'
-  GREY_E_outfile = 'GREY_E.out'
-  E_ho_outfile = 'E_ho.out'
-  GREY_F_outfile = 'GREY_F.out'
-  GREY_kap_outfile = 'GREY_kaps.out'
-  GREY_fsmall_outfile = 'QD_factors.out'
-  MG_fsmall_outfile = 'MG_QD_factors.out'
-  res_history_outfile = 'iteration_history.out'
+  outfile = 'output.h5'
+  out_freq  = 1
+  I_out     = 1
+  HO_Eg_out = 1
+  HO_Fg_out = 1
+  HO_E_out  = 1
+  HO_F_out  = 1
+  Eg_out    = 1
+  Fg_out    = 1
+  MGQD_E_out = 1
+  MGQD_F_out = 1
+  QDfg_out    = 1
+  E_out     = 1
+  F_out     = 1
+  D_out     = 1
+  old_parms_out = 1
+  its_out  = 1
+  conv_out = 1
+  kap_out  = 1
+  Src_out  = 1
 
   block = '[OUTPUT_OPTS]'
   CALL LOCATE_BLOCK(inpunit,block,block_found)
@@ -897,150 +891,201 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,out_times,out_time_steps,n_out_times,restar
       IF (key(1:1) .EQ. '[') THEN
         EXIT
 
-      ELSE IF (trim(key) .EQ. 'restart_outlen') THEN
-        READ(args(1),*) restart_outlen
-        IF (TEMP_out .LT. 0) THEN
+      ELSE IF (trim(key) .EQ. 'out_freq') THEN
+        READ(args(1),*) out_freq
+        IF (ALL(out_freq .NE. (/0,1/))) THEN
           WRITE(*,*)
           WRITE(*,'(A)') '*** WARNING ***'
-          WRITE(*,'(A)') 'Wrong value set for "TEMP_out" input, Omega_xst be >= 0'
-          WRITE(*,'(A)') 'Setting restart_outlen to default'
-          restart_outlen = 0
+          WRITE(*,'(A)') 'out_freq must be 0 or 1'
+          WRITE(*,'(A)') 'Setting out_freq to 0'
+          out_freq = 0
         END IF
 
-        ELSE IF (trim(key) .EQ. 'TEMP_out') THEN
-          READ(args(1),*) TEMP_out
-          IF ((TEMP_out .NE. 0) .AND. (TEMP_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "TEMP_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting TEMP_out to default'
-            TEMP_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'I_out') THEN
+        READ(args(1),*) I_out
+        IF (ALL(I_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'I_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting I_out to 0'
+          I_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_E_out') THEN
-          READ(args(1),*) GREY_E_out
-          IF ((GREY_E_out .NE. 0) .AND. (GREY_E_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "GREY_E_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting GREY_E_out to default'
-            GREY_E_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'HO_Eg_out') THEN
+        READ(args(1),*) HO_Eg_out
+        IF (ALL(HO_Eg_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'HO_Eg_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting HO_Eg_out to 0'
+          HO_Eg_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'E_ho_out') THEN
-          READ(args(1),*) E_ho_out
-          IF ((E_ho_out .NE. 0) .AND. (E_ho_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "E_ho_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting E_ho_out to default'
-            E_ho_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'HO_Fg_out') THEN
+        READ(args(1),*) HO_Fg_out
+        IF (ALL(HO_Fg_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'HO_Fg_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting HO_Fg_out to 0'
+          HO_Fg_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_F_out') THEN
-          READ(args(1),*) GREY_F_out
-          IF ((GREY_F_out .NE. 0) .AND. (GREY_F_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "GREY_F_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting GREY_F_out to default'
-            GREY_F_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'HO_E_out') THEN
+        READ(args(1),*) HO_E_out
+        IF (ALL(HO_E_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'HO_E_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting HO_E_out to 0'
+          HO_E_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_kap_out') THEN
-          READ(args(1),*) GREY_kap_out
-          IF ((GREY_kap_out .NE. 0) .AND. (GREY_kap_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "GREY_kap_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting GREY_kap_out to default'
-            GREY_kap_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'HO_F_out') THEN
+        READ(args(1),*) HO_F_out
+        IF (ALL(HO_F_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'HO_F_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting HO_F_out to 0'
+          HO_F_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_fsmall_out') THEN
-          READ(args(1),*) GREY_fsmall_out
-          IF ((GREY_fsmall_out .NE. 0) .AND. (GREY_fsmall_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "GREY_fsmall_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting GREY_fsmall_out to default'
-            GREY_fsmall_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'Eg_out') THEN
+        READ(args(1),*) Eg_out
+        IF (ALL(HO_F_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'Eg_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting Eg_out to 0'
+          Eg_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'MG_fsmall_out') THEN
-          READ(args(1),*) MG_fsmall_out
-          IF ((MG_fsmall_out .NE. 0) .AND. (MG_fsmall_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "MG_fsmall_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting MG_fsmall_out to default'
-            MG_fsmall_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'Fg_out') THEN
+        READ(args(1),*) Fg_out
+        IF (ALL(HO_F_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'Fg_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting Fg_out to 0'
+          Fg_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'res_history_out') THEN
-          READ(args(1),*) res_history_out
-          IF ((res_history_out .NE. 0) .AND. (res_history_out .NE. 1)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'Wrong value set for "res_history_out" input, Omega_xst be contained in [0,1]'
-            WRITE(*,'(A)') 'Setting res_history_out to default'
-            res_history_out = 0
-          END IF
+      ELSE IF (trim(key) .EQ. 'MGQD_E_out') THEN
+        READ(args(1),*) MGQD_E_out
+        IF (ALL(MGQD_E_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'MGQD_E_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting MGQD_E_out to 0'
+          MGQD_E_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'outfile') THEN
-          READ(args(1),*) outfile
+      ELSE IF (trim(key) .EQ. 'MGQD_F_out') THEN
+        READ(args(1),*) MGQD_F_out
+        IF (ALL(MGQD_F_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'MGQD_F_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting MGQD_F_out to 0'
+          MGQD_F_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'restart_outfile') THEN
-          READ(args(1),*) restart_outfile
+      ELSE IF (trim(key) .EQ. 'fg_out') THEN
+        READ(args(1),*) QDfg_out
+        IF (ALL(QDfg_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'fg_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting fg_out to 0'
+          QDfg_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'decomp_outfile') THEN
-          READ(args(1),*) decomp_outfile
+      ELSE IF (trim(key) .EQ. 'E_out') THEN
+        READ(args(1),*) E_out
+        IF (ALL(E_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'E_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting E_out to 0'
+          E_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'TEMP_outfile') THEN
-          READ(args(1),*) TEMP_outfile
+      ELSE IF (trim(key) .EQ. 'F_out') THEN
+        READ(args(1),*) F_out
+        IF (ALL(F_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'F_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting F_out to 0'
+          F_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_E_outfile') THEN
-          READ(args(1),*) GREY_E_outfile
+      ELSE IF (trim(key) .EQ. 'D_out') THEN
+        READ(args(1),*) D_out
+        IF (ALL(D_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'D_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting D_out to 0'
+          D_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'E_ho_outfile') THEN
-          READ(args(1),*) E_ho_outfile
+      ELSE IF (trim(key) .EQ. 'old_parms_out') THEN
+        READ(args(1),*) old_parms_out
+        IF (ALL(old_parms_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'old_parms_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting old_parms_out to 0'
+          old_parms_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_F_outfile') THEN
-          READ(args(1),*) GREY_F_outfile
+      ELSE IF (trim(key) .EQ. 'its_out') THEN
+        READ(args(1),*) its_out
+        IF (ALL(its_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'its_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting its_out to 0'
+          its_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_kap_outfile') THEN
-          READ(args(1),*) GREY_kap_outfile
+      ELSE IF (trim(key) .EQ. 'conv_out') THEN
+        READ(args(1),*) conv_out
+        IF (ALL(conv_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'conv_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting conv_out to 0'
+          conv_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'GREY_fsmall_outfile') THEN
-          READ(args(1),*) GREY_fsmall_outfile
+      ELSE IF (trim(key) .EQ. 'kap_out') THEN
+        READ(args(1),*) kap_out
+        IF (ALL(conv_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'kap_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting kap_out to 0'
+          kap_out = 0
+        END IF
 
-        ELSE IF (trim(key) .EQ. 'MG_fsmall_outfile') THEN
-          READ(args(1),*) MG_fsmall_outfile
-
-        ELSE IF (trim(key) .EQ. 'res_history_outfile') THEN
-          READ(args(1),*) res_history_outfile
-
-        ELSE IF (trim(key) .EQ. 'out_times') THEN
-          READ(args(1),*) n_out_times
-          IF ((n_out_times .LE. 0)) THEN
-            WRITE(*,*)
-            WRITE(*,'(A)') '*** WARNING ***'
-            WRITE(*,'(A)') 'You cannot have a zero or less out times, n_out_times </= 0'
-            WRITE(*,'(A)') 'Aborting run'
-            STOP
-          END IF
-          ALLOCATE(out_times(n_out_times))
-          ALLOCATE(out_time_steps(n_out_times))
-          READ(line,*,IOSTAT=io2) key, n_out_times, out_times(:)
+      ELSE IF (trim(key) .EQ. 'Src_out') THEN
+        READ(args(1),*) Src_out
+        IF (ALL(Src_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'Src_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting Src_out to 0'
+          Src_out = 0
+        END IF
 
       END IF
 
     END IF
 
   END DO
-
-  IF (((TEMP_out .EQ. 1).OR.(GREY_E_out .EQ. 1).OR.(GREY_F_out .EQ. 1).OR.(GREY_kap_out .EQ. 1).OR.(GREY_fsmall_out .EQ. 1))&
-    &.AND.(n_out_times .EQ. 0)) STOP 'No out times were specified, aborting program'
 
 END SUBROUTINE INPUT_OUTPUT_OPTS
 

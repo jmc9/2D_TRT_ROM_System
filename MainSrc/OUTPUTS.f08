@@ -257,23 +257,27 @@ END SUBROUTINE OUTFILE_INIT
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,&
-  RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,&
-  MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
-  MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
-  HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
-  KapE_Bar_ID,KapB_ID,KapE_ID,KapR_ID,Bg_ID,RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,Del_T_ID,Del_E_avg_ID,&
-  Del_E_edgV_ID,Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,GQD_ItCount_ID,&
-  RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,&
-  MGQD_Trho_ID,MGQD_Erho_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,&
-  Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,&
-  E_in_B_ID,E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,&
-  fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,&
-  DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,&
-  PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,dr_MB_ID,dr_MR_ID,dr_MT_ID)
+SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
+  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,N_x_ID,N_y_ID,N_m_ID,N_g_ID,&
+  N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
+  Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,&
+  HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,&
+  Eg_edgH_ID,HO_Eg_avg_ID,HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,&
+  I_edgV_ID,I_edgH_ID,KapE_Bar_ID,KapB_ID,KapE_ID,KapR_ID,Bg_ID,RT_Residual_ID,MGQD_Residual_ID,MGQD_BC_Residual_ID,&
+  Del_T_ID,Del_E_avg_ID,Del_E_edgV_ID,Del_E_edgH_ID,Del_Fx_edgV_ID,Del_Fy_edgH_ID,RT_ItCount_ID,MGQD_ItCount_ID,&
+  GQD_ItCount_ID,RT_Tnorm_ID,RT_Enorm_ID,MGQD_Tnorm_ID,MGQD_Enorm_ID,RT_Trho_ID,RT_Erho_ID,MGQD_Trho_ID,MGQD_Erho_ID,&
+  Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,&
+  Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,E_in_B_ID,E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,&
+  F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,&
+  DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,&
+  Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,dr_MB_ID,dr_MR_ID,dr_MT_ID)
 
   INTEGER,INTENT(IN):: outID
   LOGICAL,INTENT(IN):: Res_Calc
+  INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+  INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
+  INTEGER,INTENT(IN):: E_out, F_out, D_out
+  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
   INTEGER,INTENT(IN):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID, MGQD_ResTypes_ID, Boundaries_ID
   INTEGER,INTENT(OUT):: Temp_ID, E_avg_ID, E_edgV_ID, E_edgH_ID, MGQD_E_avg_ID, MGQD_E_edgV_ID, MGQD_E_edgH_ID, HO_E_avg_ID
@@ -310,19 +314,23 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   !     DEFINING ITERATION COUNTS & CONVERGENCE NORMS                         !
   !                                                                           !
   !===========================================================================!
-  CALL NF_DEF_VAR(RT_ItCount_ID,outID,(/N_t_ID/),'RT_Its-count','Int')
-  CALL NF_DEF_VAR(MGQD_ItCount_ID,outID,(/RT_Its_ID,N_t_ID/),'MGQD_Its-count','Int')
-  CALL NF_DEF_VAR(GQD_ItCount_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'GQD_Its-count','Int')
+  IF (its_out .EQ. 1) THEN
+    CALL NF_DEF_VAR(RT_ItCount_ID,outID,(/N_t_ID/),'RT_Its-count','Int')
+    CALL NF_DEF_VAR(MGQD_ItCount_ID,outID,(/RT_Its_ID,N_t_ID/),'MGQD_Its-count','Int')
+    CALL NF_DEF_VAR(GQD_ItCount_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'GQD_Its-count','Int')
+  END IF
 
-  CALL NF_DEF_VAR(RT_Tnorm_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Tnorm','Real')
-  CALL NF_DEF_VAR(RT_Enorm_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Enorm','Real')
-  CALL NF_DEF_VAR(MGQD_Tnorm_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Tnorm','Real')
-  CALL NF_DEF_VAR(MGQD_Enorm_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Enorm','Real')
+  IF (conv_out .EQ. 1) THEN
+    CALL NF_DEF_VAR(RT_Tnorm_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Tnorm','Real')
+    CALL NF_DEF_VAR(RT_Enorm_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Enorm','Real')
+    CALL NF_DEF_VAR(MGQD_Tnorm_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Tnorm','Real')
+    CALL NF_DEF_VAR(MGQD_Enorm_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Enorm','Real')
 
-  CALL NF_DEF_VAR(RT_Trho_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Trho','Real')
-  CALL NF_DEF_VAR(RT_Erho_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Erho','Real')
-  CALL NF_DEF_VAR(MGQD_Trho_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Trho','Real')
-  CALL NF_DEF_VAR(MGQD_Erho_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Erho','Real')
+    CALL NF_DEF_VAR(RT_Trho_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Trho','Real')
+    CALL NF_DEF_VAR(RT_Erho_ID,outID,(/RT_Its_ID,N_t_ID/),'RT_Erho','Real')
+    CALL NF_DEF_VAR(MGQD_Trho_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Trho','Real')
+    CALL NF_DEF_VAR(MGQD_Erho_ID,outID,(/MGQD_Its_ID,RT_Its_ID,N_t_ID/),'MGQD_Erho','Real')
+  END IF
 
   !===========================================================================!
   !                                                                           !
@@ -370,173 +378,212 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
 
   !===========================================================================!
   !--------------------------------------------------!
-  !       Total Radiation Energy Densities           !
+  !         Total Radiation Energy Densities         !
   !--------------------------------------------------!
-  !----------------(cell-averaged)-------------------!
-  CALL NF_DEF_VAR(E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_Grey','Double') !from GQD eqs
-  CALL NF_DEF_UNIT(outID,E_avg_ID,'ev/cm^3')
+  !------------------(grey loqd)---------------------!
+  IF (E_out .EQ. 1) THEN
+    !cell-averaged
+    CALL NF_DEF_VAR(E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_Grey','Double') !from GQD eqs
+    CALL NF_DEF_UNIT(outID,E_avg_ID,'ev/cm^3')
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_Grey','Double') !from GQD eqs
+    CALL NF_DEF_UNIT(outID,E_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_Grey','Double') !from GQD eqs
+    CALL NF_DEF_UNIT(outID,E_edgH_ID,'ev/cm^3')
+  END IF
 
-  CALL NF_DEF_VAR(MGQD_E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,MGQD_E_avg_ID,'ev/cm^3')
+  !---------------(multigroup loqd)------------------!
+  IF (MGQD_E_out .EQ. 1) THEN
+    !cell-averaged
+    CALL NF_DEF_VAR(MGQD_E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,MGQD_E_avg_ID,'ev/cm^3')
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(MGQD_E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,MGQD_E_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(MGQD_E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,MGQD_E_edgH_ID,'ev/cm^3')
+  END IF
 
-  CALL NF_DEF_VAR(HO_E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_E_avg_ID,'ev/cm^3')
-
-  !--------('vertical' cell edges, x-const)----------!
-  CALL NF_DEF_VAR(E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_Grey','Double') !from GQD eqs
-  CALL NF_DEF_UNIT(outID,E_edgV_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(MGQD_E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,MGQD_E_edgV_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(HO_E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_E_edgV_ID,'ev/cm^3')
-
-  !-------('horizontal' cell edges, x-const)---------!
-  CALL NF_DEF_VAR(E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_Grey','Double') !from GQD eqs
-  CALL NF_DEF_UNIT(outID,E_edgH_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(MGQD_E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,MGQD_E_edgH_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(HO_E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_E_edgH_ID,'ev/cm^3')
+  !------------------(high-order)--------------------!
+  IF (HO_E_out .EQ. 1) THEN
+    !cell-averaged
+    CALL NF_DEF_VAR(HO_E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_E_avg_ID,'ev/cm^3')
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(HO_E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_E_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(HO_E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_E_edgH_ID,'ev/cm^3')
+  END IF
 
   !===========================================================================!
   !--------------------------------------------------!
   !            Total Radiation Fluxes                !
   !--------------------------------------------------!
-  !--------('vertical' cell edges, x-const)----------!
-  CALL NF_DEF_VAR(Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_Grey','Double') !from GQD eqs
-  CALL NF_DEF_UNIT(outID,Fx_edgV_ID,'ev/cm^3')
+  !------------------(grey loqd)---------------------!
+  IF (F_out .EQ. 1) THEN
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_Grey','Double') !from GQD eqs
+    CALL NF_DEF_UNIT(outID,Fx_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Grey_Fy_edgH_Grey','Double') !from GQD eqs
+    CALL NF_DEF_UNIT(outID,Fy_edgH_ID,'ev/cm^3')
+  END IF
 
-  CALL NF_DEF_VAR(MGQD_Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,MGQD_Fx_edgV_ID,'ev/cm^3')
+  !---------------(multigroup loqd)------------------!
+  IF (MGQD_F_out .EQ. 1) THEN
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(MGQD_Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,MGQD_Fx_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(MGQD_Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,MGQD_Fy_edgH_ID,'ev/cm^3')
 
-  CALL NF_DEF_VAR(HO_Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_Fx_edgV_ID,'ev/cm^3')
+  END IF
 
-  !-------('horizontal' cell edges, x-const)---------!
-  CALL NF_DEF_VAR(Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Grey_Fy_edgH_Grey','Double') !from GQD eqs
-  CALL NF_DEF_UNIT(outID,Fy_edgH_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(MGQD_Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,MGQD_Fy_edgH_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(HO_Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_Fy_edgH_ID,'ev/cm^3')
+  !------------------(high-order)--------------------!
+  IF (HO_F_out .EQ. 1) THEN
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(HO_Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_Fx_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(HO_Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_Fy_edgH_ID,'ev/cm^3')
+  END IF
 
   !===========================================================================!
   !--------------------------------------------------!
   !     Multigroup Radiation Energy Densities        !
   !--------------------------------------------------!
-  !----------------(cell-averaged)-------------------!
-  CALL NF_DEF_VAR(Eg_avg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_avg_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,Eg_avg_ID,'ev/cm^3')
+  !---------------(multigroup loqd)------------------!
+  IF (Eg_out .EQ. 1) THEN
+    !cell-averaged
+    CALL NF_DEF_VAR(Eg_avg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_avg_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,Eg_avg_ID,'ev/cm^3')
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(Eg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_edgV_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,Eg_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(Eg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Eg_edgH_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,Eg_edgH_ID,'ev/cm^3')
+  END IF
 
-  CALL NF_DEF_VAR(HO_Eg_avg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_avg_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_Eg_avg_ID,'ev/cm^3')
-
-  !--------('vertical' cell edges, x-const)----------!
-  CALL NF_DEF_VAR(Eg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_edgV_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,Eg_edgV_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(HO_Eg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_edgV_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_Eg_edgV_ID,'ev/cm^3')
-
-  !-------('horizontal' cell edges, x-const)---------!
-  CALL NF_DEF_VAR(Eg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Eg_edgH_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,Eg_edgH_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(HO_Eg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Eg_edgH_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_Eg_edgH_ID,'ev/cm^3')
+  !------------------(high-order)--------------------!
+  IF (HO_Eg_out .EQ. 1) THEN
+    !cell-averaged
+    CALL NF_DEF_VAR(HO_Eg_avg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_avg_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_Eg_avg_ID,'ev/cm^3')
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(HO_Eg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_edgV_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_Eg_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(HO_Eg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Eg_edgH_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_Eg_edgH_ID,'ev/cm^3')
+  END IF
 
   !===========================================================================!
   !--------------------------------------------------!
   !          Multigroup Radiation Fluxes             !
   !--------------------------------------------------!
-  !--------('vertical' cell edges, x-const)----------!
-  CALL NF_DEF_VAR(Fxg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Fxg_edgV_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,Fxg_edgV_ID,'ev/cm^3')
+  !---------------(multigroup loqd)------------------!
+  IF (Fg_out .EQ. 1) THEN
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(Fxg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Fxg_edgV_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,Fxg_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(Fyg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Fyg_edgH_MGQD','Double') !from MGQD eqs
+    CALL NF_DEF_UNIT(outID,Fyg_edgH_ID,'ev/cm^3')
+  END IF
 
-  CALL NF_DEF_VAR(HO_Fxg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Fxg_edgV_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_Fxg_edgV_ID,'ev/cm^3')
-
-  !-------('horizontal' cell edges, x-const)---------!
-  CALL NF_DEF_VAR(Fyg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Fyg_edgH_MGQD','Double') !from MGQD eqs
-  CALL NF_DEF_UNIT(outID,Fyg_edgH_ID,'ev/cm^3')
-
-  CALL NF_DEF_VAR(HO_Fyg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Fyg_edgH_HO','Double') !from High-Order eqs
-  CALL NF_DEF_UNIT(outID,HO_Fyg_edgH_ID,'ev/cm^3')
+  !------------------(high-order)--------------------!
+  IF (HO_Fg_out .EQ. 1) THEN
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(HO_Fxg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Fxg_edgV_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_Fxg_edgV_ID,'ev/cm^3')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(HO_Fyg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Fyg_edgH_HO','Double') !from High-Order eqs
+    CALL NF_DEF_UNIT(outID,HO_Fyg_edgH_ID,'ev/cm^3')
+  END IF
 
   !===========================================================================!
   !--------------------------------------------------!
   !             Radiation Intensities                !
   !--------------------------------------------------!
-  !----------------(cell-averaged)-------------------!
-  CALL NF_DEF_VAR(I_avg_ID,outID,(/N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID/),'I_avg','Double')
-  CALL NF_DEF_UNIT(outID,I_avg_ID,'erg/(Ster*cm^3)')
-
-  !--------('vertical' cell edges, x-const)----------!
-  CALL NF_DEF_VAR(I_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID/),'I_edgV','Double')
-  CALL NF_DEF_UNIT(outID,I_edgV_ID,'erg/(Ster*cm^3)')
-
-  !-------('horizontal' cell edges, x-const)---------!
-  CALL NF_DEF_VAR(I_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_m_ID,N_g_ID,N_t_ID/),'I_edgH','Double')
-  CALL NF_DEF_UNIT(outID,I_edgH_ID,'erg/(Ster*cm^3)')
+  IF (HO_Eg_out .EQ. 1) THEN
+    !cell-averaged
+    CALL NF_DEF_VAR(I_avg_ID,outID,(/N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID/),'I_avg','Double')
+    CALL NF_DEF_UNIT(outID,I_avg_ID,'erg/(Ster*cm^3)')
+    !'vertical' cell edges, x-const
+    CALL NF_DEF_VAR(I_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID/),'I_edgV','Double')
+    CALL NF_DEF_UNIT(outID,I_edgV_ID,'erg/(Ster*cm^3)')
+    !'horizontal' cell edges, x-const
+    CALL NF_DEF_VAR(I_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_m_ID,N_g_ID,N_t_ID/),'I_edgH','Double')
+    CALL NF_DEF_UNIT(outID,I_edgH_ID,'erg/(Ster*cm^3)')
+  END IF
 
   !===========================================================================!
   !--------------------------------------------------!
   !                   Opacities                      !
   !--------------------------------------------------!
-  CALL NF_DEF_VAR(KapE_Bar_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'KapE_Bar','Double')
-  CALL NF_DEF_UNIT(outID,KapE_Bar_ID,'1/cm')
+  IF (kap_out .EQ. 1) THEN
+    CALL NF_DEF_VAR(KapE_Bar_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'KapE_Bar','Double')
+    CALL NF_DEF_UNIT(outID,KapE_Bar_ID,'1/cm')
 
-  CALL NF_DEF_VAR(KapB_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapB','Double')
-  CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
+    CALL NF_DEF_VAR(KapB_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapB','Double')
+    CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
 
-  CALL NF_DEF_VAR(KapE_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapE','Double')
-  CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
+    CALL NF_DEF_VAR(KapE_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapE','Double')
+    CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
 
-  CALL NF_DEF_VAR(KapR_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapR','Double')
-  CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
+    CALL NF_DEF_VAR(KapR_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'KapR','Double')
+    CALL NF_DEF_UNIT(outID,KapB_ID,'1/cm')
+  END IF
 
-  CALL NF_DEF_VAR(Bg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Bg','Double')
+  IF (Src_out .EQ. 1) CALL NF_DEF_VAR(Bg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Bg','Double')
 
   !===========================================================================!
   !--------------------------------------------------!
   !                   QD factors                     !
   !--------------------------------------------------!
-  CALL NF_DEF_VAR(fg_avg_xx_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_avg_xx','Double')
-  CALL NF_DEF_VAR(fg_avg_yy_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_avg_yy','Double')
-  CALL NF_DEF_VAR(fg_edgV_xx_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_edgV_xx','Double')
-  CALL NF_DEF_VAR(fg_edgV_xy_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_edgV_xy','Double')
-  CALL NF_DEF_VAR(fg_edgH_yy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_yy','Double')
-  CALL NF_DEF_VAR(fg_edgH_xy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_xy','Double')
+  IF (QDfg_out .EQ. 1) THEN
+    CALL NF_DEF_VAR(fg_avg_xx_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_avg_xx','Double')
+    CALL NF_DEF_VAR(fg_avg_yy_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_avg_yy','Double')
+    CALL NF_DEF_VAR(fg_edgV_xx_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_edgV_xx','Double')
+    CALL NF_DEF_VAR(fg_edgV_xy_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_edgV_xy','Double')
+    CALL NF_DEF_VAR(fg_edgH_yy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_yy','Double')
+    CALL NF_DEF_VAR(fg_edgH_xy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_xy','Double')
+  END IF
 
-  CALL NF_DEF_VAR(G_old_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Gold_L','Double')
-  CALL NF_DEF_VAR(Pold_L_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_L','Double')
-  CALL NF_DEF_VAR(Pold_B_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_B','Double')
-  CALL NF_DEF_VAR(Pold_R_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_R','Double')
-  CALL NF_DEF_VAR(Pold_T_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_T','Double')
+  IF (D_out .EQ. 1) THEN
+    CALL NF_DEF_VAR(DC_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DC_xx','Double')
+    CALL NF_DEF_VAR(DL_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DL_xx','Double')
+    CALL NF_DEF_VAR(DR_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DR_xx','Double')
+    CALL NF_DEF_VAR(DC_yy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DC_yy','Double')
+    CALL NF_DEF_VAR(DB_yy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DB_yy','Double')
+    CALL NF_DEF_VAR(DT_yy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DT_yy','Double')
+    CALL NF_DEF_VAR(DL_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DL_xy','Double')
+    CALL NF_DEF_VAR(DB_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DB_xy','Double')
+    CALL NF_DEF_VAR(DR_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DR_xy','Double')
+    CALL NF_DEF_VAR(DT_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DT_xy','Double')
+  END IF
 
-  CALL NF_DEF_VAR(DC_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DC_xx','Double')
-  CALL NF_DEF_VAR(DL_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DL_xx','Double')
-  CALL NF_DEF_VAR(DR_xx_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DR_xx','Double')
-  CALL NF_DEF_VAR(DC_yy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DC_yy','Double')
-  CALL NF_DEF_VAR(DB_yy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DB_yy','Double')
-  CALL NF_DEF_VAR(DT_yy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DT_yy','Double')
-  CALL NF_DEF_VAR(DL_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DL_xy','Double')
-  CALL NF_DEF_VAR(DB_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DB_xy','Double')
-  CALL NF_DEF_VAR(DR_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DR_xy','Double')
-  CALL NF_DEF_VAR(DT_xy_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'DT_xy','Double')
+  IF (old_parms_out .EQ. 1) THEN
+    CALL NF_DEF_VAR(G_old_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Gold_L','Double')
+    CALL NF_DEF_VAR(Pold_L_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_L','Double')
+    CALL NF_DEF_VAR(Pold_B_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_B','Double')
+    CALL NF_DEF_VAR(Pold_R_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_R','Double')
+    CALL NF_DEF_VAR(Pold_T_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Pold_T','Double')
 
-  CALL NF_DEF_VAR(Gold_hat_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'Gold_hat','Double')
-  CALL NF_DEF_VAR(Rhat_old_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'Rhat_old','Double')
-  CALL NF_DEF_VAR(PL_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PL','Double')
-  CALL NF_DEF_VAR(PB_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PB','Double')
-  CALL NF_DEF_VAR(PR_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PR','Double')
-  CALL NF_DEF_VAR(PT_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PT','Double')
+    CALL NF_DEF_VAR(Gold_hat_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'Gold_hat','Double')
+    CALL NF_DEF_VAR(Rhat_old_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'Rhat_old','Double')
+    CALL NF_DEF_VAR(PL_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PL','Double')
+    CALL NF_DEF_VAR(PB_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PB','Double')
+    CALL NF_DEF_VAR(PR_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PR','Double')
+    CALL NF_DEF_VAR(PT_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'PT','Double')
+  END IF
 
   !===========================================================================!
   !                                                                           !
@@ -574,6 +621,200 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_e
   CALL NF_ENDDEF(outID)
 
 END SUBROUTINE OUTFILE_VARDEFS
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE TIMESTEP_OUTS(outID,t,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
+  QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,use_grey,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,&
+  MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,&
+  MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,Eg_edgH_ID,HO_Eg_avg_ID,&
+  HO_Eg_edgV_ID,HO_Eg_edgH_ID,Fxg_edgV_ID,Fyg_edgH_ID,HO_Fxg_edgV_ID,HO_Fyg_edgH_ID,I_avg_ID,I_edgV_ID,I_edgH_ID,&
+  KapE_Bar_ID,KapB_ID,KapE_ID,KapR_ID,Bg_ID,Cg_L_ID,Cg_B_ID,Cg_R_ID,Cg_T_ID,Eg_in_L_ID,Eg_in_B_ID,Eg_in_R_ID,&
+  Eg_in_T_ID,Fg_in_L_ID,Fg_in_B_ID,Fg_in_R_ID,Fg_in_T_ID,Cb_L_ID,Cb_B_ID,Cb_R_ID,Cb_T_ID,E_in_L_ID,E_in_B_ID,&
+  E_in_R_ID,E_in_T_ID,F_in_L_ID,F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_edgV_xx_ID,&
+  fg_edgV_xy_ID,fg_edgH_yy_ID,fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,&
+  DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,&
+  PB_ID,PR_ID,PT_ID, Temp,E_avg,E_edgV,E_edgH,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,HO_E_avg,HO_E_edgV,HO_E_edgH,&
+  Fx_edgV,Fy_edgH,MGQD_Fx_edgV,MGQD_Fy_edgH,HO_Fx_edgV,HO_Fy_edgH,Eg_avg,Eg_edgV,Eg_edgH,HO_Eg_avg,HO_Eg_edgV,&
+  HO_Eg_edgH,Fxg_edgV,Fyg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,I_avg,I_edgV,I_edgH,KapE_Bar,KapB,KapE,KapR,Bg,Cg_L,Cg_B,&
+  Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,&
+  E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,DC_xx,&
+  DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,G_old, Pold_L,Pold_B,Pold_R,Pold_T,Gold_hat,Rhat_old,PL,PB,PR,PT)
+
+  INTEGER,INTENT(IN):: outID, t
+  INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+  INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
+  INTEGER,INTENT(IN):: E_out, F_out, D_out
+  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out, use_grey
+  INTEGER,INTENT(IN):: Temp_ID, E_avg_ID, E_edgV_ID, E_edgH_ID, MGQD_E_avg_ID, MGQD_E_edgV_ID, MGQD_E_edgH_ID, HO_E_avg_ID
+  INTEGER,INTENT(IN):: HO_E_edgV_ID, HO_E_edgH_ID, Fx_edgV_ID, Fy_edgH_ID, MGQD_Fx_edgV_ID, MGQD_Fy_edgH_ID, HO_Fx_edgV_ID
+  INTEGER,INTENT(IN):: HO_Fy_edgH_ID, Eg_avg_ID, Eg_edgV_ID, Eg_edgH_ID, HO_Eg_avg_ID, HO_Eg_edgV_ID, HO_Eg_edgH_ID
+  INTEGER,INTENT(IN):: Fxg_edgV_ID, Fyg_edgH_ID, HO_Fxg_edgV_ID, HO_Fyg_edgH_ID, I_avg_ID, I_edgV_ID, I_edgH_ID
+  INTEGER,INTENT(IN):: KapE_Bar_ID, KapB_ID, KapE_ID, KapR_ID, Bg_ID
+  INTEGER,INTENT(IN):: Cg_L_ID, Cg_B_ID, Cg_R_ID, Cg_T_ID, Eg_in_L_ID, Eg_in_B_ID, Eg_in_R_ID, Eg_in_T_ID
+  INTEGER,INTENT(IN):: Fg_in_L_ID, Fg_in_B_ID, Fg_in_R_ID, Fg_in_T_ID
+  INTEGER,INTENT(IN):: Cb_L_ID, Cb_B_ID, Cb_R_ID, Cb_T_ID, E_in_L_ID, E_in_B_ID, E_in_R_ID, E_in_T_ID
+  INTEGER,INTENT(IN):: F_in_L_ID, F_in_B_ID, F_in_R_ID, F_in_T_ID
+  INTEGER,INTENT(IN):: fg_avg_xx_ID, fg_avg_yy_ID, fg_edgV_xx_ID, fg_edgV_xy_ID, fg_edgH_yy_ID, fg_edgH_xy_ID
+  INTEGER,INTENT(IN):: DC_xx_ID, DL_xx_ID, DR_xx_ID, DC_yy_ID, DB_yy_ID, DT_yy_ID, DL_xy_ID, DB_xy_ID, DR_xy_ID, DT_xy_ID
+  INTEGER,INTENT(IN):: G_old_ID, Pold_L_ID, Pold_B_ID, Pold_R_ID, Pold_T_ID
+  INTEGER,INTENT(IN):: Gold_hat_ID, Rhat_old_ID, PL_ID, PB_ID, PR_ID, PT_ID
+
+  REAL*8,INTENT(IN):: Temp(:,:), E_avg(:,:), E_edgV(:,:), E_edgH(:,:), MGQD_E_avg(:,:), MGQD_E_edgV(:,:), MGQD_E_edgH(:,:)
+  REAL*8,INTENT(IN):: HO_E_avg(:,:), HO_E_edgV(:,:), HO_E_edgH(:,:), Fx_edgV(:,:), Fy_edgH(:,:), MGQD_Fx_edgV(:,:)
+  REAL*8,INTENT(IN):: MGQD_Fy_edgH(:,:), HO_Fx_edgV(:,:), HO_Fy_edgH(:,:), Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
+  REAL*8,INTENT(IN):: HO_Eg_avg(:,:,:), HO_Eg_edgV(:,:,:), HO_Eg_edgH(:,:,:), Fxg_edgV(:,:,:), Fyg_edgH(:,:,:), HO_Fxg_edgV(:,:,:)
+  REAL*8,INTENT(IN):: HO_Fyg_edgH(:,:,:), I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:), KapE_Bar(:,:), KapB(:,:,:)
+  REAL*8,INTENT(IN):: KapE(:,:,:), KapR(:,:,:), Bg(:,:,:), Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:), Eg_in_L(:,:), Eg_in_B(:,:)
+  REAL*8,INTENT(IN):: Eg_in_R(:,:), Eg_in_T(:,:), Fg_in_L(:,:), Fg_in_B(:,:), Fg_in_R(:,:), Fg_in_T(:,:)
+  REAL*8,INTENT(IN):: Cb_L(:), Cb_B(:), Cb_R(:), Cb_T(:), E_in_L(:), E_in_B(:), E_in_R(:), E_in_T(:)
+  REAL*8,INTENT(IN):: F_in_L(:), F_in_B(:), F_in_R(:), F_in_T(:)
+  REAL*8,INTENT(IN):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:), fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:), fg_edgH_yy(:,:,:)
+  REAL*8,INTENT(IN):: fg_edgH_xy(:,:,:), DC_xx(:,:), DL_xx(:,:), DR_xx(:,:), DC_yy(:,:), DB_yy(:,:), DT_yy(:,:), DL_xy(:,:)
+  REAL*8,INTENT(IN):: DB_xy(:,:), DR_xy(:,:), DT_xy(:,:), G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
+  REAL*8,INTENT(IN):: Gold_hat(:,:), Rhat_old(:,:), PL(:,:), PB(:,:), PR(:,:), PT(:,:)
+
+  CALL NF_PUT_t_VAR(outID,Temp_ID,Temp,t)
+
+  IF (use_grey .EQ. 1) THEN
+    IF (E_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,E_avg_ID,E_avg,t)
+      CALL NF_PUT_t_VAR(outID,E_edgV_ID,E_edgV,t)
+      CALL NF_PUT_t_VAR(outID,E_edgH_ID,E_edgH,t)
+    END IF
+
+    IF (F_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,Fx_edgV_ID,Fx_edgV,t)
+      CALL NF_PUT_t_VAR(outID,Fy_edgH_ID,Fy_edgH,t)
+    END IF
+
+    CALL NF_PUT_t_VAR(outID,Cb_L_ID,Cb_L,t)
+    CALL NF_PUT_t_VAR(outID,Cb_B_ID,Cb_B,t)
+    CALL NF_PUT_t_VAR(outID,Cb_R_ID,Cb_R,t)
+    CALL NF_PUT_t_VAR(outID,Cb_T_ID,Cb_T,t)
+    CALL NF_PUT_t_VAR(outID,E_in_L_ID,E_in_L,t)
+    CALL NF_PUT_t_VAR(outID,E_in_B_ID,E_in_B,t)
+    CALL NF_PUT_t_VAR(outID,E_in_R_ID,E_in_R,t)
+    CALL NF_PUT_t_VAR(outID,E_in_T_ID,E_in_T,t)
+    CALL NF_PUT_t_VAR(outID,F_in_L_ID,F_in_L,t)
+    CALL NF_PUT_t_VAR(outID,F_in_B_ID,F_in_B,t)
+    CALL NF_PUT_t_VAR(outID,F_in_R_ID,F_in_R,t)
+    CALL NF_PUT_t_VAR(outID,F_in_T_ID,F_in_T,t)
+
+    IF (D_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,DC_xx_ID,DC_xx,t)
+      CALL NF_PUT_t_VAR(outID,DL_xx_ID,DL_xx,t)
+      CALL NF_PUT_t_VAR(outID,DR_xx_ID,DR_xx,t)
+      CALL NF_PUT_t_VAR(outID,DC_yy_ID,DC_yy,t)
+      CALL NF_PUT_t_VAR(outID,DB_yy_ID,DB_yy,t)
+      CALL NF_PUT_t_VAR(outID,DT_yy_ID,DT_yy,t)
+      CALL NF_PUT_t_VAR(outID,DL_xy_ID,DL_xy,t)
+      CALL NF_PUT_t_VAR(outID,DB_xy_ID,DB_xy,t)
+      CALL NF_PUT_t_VAR(outID,DR_xy_ID,DR_xy,t)
+      CALL NF_PUT_t_VAR(outID,DT_xy_ID,DT_xy,t)
+    END IF
+
+    IF (old_parms_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,Gold_hat_ID,Gold_hat,t)
+      CALL NF_PUT_t_VAR(outID,Rhat_old_ID,Rhat_old,t)
+      CALL NF_PUT_t_VAR(outID,PL_ID,PL,t)
+      CALL NF_PUT_t_VAR(outID,PB_ID,PB,t)
+      CALL NF_PUT_t_VAR(outID,PR_ID,PR,t)
+      CALL NF_PUT_t_VAR(outID,PT_ID,PT,t)
+    END IF
+  END IF
+
+  IF (MGQD_E_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,MGQD_E_avg_ID,MGQD_E_avg,t)
+    CALL NF_PUT_t_VAR(outID,MGQD_E_edgV_ID,MGQD_E_edgV,t)
+    CALL NF_PUT_t_VAR(outID,MGQD_E_edgH_ID,MGQD_E_edgH,t)
+  END IF
+
+  IF (MGQD_F_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,MGQD_Fx_edgV_ID,MGQD_Fx_edgV,t)
+    CALL NF_PUT_t_VAR(outID,MGQD_Fy_edgH_ID,MGQD_Fy_edgH,t)
+  END IF
+
+  IF (Eg_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,Eg_avg_ID,Eg_avg,t)
+    CALL NF_PUT_t_VAR(outID,Eg_edgV_ID,Eg_edgV,t)
+    CALL NF_PUT_t_VAR(outID,Eg_edgH_ID,Eg_edgH,t)
+  END IF
+
+  IF (Fg_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,Fxg_edgV_ID,Fxg_edgV,t)
+    CALL NF_PUT_t_VAR(outID,Fyg_edgH_ID,Fyg_edgH,t)
+  END IF
+
+  IF (HO_E_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,HO_E_avg_ID,HO_E_avg,t)
+    CALL NF_PUT_t_VAR(outID,HO_E_edgV_ID,HO_E_edgV,t)
+    CALL NF_PUT_t_VAR(outID,HO_E_edgH_ID,HO_E_edgH,t)
+  END IF
+
+  IF (HO_F_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,HO_Fx_edgV_ID,HO_Fx_edgV,t)
+    CALL NF_PUT_t_VAR(outID,HO_Fy_edgH_ID,HO_Fy_edgH,t)
+  END IF
+
+  IF (HO_Eg_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,HO_Eg_avg_ID,HO_Eg_avg,t)
+    CALL NF_PUT_t_VAR(outID,HO_Eg_edgV_ID,HO_Eg_edgV,t)
+    CALL NF_PUT_t_VAR(outID,HO_Eg_edgH_ID,HO_Eg_edgH,t)
+  END IF
+
+  IF (HO_Fg_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,HO_Fxg_edgV_ID,HO_Fxg_edgV,t)
+    CALL NF_PUT_t_VAR(outID,HO_Fyg_edgH_ID,HO_Fyg_edgH,t)
+  END IF
+
+  IF (I_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,I_avg_ID,I_avg,t)
+    CALL NF_PUT_t_VAR(outID,I_edgV_ID,I_edgV,t)
+    CALL NF_PUT_t_VAR(outID,I_edgH_ID,I_edgH,t)
+  END IF
+
+  IF (QDfg_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,fg_avg_xx_ID,fg_avg_xx,t)
+    CALL NF_PUT_t_VAR(outID,fg_avg_yy_ID,fg_avg_yy,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgV_xx_ID,fg_edgV_xx,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgV_xy_ID,fg_edgV_xy,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgH_yy_ID,fg_edgH_yy,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgH_xy_ID,fg_edgH_xy,t)
+  END IF
+
+  IF (kap_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,KapE_Bar_ID,KapE_Bar,t)
+    CALL NF_PUT_t_VAR(outID,KapB_ID,KapB,t)
+    CALL NF_PUT_t_VAR(outID,KapE_ID,KapE,t)
+    CALL NF_PUT_t_VAR(outID,KapR_ID,KapR,t)
+  END IF
+
+  IF (Src_out .EQ. 1) CALL NF_PUT_t_VAR(outID,Bg_ID,Bg,t)
+
+  CALL NF_PUT_t_VAR(outID,Cg_L_ID,Cg_L,t)
+  CALL NF_PUT_t_VAR(outID,Cg_B_ID,Cg_B,t)
+  CALL NF_PUT_t_VAR(outID,Cg_R_ID,Cg_R,t)
+  CALL NF_PUT_t_VAR(outID,Cg_T_ID,Cg_T,t)
+  CALL NF_PUT_t_VAR(outID,Eg_in_L_ID,Eg_in_L,t)
+  CALL NF_PUT_t_VAR(outID,Eg_in_B_ID,Eg_in_B,t)
+  CALL NF_PUT_t_VAR(outID,Eg_in_R_ID,Eg_in_R,t)
+  CALL NF_PUT_t_VAR(outID,Eg_in_T_ID,Eg_in_T,t)
+  CALL NF_PUT_t_VAR(outID,Fg_in_L_ID,Fg_in_L,t)
+  CALL NF_PUT_t_VAR(outID,Fg_in_B_ID,Fg_in_B,t)
+  CALL NF_PUT_t_VAR(outID,Fg_in_R_ID,Fg_in_R,t)
+  CALL NF_PUT_t_VAR(outID,Fg_in_T_ID,Fg_in_T,t)
+
+  IF (old_parms_out .EQ. 1) THEN
+    CALL NF_PUT_t_VAR(outID,G_old_ID,G_old,t)
+    CALL NF_PUT_t_VAR(outID,Pold_L_ID,Pold_L,t)
+    CALL NF_PUT_t_VAR(outID,Pold_B_ID,Pold_B,t)
+    CALL NF_PUT_t_VAR(outID,Pold_R_ID,Pold_R,t)
+    CALL NF_PUT_t_VAR(outID,Pold_T_ID,Pold_T,t)
+  END IF
+
+END SUBROUTINE
 
 !==================================================================================================================================!
 !

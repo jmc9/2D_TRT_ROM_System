@@ -37,13 +37,12 @@ program main
     INTEGER:: database_gen, database_add, use_grey
     INTEGER:: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, N_m, threads
     INTEGER:: N_x, N_y, N_t, N_g
-    INTEGER:: n_out_times, restart_outlen, TEMP_out, GREY_E_out, GREY_F_out, HO_E_out
-    INTEGER:: GREY_kap_out, GREY_fsmall_out, MG_fsmall_out, res_history_out
     INTEGER:: BC_Type(4)
-    INTEGER,ALLOCATABLE:: out_time_steps(:)
-    CHARACTER(100):: outfile, restart_outfile, decomp_outfile, TEMP_outfile, GREY_E_outfile, HO_E_outfile
-    CHARACTER(100):: GREY_F_outfile, GREY_kap_outfile, GREY_fsmall_outfile, MG_fsmall_outfile, res_history_outfile
-    CHARACTER(100):: run_type, restart_infile
+    INTEGER:: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+    INTEGER:: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
+    INTEGER:: E_out, F_out, D_out
+    INTEGER:: old_parms_out, its_out, conv_out, kap_out, Src_out
+    CHARACTER(100):: run_type, restart_infile, outfile
     CHARACTER(100):: enrgy_strc, quadrature
     REAL*8,ALLOCATABLE:: Omega_x(:), Omega_y(:), quad_weight(:)
     REAL*8:: Theta
@@ -80,11 +79,9 @@ program main
     CALL INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr1,&
       conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,Theta,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
       threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_top,bcT_bottom,&
-      Tini,sig_R,ar,pi,c,h,delx,dely,cv,out_times,out_time_steps,n_out_times,restart_outlen,TEMP_out,GREY_E_out,&
-      GREY_F_out,GREY_kap_out,GREY_fsmall_out,MG_fsmall_out,res_history_out,outfile,restart_outfile,decomp_outfile,&
-      TEMP_outfile,GREY_E_outfile,GREY_F_outfile,GREY_kap_outfile,GREY_fsmall_outfile,MG_fsmall_outfile,&
-      res_history_outfile,HO_E_out,HO_E_outfile,nu_g,N_g,Omega_x,Omega_y,quad_weight,N_t,quadrature,BC_Type,&
-      Use_Line_Search,Use_Safety_Search,Res_Calc)
+      Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
+      MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
+      quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc)
 
     CALL OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,&
       MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,c_ID,h_ID,pi_ID,erg_ID,Comp_Unit_ID,cv_ID,&
@@ -100,8 +97,11 @@ program main
       T_Bound_Low,database_gen,use_grey,Conv_Type,Maxit_RTE,Threads,BC_Type,Maxit_MLOQD,Maxit_GLOQD,N_x,N_y,N_m,N_g,&
       N_t,Res_Calc,Use_Line_Search,Use_Safety_Search,run_type,kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,&
       N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
-      Boundaries_ID)
+      Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
+      E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    CALL NF_CLOSE_FILE(outID)
 
     CALL SYSTEM_CLOCK(solve_time2,clockrate)
     solve_time=(DBLE(solve_time2)-DBLE(solve_time1))/DBLE(clockrate)

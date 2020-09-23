@@ -301,7 +301,7 @@ SUBROUTINE NF_PUT_t_VAR1D(ncID,varID,Values,t)
   CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR1D'
 
   !calling NetCDF function
-  Status = nf90_put_var(ncID,varID,Values,(/1,1,t/),(/SIZE(Values,1)/))
+  Status = nf90_put_var(ncID,varID,Values,(/1,t/),(/SIZE(Values,1)/))
 
   !Checking for any errors that may have occured
   CALL HANDLE_ERR(Status,Location)
@@ -329,7 +329,7 @@ SUBROUTINE NF_PUT_t_VAR3D(ncID,varID,Values,t)
   CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR3D'
 
   !calling NetCDF function
-  Status = nf90_put_var(ncID,varID,Values,(/1,1,t/),(/SIZE(Values,1),SIZE(Values,2),SIZE(Values,3)/))
+  Status = nf90_put_var(ncID,varID,Values,(/1,1,1,t/),(/SIZE(Values,1),SIZE(Values,2),SIZE(Values,3)/))
 
   !Checking for any errors that may have occured
   CALL HANDLE_ERR(Status,Location)
@@ -343,7 +343,7 @@ SUBROUTINE NF_PUT_t_VAR4D(ncID,varID,Values,t)
   CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR4D'
 
   !calling NetCDF function
-  Status = nf90_put_var(ncID,varID,Values,(/1,1,t/),(/SIZE(Values,1),SIZE(Values,2),SIZE(Values,3),SIZE(Values,4)/))
+  Status = nf90_put_var(ncID,varID,Values,(/1,1,1,1,t/),(/SIZE(Values,1),SIZE(Values,2),SIZE(Values,3),SIZE(Values,4)/))
 
   !Checking for any errors that may have occured
   CALL HANDLE_ERR(Status,Location)

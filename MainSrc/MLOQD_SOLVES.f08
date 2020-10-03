@@ -602,14 +602,14 @@ END SUBROUTINE MGQD_In_Calc
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE fg_Calc(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,Hg_avg_xx,Hg_avg_yy,&
+SUBROUTINE fg_Calc(fg_avg_xx,fg_avg_yy,fg_avg_xy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,Hg_avg_xx,Hg_avg_yy,Hg_avg_xy,&
   Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,c,Open_Threads)
 
-  REAL*8,INTENT(OUT):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:)
+  REAL*8,INTENT(OUT):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:), fg_avg_xy(:,:,:)
   REAL*8,INTENT(OUT):: fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:)
   REAL*8,INTENT(OUT):: fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
 
-  REAL*8,INTENT(IN):: Hg_avg_xx(:,:,:), Hg_avg_yy(:,:,:)
+  REAL*8,INTENT(IN):: Hg_avg_xx(:,:,:), Hg_avg_yy(:,:,:), Hg_avg_xy(:,:,:)
   REAL*8,INTENT(IN):: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
   REAL*8,INTENT(IN):: Hg_edgH_yy(:,:,:), Hg_edgH_xy(:,:,:)
   REAL*8,INTENT(IN):: HO_Eg_avg(:,:,:), HO_Eg_edgV(:,:,:), HO_Eg_edgH(:,:,:)
@@ -635,6 +635,7 @@ SUBROUTINE fg_Calc(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_
 
         fg_avg_xx(i,j,g) = Hg_avg_xx(i,j,g)/(c*HO_Eg_avg(i,j,g))
         fg_avg_yy(i,j,g) = Hg_avg_yy(i,j,g)/(c*HO_Eg_avg(i,j,g))
+        fg_avg_xy(i,j,g) = Hg_avg_xy(i,j,g)/(c*HO_Eg_avg(i,j,g))
 
       END DO
     END DO

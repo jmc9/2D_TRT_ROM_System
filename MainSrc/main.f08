@@ -88,7 +88,8 @@ program main
       c,h,pi,erg,Comp_Unit,cv,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,line_src,xlen,ylen,Delx,Dely,tlen,Delt,bcT_left,&
       bcT_bottom,bcT_right,bcT_top,Tini,E_Bound_Low,T_Bound_Low,N_x,N_y,N_m,N_g,N_t,database_gen,use_grey,maxit_RTE,&
       maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
-      Use_Line_Search,Use_Safety_Search)
+      Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
+      QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     Start_Time=0d0

@@ -487,7 +487,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     CALL NF_DEF_VAR(Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_Grey','Double') !from GQD eqs
     CALL NF_DEF_UNIT(outID,Fx_edgV_ID,'ev/cm^3')
     !'horizontal' cell edges, x-const
-    CALL NF_DEF_VAR(Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Grey_Fy_edgH_Grey','Double') !from GQD eqs
+    CALL NF_DEF_VAR(Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_Grey','Double') !from GQD eqs
     CALL NF_DEF_UNIT(outID,Fy_edgH_ID,'ev/cm^3')
   END IF
 

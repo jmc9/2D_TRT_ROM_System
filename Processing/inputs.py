@@ -8,7 +8,7 @@
 #importing packages
 #==================================================================================================================================#
 #netcdf tools
-from netCDF4 import Dataset as ncds
+# from netCDF4 import Dataset as ncds
 
 #==================================================================================================================================#
 #
@@ -62,8 +62,14 @@ def inp_flags(dset):
 #
 #==================================================================================================================================#
 def domain_parms(dset):
-    Delx = dset['Delx'][:]; Dely = dset['Dely'][:]
+    Delx = dset['Delx'][:]
+    Dely = dset['Dely'][:]
     Delt = dset['Delt']; N_t = dset.dimensions['N_t'].size
+
+    A=[]
+    for j in range(len(Dely)):
+        for i in range(len(Delx)):
+            A.append(Dely[j]*Delx[i])
 
     Delt = 2e-3
 
@@ -71,7 +77,7 @@ def domain_parms(dset):
     tp = []
     for i in range(N_t): tp.append((i+1)*Delt)
 
-    return (xp,yp,tp,Delx,Dely,Delt)
+    return (xp,yp,tp,Delx,Dely,Delt,A)
 
 #==================================================================================================================================#
 #

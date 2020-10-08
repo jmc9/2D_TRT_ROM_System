@@ -15,10 +15,13 @@ FWARNINGS =  -Wall -Wextra -Wunused-dummy-argument -Wconversion -Wconversion-ext
 FRUNTIMES = -fbacktrace -fbounds-check -fcheck=all
 
 NCDF = -lnetcdf
+LAPACK = -llapack -lblas
 
 #--------------------------------------------
 
 SRC_OBJ = main.o \
+					INPUTS.o \
+					NCDF_IO.o \
           POD_Routines.o
 
 EXEC = podgen.exe
@@ -34,7 +37,7 @@ all :
 	$(MAKE) $(EXEC)
 
 $(EXEC) : $(SRC_OBJ)
-	$(FC) $^ -o $@ $(NCDF)
+	$(FC) $^ -o $@ $(NCDF) $(LAPACK)
 	ls -fl $@
 
 .c.o :
@@ -46,5 +49,7 @@ $(EXEC) : $(SRC_OBJ)
 clean :
 	rm -f *.o
 
-main.o : POD_Routines.o
+main.o :  NCDF_IO.o INPUTS.o POD_Routines.o
+INPUTS.o : NCDF_IO.o
+NCDF_IO.o :
 POD_Routines.o :

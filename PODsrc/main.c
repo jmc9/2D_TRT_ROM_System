@@ -4,8 +4,13 @@
 #include <string.h>
 
 // int TEST(int a, int b);
-void input(char *infile, char *dsfile);
+
+void SVD_CALC(const double *, const int *, const int *, const int *, double *umat, double *sig, double *vtmat);
+
+void INPUT(char *infile, char *dsfile);
 void copy(char to[], char from[]);
+void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_y, size_t *N_x);
+void GET_VAR_DOUBLE(int ncid, char name[], double **var, size_t size);
 
 /* Handle NetCDF errors by printing an error message and exiting with a
  * non-zero status. */
@@ -22,74 +27,56 @@ int main()
   int ncid, err;
   int fg_avg_xx_ID, fg_avg_xy_ID, fg_avg_yy_ID, fg_edgV_xx_ID, fg_edgV_xy_ID, fg_edgH_yy_ID, fg_edgH_xy_ID;
   char infile[9], dsfile[100];
-  // double fg_avg_xx;
+  size_t N_t, N_g, N_y, N_x, len, rank;
+  int n_t, n_g, n_y, n_x, i, j, g, t;
+  double *fg_avg_xx, *temp, *umat, *sig, *vtmat;
+  // int t, g, j, i;
 
   copy(infile,"input.inp"); //setting input file name (default)
 
-  input(infile,dsfile); //reading input file
+  INPUT(infile,dsfile); //reading input file
   printf("%s\n",dsfile);
 
   err = nc_open(dsfile,NC_NOWRITE,&ncid); //opening NetCDF dataset
   if(err != NC_NOERR) NC_ERR(err)
 
-  //reading in multigroup qd factors from the dataset
-  err = nc_inq_varid(ncid,"fg_avg_xx",&fg_avg_xx_ID); if(err != NC_NOERR) NC_ERR(err);
-  err = nc_inq_varid(ncid,"fg_avg_xy",&fg_avg_xy_ID); if(err != NC_NOERR) NC_ERR(err);
-  err = nc_inq_varid(ncid,"fg_avg_yy",&fg_avg_yy_ID); if(err != NC_NOERR) NC_ERR(err);
-  err = nc_inq_varid(ncid,"fg_edgV_xx",&fg_edgV_xx_ID); if(err != NC_NOERR) NC_ERR(err);
-  err = nc_inq_varid(ncid,"fg_edgV_xy",&fg_edgV_xy_ID); if(err != NC_NOERR) NC_ERR(err);
-  err = nc_inq_varid(ncid,"fg_edgH_yy",&fg_edgH_yy_ID); if(err != NC_NOERR) NC_ERR(err);
-  err = nc_inq_varid(ncid,"fg_edgH_xy",&fg_edgH_xy_ID); if(err != NC_NOERR) NC_ERR(err);
+  GET_DIMS(ncid,&N_t,&N_g,&N_y,&N_x);
+  printf("%ld %ld %ld %ld \n",N_t,N_g,N_y,N_x);
+  n_t = (int)N_t; n_g = (int)N_g; n_y = (int)N_y; n_x = (int)N_x;
 
-  //
-  // err = nc_get_var_int(ncid,fg_avg_xx_ID,&fg_avg_xx[0][0][0]); if(err != NC_NOERR) NC_ERR(err);
+  //reading in multigroup qd factor ID's
+  // err = nc_inq_varid(ncid,"fg_avg_xy",&fg_avg_xy_ID); if(err != NC_NOERR) NC_ERR(err);
+  // err = nc_inq_varid(ncid,"fg_avg_yy",&fg_avg_yy_ID); if(err != NC_NOERR) NC_ERR(err);
+  // err = nc_inq_varid(ncid,"fg_edgV_xx",&fg_edgV_xx_ID); if(err != NC_NOERR) NC_ERR(err);
+  // err = nc_inq_varid(ncid,"fg_edgV_xy",&fg_edgV_xy_ID); if(err != NC_NOERR) NC_ERR(err);
+  // err = nc_inq_varid(ncid,"fg_edgH_yy",&fg_edgH_yy_ID); if(err != NC_NOERR) NC_ERR(err);
+  // err = nc_inq_varid(ncid,"fg_edgH_xy",&fg_edgH_xy_ID); if(err != NC_NOERR) NC_ERR(err);
 
-  err = nc_close(ncid);
-  if(err != NC_NOERR) NC_ERR(err) //closing NetCDF dataset
+  len = N_t*N_g*N_y*N_x;
+  //reading in multigroup qd factor data
+  GET_VAR_DOUBLE(ncid,"fg_avg_xx",&fg_avg_xx,len);
+
+  rank = N_t; //min(N_t,N_y*N_x);
+  umat = (double *)malloc(sizeof(double)*N_y*N_x*rank);
+  vtmat = (double *)malloc(sizeof(double)*N_t*rank);
+  sig = (double *)malloc(sizeof(double)*rank);
+
+  temp = (double *)malloc(sizeof(double)*N_t*N_y*N_x);
+  for(t=0;t<n_t;t++){
+    for(j=0;j<n_y;j++){
+      for(i=0;i<n_x;i++){
+        temp[i+j*n_x+t*n_x*n_y] = fg_avg_xx[i+j*n_x+t*n_x*n_y*n_g];
+      }
+    }
+  }
+  // printf("yuh\n");
+  SVD_CALC(temp,&n_t,&n_y,&n_x,&umat[0],&sig[0],&vtmat[0]);
+  printf("%e\n",fg_avg_xx[100]);
+
+  err = nc_close(ncid); //closing NetCDF dataset
+  if(err != NC_NOERR) NC_ERR(err);
+
+  // free(fg_avg_xx);
 
   printf("yuh\n");
-}
-
-//================================================================================================================================//
-//
-//================================================================================================================================//
-void input(char infile[], char dsfile[])
-{
-  FILE *inpf;
-  char line[256];
-  char *inps;
-
-  inpf = fopen(infile,"r"); //opening input file
-  //check if input file exists, if not terminate program
-  if (inpf == NULL){
-    printf("Error occured whilst opening file: %s",infile);
-    exit(1);
-  }
-
-  //moving line by line through file to grab inputs
-  while ( fgets(line, 255, inpf) != NULL ){ //placing current line of input file into 'line' character array
-
-    inps = strtok(line," "); //splitting line into seperate strings, delimited by a space
-    //looping through each delimited string
-    while (inps != NULL){
-      if(strcmp(inps,"dataset")){
-        copy(dsfile,inps);
-      }
-      inps = strtok(NULL," "); //moving 'inps' to the next delimited part of line
-    }
-
-  }
-
-  fclose(inpf); //closing input file
-}
-
-//================================================================================================================================//
-/* copy: copy 'from' into 'to'; assume to is big enough */
-//================================================================================================================================//
-void copy(char to[], char from[])
-{
-  int i;
-  i = 0;
-  while ((to[i] = from[i]) != '\0')
-  ++i;
 }

@@ -5,7 +5,7 @@
 
 // int TEST(int a, int b);
 
-void SVD_CALC(const double *, const int *, const int *, const int *, double *umat, double *sig, double *vtmat);
+void SVD_CALC(const double *, const int *n_t, const int *n_y, const int *n_x, double *center, double *umat, double *sig, double *vtmat);
 
 void INPUT(char *infile, char *dsfile);
 void copy(char to[], char from[]);
@@ -29,7 +29,7 @@ int main()
   char infile[9], dsfile[100];
   size_t N_t, N_g, N_y, N_x, len, rank;
   int n_t, n_g, n_y, n_x, i, j, g, t;
-  double *fg_avg_xx, *temp, *umat, *sig, *vtmat;
+  double *fg_avg_xx, *temp, *center, *umat, *sig, *vtmat;
   // int t, g, j, i;
 
   copy(infile,"input.inp"); //setting input file name (default)
@@ -38,7 +38,7 @@ int main()
   printf("%s\n",dsfile);
 
   err = nc_open(dsfile,NC_NOWRITE,&ncid); //opening NetCDF dataset
-  if(err != NC_NOERR) NC_ERR(err)
+  if(err != NC_NOERR) NC_ERR(err);
 
   GET_DIMS(ncid,&N_t,&N_g,&N_y,&N_x);
   printf("%ld %ld %ld %ld \n",N_t,N_g,N_y,N_x);
@@ -57,6 +57,7 @@ int main()
   GET_VAR_DOUBLE(ncid,"fg_avg_xx",&fg_avg_xx,len);
 
   rank = N_t; //min(N_t,N_y*N_x);
+  center = (double *)malloc(sizeof(double)*N_y*N_x);
   umat = (double *)malloc(sizeof(double)*N_y*N_x*rank);
   vtmat = (double *)malloc(sizeof(double)*N_t*rank);
   sig = (double *)malloc(sizeof(double)*rank);
@@ -69,8 +70,7 @@ int main()
       }
     }
   }
-  // printf("yuh\n");
-  SVD_CALC(temp,&n_t,&n_y,&n_x,&umat[0],&sig[0],&vtmat[0]);
+  SVD_CALC(temp,&n_t,&n_y,&n_x,&center[0],&umat[0],&sig[0],&vtmat[0]);
   printf("%e\n",fg_avg_xx[100]);
 
   err = nc_close(ncid); //closing NetCDF dataset

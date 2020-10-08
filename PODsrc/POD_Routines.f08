@@ -8,10 +8,10 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE SVD_CALC(dat,N_t,N_y,N_x,umat,sig,vtmat) BIND(c, name="SVD_CALC")
+SUBROUTINE SVD_CALC(dat,N_t,N_y,N_x,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
   INTEGER,INTENT(IN):: N_t, N_y, N_x
   REAL(c_double),INTENT(IN):: dat(*)
-  REAL(c_double),INTENT(OUT):: umat(*), sig(*), vtmat(*)
+  REAL(c_double),INTENT(OUT):: center(*), umat(*), sig(*), vtmat(*)
 
   REAL*8,ALLOCATABLE:: mat(:,:), u(:,:), s(:), vt(:,:)
   REAL*8:: rank
@@ -26,7 +26,21 @@ SUBROUTINE SVD_CALC(dat,N_t,N_y,N_x,umat,sig,vtmat) BIND(c, name="SVD_CALC")
   DO t=1,N_t
     DO j=1,N_y
       DO i=1,N_x
-        mat(i+(j-1)*N_x,t) = dat(i+(j-1)*N_x+(t-1)*N_x*N_y)
+        center(i+(j-1)*N_x) = dat(i+(j-1)*N_x+(t-1)*N_x*N_y)
+      END DO
+    END DO
+  END DO
+
+  DO j=1,N_y
+    DO i=1,N_x
+      center(i+(j-1)*N_x) = center(i+(j-1)*N_x)/DBLE(N_t)
+    END DO
+  END DO
+
+  DO t=1,N_t
+    DO j=1,N_y
+      DO i=1,N_x
+        mat(i+(j-1)*N_x,t) = dat(i+(j-1)*N_x+(t-1)*N_x*N_y) - center(i+(j-1)*N_x)
       END DO
     END DO
   END DO

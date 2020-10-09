@@ -12,6 +12,8 @@ void copy(char to[], char from[]);
 void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_y, size_t *N_x);
 void GET_VAR_DOUBLE(int ncid, char name[], double **var, size_t size);
 
+int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, int logscale, int pt, char *lc);
+
 /* Handle NetCDF errors by printing an error message and exiting with a
  * non-zero status. */
 // #define ERRCODE 2
@@ -26,11 +28,12 @@ int main()
   // comment
   int ncid, err;
   int fg_avg_xx_ID, fg_avg_xy_ID, fg_avg_yy_ID, fg_edgV_xx_ID, fg_edgV_xy_ID, fg_edgH_yy_ID, fg_edgH_xy_ID;
-  char infile[9], dsfile[100];
+  char infile[9], dsfile[100], lc[10], plttyp[1], title[10];
   size_t N_t, N_g, N_y, N_x, len, rank;
   int n_t, n_g, n_y, n_x, i, j, g, t;
-  double *fg_avg_xx, *temp, *center, *umat, *sig, *vtmat;
+  double *fg_avg_xx, *temp, *center, *umat, *sig, *vtmat, *sigp;
   // int t, g, j, i;
+  // FILE *gnuplot_Pipe;
 
   copy(infile,"input.inp"); //setting input file name (default)
 
@@ -62,6 +65,11 @@ int main()
   vtmat = (double *)malloc(sizeof(double)*N_t*rank);
   sig = (double *)malloc(sizeof(double)*rank);
 
+  sigp = (double *)malloc(sizeof(double)*rank);
+  for(i=0;i<rank;i++){
+    sigp[i] = i+1;
+  }
+
   temp = (double *)malloc(sizeof(double)*N_t*N_y*N_x);
   for(t=0;t<n_t;t++){
     for(j=0;j<n_y;j++){
@@ -76,7 +84,14 @@ int main()
   err = nc_close(ncid); //closing NetCDF dataset
   if(err != NC_NOERR) NC_ERR(err);
 
-  // free(fg_avg_xx);
+  copy(lc,"black"); copy(plttyp,"p"); copy(title,"Sigs");
+  err = gnuplot_1d(title,&sig[0],&sigp[0],rank,&plttyp,10,7,&lc);
+  if(err != 0){
+    if(err == 1){ printf("Failed to open gnuplot_Pipe"); exit(2); }
+    if(err == 2){ printf("Failed to close gnuplot_Pipe"); exit(2); }
+  }
+
+  free(fg_avg_xx);
 
   printf("yuh\n");
 }

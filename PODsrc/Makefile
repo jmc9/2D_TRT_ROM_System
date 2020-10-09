@@ -22,6 +22,7 @@ LAPACK = -llapack -lblas
 SRC_OBJ = main.o \
 					INPUTS.o \
 					NCDF_IO.o \
+					GNUPLOT_ROUTINES.o \
           POD_Routines.o
 
 EXEC = podgen.exe
@@ -49,7 +50,8 @@ $(EXEC) : $(SRC_OBJ)
 clean :
 	rm -f *.o
 
-main.o :  NCDF_IO.o INPUTS.o POD_Routines.o
+main.o :  NCDF_IO.o INPUTS.o POD_Routines.o GNUPLOT_ROUTINES.o
 INPUTS.o : NCDF_IO.o
 NCDF_IO.o :
+GNUPLOT_ROUTINES.o :
 POD_Routines.o :

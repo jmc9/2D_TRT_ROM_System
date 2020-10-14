@@ -11,6 +11,7 @@
 #generic python tools
 import getopt, sys #handles user inputs from command line
 import numpy as np
+import os
 
 #netcdf tools
 from netCDF4 import Dataset as ncds
@@ -26,16 +27,22 @@ import processing as proc
 #==================================================================================================================================#
 def TRT_process(infile,proc_dir,plotdir):
 
+    if not os.path.isfile(infile):
+        print('Input file, '+infile+', does not exist. aborting program')
+        quit()
+
     msc.dirset(proc_dir) #creating 'master' directory to contain all processed data
 
     dsets = inp.input(infile) #reading input file, returning datasets to process
     nsets = len(dsets) #finding the number of datasets
 
+    #initializing arrays that will hold simulation data
     (Temp,E_avg,E_edgV,E_edgH,E_avg_MGQD,E_edgV_MGQD,E_edgH_MGQD,E_avg_HO,E_edgV_HO,E_edgH_HO,Fx_edgV,\
     Fy_edgH,Fx_edgV_MGQD,Fy_edgH_MGQD,Fx_edgV_HO,Fy_edgH_HO,Eg_avg,Eg_edgV,Eg_edgH,Eg_avg_HO,Eg_edgV_HO,\
     Eg_edgH_HO,Fxg_edgV,Fyg_edgH,Fxg_edgV_HO,Fyg_edgH_HO,fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,\
     fg_edgH_yy,fg_edgH_xy) = proc.init_arr()
 
+    #initializing arrays that hold inputs and directory information
     inp_flags=[]; casedirs=[]
     plotdirs = []; pd_names = []
     for i in range(nsets): plotdirs.append([]); pd_names.append([])
@@ -46,8 +53,8 @@ def TRT_process(infile,proc_dir,plotdir):
         dsets[n] = ncds(dsets[n],'r') #opening each specified dataset of TRT results
         inp_flags.append(inp.inp_flags(dsets[n])) #checking which variables are given in this dataset
 
-        (plotdirs[n],pd_names[n]) = msc.plotdirs(casedirs[n])
-        msc.setup_plotdirs(plotdirs[n],pd_names[n],inp_flags[n])
+        (plotdirs[n],pd_names[n]) = msc.plotdirs(casedirs[n]) #generating directory paths
+        msc.setup_plotdirs(plotdirs[n],pd_names[n],inp_flags[n]) #creating directories
 
     (xp,yp,tp,Delx,Dely,Delt,A) = inp.domain_parms(dsets[0]) #getting problem domain parameters
     N_t = len(tp)

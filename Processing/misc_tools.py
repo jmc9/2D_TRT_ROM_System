@@ -11,7 +11,19 @@
 import os
 
 #==================================================================================================================================#
+# function plotdirs
 #
+# Usage: (plotdirs,pd_names) = plotdirs(rootdir)
+#
+# plotdirs generates the directory paths for placing plots of a TRT solution appended to some root directory path, along with -
+# - the names of the data that will be held in each directory for search/sort purposes
+#
+# INPUTS:
+#   rootdir (string) - the root directory path in which to place the plot directories
+#
+# OUTPUTS:
+#   plotdirs - array of directory paths
+#   pd_names - array containing the 'names' corresponding to the data to be held in each plot directory
 #==================================================================================================================================#
 def plotdirs(rootdir):
     plotdirs = [rootdir+'/I_avg',\
@@ -41,6 +53,21 @@ def plotdirs(rootdir):
     return (plotdirs,pd_names)
 
 #==================================================================================================================================#
+# function locate_pd
+#
+# Usage: loc = locate_pd(name,pd_names)
+#
+# locate_pd gives the position of array pd_names that corresponds to the given string 'name'
+#
+# INPUTS:
+#   pd_names - array containing the 'names' corresponding to the data to be held in each plot directory
+#   name - the data name whose location in pd_names is to be found
+#
+# OUTPUTS:
+#   loc - position of 'name' in array pd_names
+#
+# ERRORS:
+#   if loc returns a value of -1, then 'name' was not contained in pd_names
 #
 #==================================================================================================================================#
 def locate_pd(name,pd_names):
@@ -52,6 +79,15 @@ def locate_pd(name,pd_names):
     return loc
 
 #==================================================================================================================================#
+# function setup_plotdirs
+#
+# Usage: setup_plotdirs(plotdirs,pd_names,inp_flags)
+#
+# setup_plotdirs creates directories for the plots of a specific dataset's contents
+#
+# INPUTS:
+#   plotdirs - array of directory paths
+#   pd_names - array containing the 'names' corresponding to the data to be held in each plot directory
 #
 #==================================================================================================================================#
 def setup_plotdirs(plotdirs,pd_names,inp_flags):
@@ -70,7 +106,16 @@ def setup_plotdirs(plotdirs,pd_names,inp_flags):
     if inp_flags[4] == 1: loc = locate_pd('Eg_avg_HO',pd_names); dir = plotdirs[loc]; dirset(dir)
 
 #==================================================================================================================================#
+# function dirset
 #
+# Usage: dirset(dir)
+#
+# dirset 'sets up' a directory on the given path 'dir'
+# - if the directory does not exist, it is created
+# - if the directory does exist, its contents are deleted
+#
+# INPUTS:
+#   dir - path to target directory
 #==================================================================================================================================#
 def dirset(dir):
     if os.path.isdir(dir): #if directory exists, clear all files from inside

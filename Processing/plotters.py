@@ -16,6 +16,12 @@ import matplotlib.ticker as ticker
 import misc_tools as msc
 
 #==================================================================================================================================#
+# function plot_results
+#
+# Usage: plot_results(dset,plotdir,xp,yp,time,inp_flags,plotdirs,pd_names,Temp,fg_avg_xx,fg_avg_xy,fg_avg_yy,E_avg,E_avg_MGQD,\
+#        E_avg_HO,Eg_avg,Eg_avg_HO)
+#
+# plot_results generates plots of the data contained in a given dataset
 #
 #==================================================================================================================================#
 def plot_results(dset,plotdir,xp,yp,time,inp_flags,plotdirs,pd_names,Temp,fg_avg_xx,fg_avg_xy,fg_avg_yy,E_avg,E_avg_MGQD,\
@@ -45,11 +51,22 @@ E_avg_HO,Eg_avg,Eg_avg_HO):
     if inp_flags[4] == 1: loc = msc.locate_pd('Eg_avg_HO',pd_names); dir = plotdirs[loc]; plot_data(Eg_avg_HO,'Eg_avg_HO',xp,yp,time,dir)
 
 #==================================================================================================================================#
+# function plot_data
+#
+# Usage: plot_data(data,name,xp,yp,time,drop)
+#
+# INPUTS:
+#   data - array of data to plot with shape (yp,xp) or (gp,yp,xp)
+#   name - name of data to be plot
+#   xp - array of cell-face x-coordinates
+#   yp - array of cell-face y-coordinates
+#   time - time instant for data
+#   drop - path to directory where plot should be dropped at
 #
 #==================================================================================================================================#
 def plot_data(data,name,xp,yp,time,drop):
     if len(np.shape(data)) == 3:
-        gp = len(data[0])
+        gp = len(data)
         for g in range(gp): heatmap2d(name+'_g'+str(g+1),time,xp,yp,data[g],drop)
     else:
         heatmap2d(name,time,xp,yp,data,drop)

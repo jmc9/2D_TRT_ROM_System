@@ -891,6 +891,9 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
       IF (key(1:1) .EQ. '[') THEN
         EXIT
 
+      ELSE IF (trim(key) .EQ. 'outfile') THEN
+        READ(args(1),*) outfile
+
       ELSE IF (trim(key) .EQ. 'out_freq') THEN
         READ(args(1),*) out_freq
         IF (ALL(out_freq .NE. (/0,1/))) THEN

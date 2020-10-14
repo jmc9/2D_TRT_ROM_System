@@ -23,7 +23,7 @@ void HANDLE_ERR(int Status, char Location[])
 void GET_VAR_DOUBLE(int ncid, char name[], double **var, size_t size)
 {
   int err, vID;
-  char loc[19] = "GET_DGET_VAR_DOUBLE";
+  char loc[14] = "GET_VAR_DOUBLE";
 
   err = nc_inq_varid(ncid,name,&vID); HANDLE_ERR(err,loc);
 

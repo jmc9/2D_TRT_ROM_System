@@ -22,7 +22,7 @@
 //   int pt       = gnuplot point type
 //   char *lc     = character array containing gnuplot line color
 //================================================================================================================================//
-int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, int logscale, int pt, char *lc)
+int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, int logscale, int pt, char *lc, char *saveas)
 {
   FILE *gnuplot_Pipe;
   int err, i;
@@ -34,7 +34,7 @@ int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, in
   }
 
   fprintf(gnuplot_Pipe, "set term png\n"); //setting gnu to png mode
-  fprintf(gnuplot_Pipe, "set output \"test.png\"\n"); //telling gnu to output plot in png format
+  fprintf(gnuplot_Pipe, "set output \"%s\"\n",saveas); //telling gnu to output plot in png format
 
   fprintf(gnuplot_Pipe, "set title \"%s\"\n",title); //setting plot title
 
@@ -62,7 +62,7 @@ int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, in
 
   //looping through data points
   for(i=0;i<(int)dim;i++){
-    fprintf(gnuplot_Pipe, "%lf %lf\n", crd[i], data[i]);
+    fprintf(gnuplot_Pipe, "%lf %e\n", crd[i], data[i]);
   }
 
   fprintf(gnuplot_Pipe, "e"); //finishing plot, outputting
@@ -74,4 +74,15 @@ int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, in
   }
 
   return 0; //function completed successfully
+}
+
+//================================================================================================================================//
+//
+//================================================================================================================================//
+void GNUP_ERR(int err)
+{
+  if(err != 0){
+    if(err == 1){ printf("Failed to open gnuplot_Pipe"); exit(2); }
+    if(err == 2){ printf("Failed to close gnuplot_Pipe"); exit(2); }
+  }
 }

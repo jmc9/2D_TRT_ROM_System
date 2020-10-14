@@ -14,7 +14,7 @@ SUBROUTINE SVD_CALC(dat,N_t,N_y,N_x,center,umat,sig,vtmat) BIND(c, name="SVD_CAL
   REAL(c_double),INTENT(OUT):: center(*), umat(*), sig(*), vtmat(*)
 
   REAL*8,ALLOCATABLE:: mat(:,:), u(:,:), s(:), vt(:,:)
-  REAL*8:: rank
+  INTEGER:: rank
   INTEGER:: t, i, j, r
 
   rank = MIN(N_x*N_y,N_t)

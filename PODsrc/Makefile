@@ -24,7 +24,9 @@ SRC_OBJ = main.o \
 					NCDF_IO.o \
 					GNUPLOT_ROUTINES.o \
           POD_Routines.o \
-					CPOD_ROUTINES.o
+					CPOD_ROUTINES.o \
+					MISC_PROCS.o \
+					OUTPUTS.o
 
 EXEC = podgen.exe
 
@@ -51,9 +53,11 @@ $(EXEC) : $(SRC_OBJ)
 clean :
 	rm -f *.o
 
-main.o :  NCDF_IO.o INPUTS.o POD_Routines.o GNUPLOT_ROUTINES.o CPOD_ROUTINES.o
+main.o :  NCDF_IO.o INPUTS.o POD_Routines.o GNUPLOT_ROUTINES.o CPOD_ROUTINES.o OUTPUTS.o
 INPUTS.o : NCDF_IO.o
 NCDF_IO.o :
 GNUPLOT_ROUTINES.o :
 POD_Routines.o :
-CPOD_ROUTINES.o :
+CPOD_ROUTINES.o : MISC_PROCS.o
+MISC_PROCS.o :
+OUTPUTS.o :

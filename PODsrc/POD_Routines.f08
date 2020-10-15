@@ -8,8 +8,8 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE SVD_CALC(dat,N_t,N_y,N_x,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
-  INTEGER,INTENT(IN):: N_t, N_y, N_x
+SUBROUTINE SVD_CALC(dat,N_t,clen,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
+  INTEGER,INTENT(IN):: N_t, clen
   REAL(c_double),INTENT(IN):: dat(*)
   REAL(c_double),INTENT(OUT):: center(*), umat(*), sig(*), vtmat(*)
 
@@ -17,44 +17,47 @@ SUBROUTINE SVD_CALC(dat,N_t,N_y,N_x,center,umat,sig,vtmat) BIND(c, name="SVD_CAL
   INTEGER:: rank
   INTEGER:: t, i, j, r
 
-  rank = MIN(N_x*N_y,N_t)
-  ALLOCATE(mat(N_x*N_y,N_t))
-  ALLOCATE(u(N_x*N_y,N_x*N_y))
+  rank = MIN(clen,N_t)
+  ALLOCATE(mat(clen,N_t))
+  ALLOCATE(u(clen,clen))
   ALLOCATE(vt(N_t,N_t))
   ALLOCATE(s(rank))
 
+  !filling in centering vector with zeros
+  DO i=1,clen
+    center(i) = 0d0
+  END DO
+
+  !calculating centering vector as column sum of data matrix
   DO t=1,N_t
-    DO j=1,N_y
-      DO i=1,N_x
-        center(i+(j-1)*N_x) = dat(i+(j-1)*N_x+(t-1)*N_x*N_y)
-      END DO
+    DO i=1,clen
+      center(i) = center(i) + dat(i+(t-1)*clen)
     END DO
   END DO
 
-  DO j=1,N_y
-    DO i=1,N_x
-      center(i+(j-1)*N_x) = center(i+(j-1)*N_x)/DBLE(N_t)
-    END DO
+  !averaging centering vector
+  DO i=1,clen
+    center(i) = center(i)/DBLE(N_t)
   END DO
 
+  !centering the data matrix
   DO t=1,N_t
-    DO j=1,N_y
-      DO i=1,N_x
-        mat(i+(j-1)*N_x,t) = dat(i+(j-1)*N_x+(t-1)*N_x*N_y) - center(i+(j-1)*N_x)
-      END DO
+    DO i=1,clen
+      mat(i,t) = dat(i+(t-1)*clen) - center(i)
     END DO
   END DO
 
+  !calculating the SVD of the datamatrix
   CALL SVD_DECOMP(mat,u,s,vt)
 
+  !vectorizing left singular vector matrix
   DO r=1,rank
-    DO j=1,N_y
-      DO i=1,N_x
-        umat(i+(j-1)*N_x+(r-1)*N_x*N_y) = u(i+(j-1)*N_x,r)
-      END DO
+    DO i=1,clen
+      umat(i+(r-1)*clen) = u(i,r)
     END DO
   END DO
 
+  !vectorizing right singular vector matrix
   DO t=1,N_t
     DO r=1,rank
       vtmat(r+(t-1)*rank) = vt(r,t)

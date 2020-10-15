@@ -3,9 +3,9 @@
 #include <netcdf.h>
 #include <string.h>
 
-void INPUT(char *infile, char *dsfile);
-void copy(char to[], char from[]);
 void HANDLE_ERR(int Status, char Location[]);
+
+int delimit(char *line, char del, char **parts, int nparts);
 
 //================================================================================================================================//
 //
@@ -33,11 +33,13 @@ void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_y, size_t *N_x)
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void INPUT(char infile[], char dsfile[])
+void INPUT(char *infile, char *dsfile, char *outfile)
 {
   FILE *inpf;
   char line[256];
-  char *inps;
+  char **inps, delim = ' ';
+  int n, i, err;
+  size_t nargs = 2;
 
   inpf = fopen(infile,"r"); //opening input file
   //check if input file exists, if not terminate program
@@ -46,30 +48,31 @@ void INPUT(char infile[], char dsfile[])
     exit(1);
   }
 
+  inps = (char **)malloc(sizeof(char *)*nargs);
+  for (n=0; n < (int)nargs; n++){
+    inps[n] = (char *)malloc(sizeof(char)*25);
+  }
+
   //moving line by line through file to grab inputs
   while ( fgets(line, 255, inpf) != NULL ){ //placing current line of input file into 'line' character array
 
-    inps = strtok(line," "); //splitting line into seperate strings, delimited by a space
-    //looping through each delimited string
-    while (inps != NULL){
-      if(strcmp(inps,"dataset")){
-        copy(dsfile,inps);
+    for (n=0; n < (int)nargs; n++){
+      for (i=0; i<25; i++){
+        inps[n][i] = 0;
       }
-      inps = strtok(NULL," "); //moving 'inps' to the next delimited part of line
+    }
+    
+    err = delimit(line,delim,inps,(int)nargs);
+
+    if (strcmp(inps[0],"dataset") == 0){
+      strcpy(dsfile,inps[1]);
+    }
+    else if (strcmp(inps[0],"outfile") == 0){
+      strcpy(outfile,inps[1]);
     }
 
   }
 
   fclose(inpf); //closing input file
-}
 
-//================================================================================================================================//
-/* copy: copy 'from' into 'to'; assume to is big enough */
-//================================================================================================================================//
-void copy(char to[], char from[])
-{
-  int i;
-  i = 0;
-  while ((to[i] = from[i]) != '\0')
-  ++i;
 }

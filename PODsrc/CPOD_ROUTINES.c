@@ -18,9 +18,9 @@ void GNUP_ERR(int err);
 int make_dir(char *dir);
 
 //LOCAL FUNCTIONS
-int POD_CALC(double *data, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int g, double **center, double **umat,
-  double **sig, double **vtmat, double **sigp, size_t *rank);
-int gdat_reform(int n_t, int n_g, int n_y, int n_x, int g, double *gdat, double *vec);
+int POD_CALC(double *data, size_t N_t, size_t N_g, size_t clen, size_t rank, int g, double **center,
+  double **umat, double **sig, double **vtmat, double **sigp);
+int gdat_reform(int n_t, int n_g, int clen, int g, double *gdat, double *vec);
 
 int SIG_PLOT(char *pname, double *sig, double *sigp, int rank, char *drop);
 
@@ -36,25 +36,32 @@ int SIG_PLOT(char *pname, double *sig, double *sigp, int rank, char *drop);
 //
 // GENERATE_POD
 //================================================================================================================================//
-int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t len, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int gsum,
+int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g, size_t clen, size_t rank, int gsum,
   int Sid, int Uid, int Vtid)
 {
   int err, n_g, g;
-  size_t rank;
+  char loc[13] = "GENERATE_POD";
+  size_t len;
   char buf[25], pname[25], drop[25];
   double *data, *center, *umat, *sig, *vtmat, *sigp;
 
-  size_t startp[2], countp[2];
-  ptrdiff_t stridep[2];
+  size_t startp[3], countp[3];
+  ptrdiff_t stridep[3];
 
   //creating directory to put plots
   err = make_dir(dname); //setting up directory
   strcpy(drop,dname); strcat(drop,"/"); //creating path to directory
 
+  n_g = (int)N_g; //integer version of group dimension (number of energy groups)
+  if (n_g > 0){
+    len = N_g*N_t*clen;
+  }
+  else{
+    len = N_t*clen;
+  }
+
   //reading in datamatrix from NetCDF dataset
   GET_VAR_DOUBLE(ncid_in,dname,&data,len);
-
-  n_g = (int)N_g; //integer version of group dimension (number of energy groups)
 
   //checking type of dataset to perform POD on
   if(n_g > 0){ //if n_g>0, then a multigroup dataset has been detected
@@ -69,13 +76,22 @@ int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t len, size_t N_t,
       for(g=0;g<n_g;g++){
 
         //find the POD modes and singular values of a given groupwise datamatrix
-        err = POD_CALC(data,N_t,N_g,N_y,N_x,g,&center,&umat,&sig,&vtmat,&sigp,&rank);
-        // printf("%lu\n",rank) ;
+        err = POD_CALC(data,N_t,N_g,clen,rank,g,&center,&umat,&sig,&vtmat,&sigp);
 
-        startp[0] = (size_t)g; startp[1] = 0;
-        countp[0] = 1; countp[1] = rank;
-        stridep[0] = 1; stridep[1] = 1;
-        err = nc_put_vars(ncid_out,Sid,startp,countp,stridep,sig);
+        startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+        countp[0] = 1; countp[1] = rank; countp[2] = 0;
+        stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+        err = nc_put_vars(ncid_out,Sid,startp,countp,stridep,sig); HANDLE_ERR(err,loc);
+
+        startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+        countp[0] = 1; countp[1] = rank; countp[2] = clen;
+        stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
+        err = nc_put_vars(ncid_out,Uid,startp,countp,stridep,umat); HANDLE_ERR(err,loc);
+
+        startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+        countp[0] = 1; countp[1] = N_t; countp[2] = rank;
+        stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
+        err = nc_put_vars(ncid_out,Vtid,startp,countp,stridep,vtmat); HANDLE_ERR(err,loc);
 
         //plot the singular values
         strcpy(pname,dname); sprintf(buf,"_g%d",g+1); strcat(pname,buf);
@@ -85,7 +101,7 @@ int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t len, size_t N_t,
     }
   }
   else{
-    err = POD_CALC(data,N_t,N_g,N_y,N_x,0,&center,&umat,&sig,&vtmat,&sigp,&rank);
+    err = POD_CALC(data,N_t,N_g,clen,rank,0,&center,&umat,&sig,&vtmat,&sigp);
   }
 
   //deallocating arrays
@@ -128,42 +144,40 @@ int SIG_PLOT(char *pname, double *sig, double *sigp, int rank, char *drop)
 //
 // POD_CALC calculates the POD of a data-matrix read from a given NetCDF dataset
 //================================================================================================================================//
-int POD_CALC(double *data, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int g, double **center,
-  double **umat, double **sig, double **vtmat, double **sigp, size_t *rank)
+int POD_CALC(double *data, size_t N_t, size_t N_g, size_t Clen, size_t rank, int g, double **center,
+  double **umat, double **sig, double **vtmat, double **sigp)
 {
   double *temp;
-  int n_t, n_g, n_y, n_x, len_xy;
+  int n_t, n_g, clen;
   int i, err;
 
   //finding integer versions of the given dimensions
-  n_t = (int)N_t; n_g = (int)N_g; n_y = (int)N_y; n_x = (int)N_x;
-  len_xy = n_x*n_y;
+  n_t = (int)N_t; n_g = (int)N_g; clen = (int)Clen;
 
   //allocating POD arrays
-  *rank = min(N_x*N_y,N_t); //calculating rank
-  *center = (double *)malloc(sizeof(double)*N_y*N_x);
-  *umat = (double *)malloc(sizeof(double)*N_y*N_x*(*rank));
-  *vtmat = (double *)malloc(sizeof(double)*N_t*(*rank));
-  *sig = (double *)malloc(sizeof(double)*(*rank));
+  *center = (double *)malloc(sizeof(double)*Clen);
+  *umat = (double *)malloc(sizeof(double)*Clen*rank);
+  *vtmat = (double *)malloc(sizeof(double)*N_t*rank);
+  *sig = (double *)malloc(sizeof(double)*rank);
 
   //forming array of singular value indices
-  *sigp = (double *)malloc(sizeof(double)*(*rank));
-  for(i=0;i<(int)(*rank);i++){
+  *sigp = (double *)malloc(sizeof(double)*rank);
+  for(i=0;i<(int)rank;i++){
     (*sigp)[i] = (double)(i+1);
   }
 
   //checking whether a multigroup data-matrix is being used or not
   if(n_g>0){ //if the datamatrix is multigroup, must either isolate one group or form a large multigroup matrix
     //reforming the datamatrix to isolate a single group
-    temp = (double *)malloc(sizeof(double)*N_t*N_y*N_x);
-    err = gdat_reform(n_t,n_g,n_y,n_x,g,data,temp);
+    temp = (double *)malloc(sizeof(double)*N_t*Clen);
+    err = gdat_reform(n_t,n_g,clen,g,data,temp);
 
     //calculating the SVD of the datamatrix
-    SVD_CALC(temp,&n_t,&len_xy,&*center[0],&*umat[0],&*sig[0],&*vtmat[0]);
+    SVD_CALC(temp,&n_t,&clen,&*center[0],&*umat[0],&*sig[0],&*vtmat[0]);
   }
   else{ //if the datamatrix is not multigroup, can immediately procede with finding the SVD
     //calculating the SVD of the datamatrix
-    SVD_CALC(data,&n_t,&len_xy,&*center[0],&*umat[0],&*sig[0],&*vtmat[0]);
+    SVD_CALC(data,&n_t,&clen,&*center[0],&*umat[0],&*sig[0],&*vtmat[0]);
   }
 
   //deallocating arrays
@@ -175,15 +189,13 @@ int POD_CALC(double *data, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int g
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int gdat_reform(int n_t, int n_g, int n_y, int n_x, int g, double *gdat, double *vec)
+int gdat_reform(int n_t, int n_g, int clen, int g, double *gdat, double *vec)
 {
   int i, j, t;
 
   for(t=0;t<n_t;t++){
-    for(j=0;j<n_y;j++){
-      for(i=0;i<n_x;i++){
-        vec[i+j*n_x+t*n_x*n_y] = gdat[i+j*n_x+g*n_x*n_y+t*n_x*n_y*n_g];
-      }
+    for(i=0;i<clen;i++){
+      vec[i+t*clen] = gdat[i+g*clen+t*n_g*clen];
     }
   }
 

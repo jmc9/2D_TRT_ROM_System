@@ -5,6 +5,14 @@
 
 void HANDLE_ERR(int Status, char Location[]);
 
+int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g, size_t clen, size_t rank, int gsum,
+  int Sid, int Uid, int Vtid);
+
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
 //================================================================================================================================//
 //
 //================================================================================================================================//
@@ -86,32 +94,33 @@ int DEF_VARS(int ncid, int N_g_ID, int rank_avg_ID, int rank_edgV_ID, int rank_e
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int OUTPUT_fg_POD(int ncid_in, int ncid_out, size_t glen, size_t glen_edgV, size_t glen_edgH, size_t N_t, size_t N_g, size_t N_y, 
-  size_t N_x, int S_fg_avg_xx_ID, int U_fg_avg_xx_ID, int Vt_fg_avg_xx_ID, int S_fg_edgV_xx_ID,
-  int U_fg_edgV_xx_ID, int Vt_fg_edgV_xx_ID, int S_fg_avg_yy_ID, int U_fg_avg_yy_ID, int Vt_fg_avg_yy_ID,
-  int S_fg_edgH_yy_ID, int U_fg_edgH_yy_ID, int Vt_fg_edgH_yy_ID, int S_fg_edgV_xy_ID, int U_fg_edgV_xy_ID,
-  int Vt_fg_edgV_xy_ID, int S_fg_edgH_xy_ID, int U_fg_edgH_xy_ID, int Vt_fg_edgH_xy_ID)
+int OUTPUT_fg_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int gsum, int S_fg_avg_xx_ID,
+  int U_fg_avg_xx_ID, int Vt_fg_avg_xx_ID, int S_fg_edgV_xx_ID, int U_fg_edgV_xx_ID, int Vt_fg_edgV_xx_ID,
+  int S_fg_avg_yy_ID, int U_fg_avg_yy_ID, int Vt_fg_avg_yy_ID, int S_fg_edgH_yy_ID, int U_fg_edgH_yy_ID,
+  int Vt_fg_edgH_yy_ID, int S_fg_edgV_xy_ID, int U_fg_edgV_xy_ID, int Vt_fg_edgV_xy_ID, int S_fg_edgH_xy_ID,
+  int U_fg_edgH_xy_ID, int Vt_fg_edgH_xy_ID)
 {
   int err;
   char dname[25];
+  size_t clen, rank;
 
-  memset(dname,0,25); strcpy(dname,"fg_avg_xx");
-  err = GENERATE_POD(ncid_in,ncid_out,dname,glen,N_t,N_g,N_y,N_x,0,S_fg_avg_xx_ID,U_fg_avg_xx_ID,Vt_fg_avg_xx_ID);
+  memset(dname,0,25); strcpy(dname,"fg_avg_xx"); clen = N_y*N_x; rank = min(clen,N_t);
+  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,N_g,clen,rank,gsum,S_fg_avg_xx_ID,U_fg_avg_xx_ID,Vt_fg_avg_xx_ID);
 
-  memset(dname,0,25); strcpy(dname,"fg_edgV_xx");
-  err = GENERATE_POD(ncid_in,ncid_out,dname,glen_edgV,N_t,N_g,N_y,(N_x+1),0,S_fg_edgV_xx_ID,U_fg_edgV_xx_ID,Vt_fg_edgV_xx_ID);
+  memset(dname,0,25); strcpy(dname,"fg_edgV_xx"); clen = N_y*(N_x+1); rank = min(clen,N_t);
+  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,N_g,clen,rank,gsum,S_fg_edgV_xx_ID,U_fg_edgV_xx_ID,Vt_fg_edgV_xx_ID);
 
-  memset(dname,0,25); strcpy(dname,"fg_avg_yy");
-  err = GENERATE_POD(ncid_in,ncid_out,dname,glen,N_t,N_g,N_y,N_x,0,S_fg_avg_yy_ID,U_fg_avg_yy_ID,Vt_fg_avg_yy_ID);
+  memset(dname,0,25); strcpy(dname,"fg_avg_yy"); clen = N_y*N_x; rank = min(clen,N_t);
+  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,N_g,clen,rank,gsum,S_fg_avg_yy_ID,U_fg_avg_yy_ID,Vt_fg_avg_yy_ID);
 
-  memset(dname,0,25); strcpy(dname,"fg_edgH_yy\0");
-  err = GENERATE_POD(ncid_in,ncid_out,dname,glen_edgH,N_t,N_g,(N_y+1),N_x,0,S_fg_edgH_yy_ID,U_fg_edgH_yy_ID,Vt_fg_edgH_yy_ID);
+  memset(dname,0,25); strcpy(dname,"fg_edgH_yy\0"); clen = (N_y+1)*N_x; rank = min(clen,N_t);
+  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,N_g,clen,rank,gsum,S_fg_edgH_yy_ID,U_fg_edgH_yy_ID,Vt_fg_edgH_yy_ID);
 
-  memset(dname,0,25); strcpy(dname,"fg_edgV_xy\0");
-  err = GENERATE_POD(ncid_in,ncid_out,dname,glen_edgV,N_t,N_g,N_y,(N_x+1),0,S_fg_edgV_xy_ID,U_fg_edgV_xy_ID,Vt_fg_edgV_xy_ID);
+  memset(dname,0,25); strcpy(dname,"fg_edgV_xy\0"); clen = N_y*(N_x+1); rank = min(clen,N_t);
+  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,N_g,clen,rank,gsum,S_fg_edgV_xy_ID,U_fg_edgV_xy_ID,Vt_fg_edgV_xy_ID);
 
-  memset(dname,0,25); strcpy(dname,"fg_edgH_xy\0");
-  err = GENERATE_POD(ncid_in,ncid_out,dname,glen_edgH,N_t,N_g,(N_y+1),N_x,0,S_fg_edgH_xy_ID,U_fg_edgH_xy_ID,Vt_fg_edgH_xy_ID);
+  memset(dname,0,25); strcpy(dname,"fg_edgH_xy\0"); clen = (N_y+1)*N_x; rank = min(clen,N_t);
+  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,N_g,clen,rank,gsum,S_fg_edgH_xy_ID,U_fg_edgH_xy_ID,Vt_fg_edgH_xy_ID);
 
   return err;
 }

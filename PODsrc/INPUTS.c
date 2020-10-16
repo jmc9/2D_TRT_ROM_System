@@ -33,7 +33,7 @@ void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_y, size_t *N_x)
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void INPUT(char *infile, char *dsfile, char *outfile)
+void INPUT(char *infile, char *dsfile, char *outfile, int *gsum)
 {
   FILE *inpf;
   char line[256];
@@ -53,6 +53,11 @@ void INPUT(char *infile, char *dsfile, char *outfile)
     inps[n] = (char *)malloc(sizeof(char)*25);
   }
 
+  //setting defaults
+  strcpy(dsfile,"output.h5");
+  strcpy(outfile,"PODout.h5");
+  (*gsum) = 0;
+
   //moving line by line through file to grab inputs
   while ( fgets(line, 255, inpf) != NULL ){ //placing current line of input file into 'line' character array
 
@@ -61,14 +66,21 @@ void INPUT(char *infile, char *dsfile, char *outfile)
         inps[n][i] = 0;
       }
     }
-    
+
     err = delimit(line,delim,inps,(int)nargs);
 
     if (strcmp(inps[0],"dataset") == 0){
+      memset(dsfile,0,10);
       strcpy(dsfile,inps[1]);
     }
     else if (strcmp(inps[0],"outfile") == 0){
+      memset(outfile,0,10);
       strcpy(outfile,inps[1]);
+    }
+    else if (strcmp(inps[0],"gsum") == 0){
+      if (strcmp(inps[1],"1") == 0){
+        (*gsum) = 1;
+      }
     }
 
   }

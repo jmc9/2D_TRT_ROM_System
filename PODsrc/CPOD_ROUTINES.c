@@ -66,42 +66,56 @@ int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g,
   //checking type of dataset to perform POD on
   if(n_g > 0){ //if n_g>0, then a multigroup dataset has been detected
 
+    //loop over energy groups
+    for(g=0;g<n_g;g++){
 
-    if(gsum == 1){ //gsum == 1 means to perform POD on the entire multigroup dataset at once
-      //large singule multigroup matrix will go here
-    }
-    else{ //gsum != 1 means to perform POD on each group of the dataset individually
+      //find the POD modes and singular values of a given groupwise datamatrix
+      err = POD_CALC(data,N_t,N_g,clen,rank,g,&center,&umat,&sig,&vtmat,&sigp);
 
-      //loop over energy groups
-      for(g=0;g<n_g;g++){
+      startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+      countp[0] = 1; countp[1] = rank; countp[2] = 0;
+      stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+      err = nc_put_vars(ncid_out,Sid,startp,countp,stridep,sig); HANDLE_ERR(err,loc);
 
-        //find the POD modes and singular values of a given groupwise datamatrix
-        err = POD_CALC(data,N_t,N_g,clen,rank,g,&center,&umat,&sig,&vtmat,&sigp);
+      startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+      countp[0] = 1; countp[1] = rank; countp[2] = clen;
+      stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
+      err = nc_put_vars(ncid_out,Uid,startp,countp,stridep,umat); HANDLE_ERR(err,loc);
 
-        startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
-        countp[0] = 1; countp[1] = rank; countp[2] = 0;
-        stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-        err = nc_put_vars(ncid_out,Sid,startp,countp,stridep,sig); HANDLE_ERR(err,loc);
+      startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+      countp[0] = 1; countp[1] = N_t; countp[2] = rank;
+      stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
+      err = nc_put_vars(ncid_out,Vtid,startp,countp,stridep,vtmat); HANDLE_ERR(err,loc);
 
-        startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
-        countp[0] = 1; countp[1] = rank; countp[2] = clen;
-        stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
-        err = nc_put_vars(ncid_out,Uid,startp,countp,stridep,umat); HANDLE_ERR(err,loc);
+      //plot the singular values
+      strcpy(pname,dname); sprintf(buf,"_g%d",g+1); strcat(pname,buf);
+      err = SIG_PLOT(pname,sig,sigp,(int)rank,drop);
 
-        startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
-        countp[0] = 1; countp[1] = N_t; countp[2] = rank;
-        stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
-        err = nc_put_vars(ncid_out,Vtid,startp,countp,stridep,vtmat); HANDLE_ERR(err,loc);
+    } //end g loop
 
-        //plot the singular values
-        strcpy(pname,dname); sprintf(buf,"_g%d",g+1); strcat(pname,buf);
-        err = SIG_PLOT(pname,sig,sigp,(int)rank,drop);
-
-      } //end g loop
-    }
   }
   else{
+
     err = POD_CALC(data,N_t,N_g,clen,rank,0,&center,&umat,&sig,&vtmat,&sigp);
+
+    startp[0] = 0; startp[1] = 0; startp[2] = 0;
+    countp[0] = rank; countp[1] = 0; countp[2] = 0;
+    stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
+    err = nc_put_vars(ncid_out,Sid,startp,countp,stridep,sig); HANDLE_ERR(err,loc);
+
+    startp[0] = 0; startp[1] = 0; startp[2] = 0;
+    countp[0] = rank; countp[1] = clen; countp[2] = 0;
+    stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+    err = nc_put_vars(ncid_out,Uid,startp,countp,stridep,umat); HANDLE_ERR(err,loc);
+
+    startp[0] = 0; startp[1] = 0; startp[2] = 0;
+    countp[0] = N_t; countp[1] = rank; countp[2] = 0;
+    stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+    err = nc_put_vars(ncid_out,Vtid,startp,countp,stridep,vtmat); HANDLE_ERR(err,loc);
+
+    //plot the singular values
+    strcpy(pname,dname); err = SIG_PLOT(pname,sig,sigp,(int)rank,drop);
+
   }
 
   //deallocating arrays
@@ -174,14 +188,14 @@ int POD_CALC(double *data, size_t N_t, size_t N_g, size_t Clen, size_t rank, int
 
     //calculating the SVD of the datamatrix
     SVD_CALC(temp,&n_t,&clen,&*center[0],&*umat[0],&*sig[0],&*vtmat[0]);
+
+    //deallocating arrays
+    free(temp);
   }
   else{ //if the datamatrix is not multigroup, can immediately procede with finding the SVD
     //calculating the SVD of the datamatrix
     SVD_CALC(data,&n_t,&clen,&*center[0],&*umat[0],&*sig[0],&*vtmat[0]);
   }
-
-  //deallocating arrays
-  free(temp);
 
   return 0;
 }

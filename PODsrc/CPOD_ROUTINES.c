@@ -24,8 +24,6 @@ int gdat_reform(int n_t, int n_g, int clen, int g, double *gdat, double *vec);
 
 int SIG_PLOT(char *pname, double *sig, double *sigp, int rank, char *drop);
 
-
-
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -36,8 +34,8 @@ int SIG_PLOT(char *pname, double *sig, double *sigp, int rank, char *drop);
 //
 // GENERATE_POD
 //================================================================================================================================//
-int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g, size_t clen, size_t rank, int gsum,
-  int Sid, int Uid, int Vtid)
+int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g, size_t clen, size_t rank,
+  int Cid, int Sid, int Uid, int Vtid)
 {
   int err, n_g, g;
   char loc[13] = "GENERATE_POD";
@@ -65,23 +63,34 @@ int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g,
 
   //checking type of dataset to perform POD on
   if(n_g > 0){ //if n_g>0, then a multigroup dataset has been detected
+    printf("    -- groupwise decomposition detected\n");
 
     //loop over energy groups
     for(g=0;g<n_g;g++){
+      printf("    -- Start POD on group %d\n",g+1);
 
       //find the POD modes and singular values of a given groupwise datamatrix
       err = POD_CALC(data,N_t,N_g,clen,rank,g,&center,&umat,&sig,&vtmat,&sigp);
 
+      //write centering (column-avg'd data) vector to outfile
+      startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+      countp[0] = 1; countp[1] = clen; countp[2] = 0;
+      stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+      err = nc_put_vars(ncid_out,Cid,startp,countp,stridep,center); HANDLE_ERR(err,loc);
+
+      //write singular value vector to outfile
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = rank; countp[2] = 0;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
       err = nc_put_vars(ncid_out,Sid,startp,countp,stridep,sig); HANDLE_ERR(err,loc);
 
+      //write left singular vector matrix to outfile
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = rank; countp[2] = clen;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
       err = nc_put_vars(ncid_out,Uid,startp,countp,stridep,umat); HANDLE_ERR(err,loc);
 
+      //write right singular vector matrix to outfile
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = N_t; countp[2] = rank;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
@@ -91,23 +100,36 @@ int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g,
       strcpy(pname,dname); sprintf(buf,"_g%d",g+1); strcat(pname,buf);
       err = SIG_PLOT(pname,sig,sigp,(int)rank,drop);
 
+      //deallocating arrays
+      free(center); free(umat); free(sig); free(vtmat); free(sigp);
+
     } //end g loop
 
   }
   else{
+    printf("    -- Start POD on full phase space\n");
 
     err = POD_CALC(data,N_t,N_g,clen,rank,0,&center,&umat,&sig,&vtmat,&sigp);
 
+    //write centering (column-avg'd data) vector to outfile
+    startp[0] = 0; startp[1] = 0; startp[2] = 0;
+    countp[0] = clen; countp[1] = 0; countp[2] = 0;
+    stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
+    err = nc_put_vars(ncid_out,Cid,startp,countp,stridep,center); HANDLE_ERR(err,loc);
+
+    //write singular value vector to outfile
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = rank; countp[1] = 0; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
     err = nc_put_vars(ncid_out,Sid,startp,countp,stridep,sig); HANDLE_ERR(err,loc);
 
+    //write left singular vector matrix to outfile
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = rank; countp[1] = clen; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
     err = nc_put_vars(ncid_out,Uid,startp,countp,stridep,umat); HANDLE_ERR(err,loc);
 
+    //write right singular vector matrix to outfile
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = N_t; countp[1] = rank; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
@@ -116,10 +138,12 @@ int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g,
     //plot the singular values
     strcpy(pname,dname); err = SIG_PLOT(pname,sig,sigp,(int)rank,drop);
 
+    //deallocating arrays
+    free(center); free(umat); free(sig); free(vtmat); free(sigp);
+
   }
 
-  //deallocating arrays
-  free(data); free(center); free(umat); free(sig); free(vtmat); free(sigp);
+  free(data);
 
   return 0;
 }
@@ -205,7 +229,7 @@ int POD_CALC(double *data, size_t N_t, size_t N_g, size_t Clen, size_t rank, int
 //================================================================================================================================//
 int gdat_reform(int n_t, int n_g, int clen, int g, double *gdat, double *vec)
 {
-  int i, j, t;
+  int i, t;
 
   for(t=0;t<n_t;t++){
     for(i=0;i<clen;i++){

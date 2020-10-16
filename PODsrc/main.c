@@ -4,30 +4,41 @@
 #include <string.h>
 #include <math.h>
 
-void INPUT(char *infile, char *dsfile, char *outfile, int *gsum);
-void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_y, size_t *N_x);
+//FROM NCDF_IO.c
 void HANDLE_ERR(int Status, char Location[]);
-void OPEN_NCFILE(char *fname, int *ncid);
 
-// int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t len, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int gsum,
-//   int Sid, int Uid, int Vtid);
+//FROM INPUTS.c
+void INPUT(char *infile, char *dsfile, char *outfile, int *gsum, int *fg_pod, int *Ig_pod);
+void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x);
 
-int DEF_DIMS(int ncid_out, size_t N_t, size_t N_g, size_t N_y, size_t N_x, size_t rank_avg, size_t rank_edgV, size_t rank_edgH,
-  size_t clen_avg, size_t clen_edgV, size_t clen_edgH, int *N_t_ID, int *N_g_ID, int *N_y_ID, int *N_x_ID, int *rank_avg_ID,
-  int *rank_edgV_ID, int *rank_edgH_ID, int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID);
+//FROM OUTPUTS.c
+int DEF_DIMS(int ncid_out, size_t N_t, size_t N_g, size_t N_m, size_t N_y, size_t N_x, size_t rank_avg, size_t rank_edgV,
+   size_t rank_edgH,size_t clen_avg, size_t clen_edgV, size_t clen_edgH, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID,
+   int *N_x_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID);
 
-int DEF_VARS(int ncid, int gsum, int N_g_ID, int rank_avg_ID, int rank_edgV_ID, int rank_edgH_ID, int clen_avg_ID, int clen_edgV_ID,
-   int clen_edgH_ID, int N_t_ID, int *S_fg_avg_xx_ID, int *U_fg_avg_xx_ID, int *Vt_fg_avg_xx_ID, int *S_fg_edgV_xx_ID,
-   int *U_fg_edgV_xx_ID, int *Vt_fg_edgV_xx_ID, int *S_fg_avg_yy_ID, int *U_fg_avg_yy_ID, int *Vt_fg_avg_yy_ID,
-   int *S_fg_edgH_yy_ID, int *U_fg_edgH_yy_ID, int *Vt_fg_edgH_yy_ID, int *S_fg_edgV_xy_ID, int *U_fg_edgV_xy_ID,
-   int *Vt_fg_edgV_xy_ID, int *S_fg_edgH_xy_ID, int *U_fg_edgH_xy_ID, int *Vt_fg_edgH_xy_ID);
+int DEF_fg_VARS(int ncid, int gsum, int N_g_ID, int rank_avg_ID, int rank_edgV_ID, int rank_edgH_ID, int clen_avg_ID,
+   int clen_edgV_ID,int clen_edgH_ID, int N_t_ID, int *C_fg_avg_xx_ID, int *S_fg_avg_xx_ID, int *U_fg_avg_xx_ID,
+   int *Vt_fg_avg_xx_ID, int *C_fg_edgV_xx_ID, int *S_fg_edgV_xx_ID,int *U_fg_edgV_xx_ID, int *Vt_fg_edgV_xx_ID,
+   int *C_fg_avg_yy_ID, int *S_fg_avg_yy_ID, int *U_fg_avg_yy_ID, int *Vt_fg_avg_yy_ID,int *C_fg_edgH_yy_ID, int *S_fg_edgH_yy_ID,
+   int *U_fg_edgH_yy_ID, int *Vt_fg_edgH_yy_ID, int *C_fg_edgV_xy_ID, int *S_fg_edgV_xy_ID, int *U_fg_edgV_xy_ID,
+   int *Vt_fg_edgV_xy_ID, int *C_fg_edgH_xy_ID, int *S_fg_edgH_xy_ID, int *U_fg_edgH_xy_ID, int *Vt_fg_edgH_xy_ID);
 
-int OUTPUT_fg_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int gsum, int S_fg_avg_xx_ID,
-  int U_fg_avg_xx_ID, int Vt_fg_avg_xx_ID, int S_fg_edgV_xx_ID, int U_fg_edgV_xx_ID, int Vt_fg_edgV_xx_ID,
-  int S_fg_avg_yy_ID, int U_fg_avg_yy_ID, int Vt_fg_avg_yy_ID, int S_fg_edgH_yy_ID, int U_fg_edgH_yy_ID,
-  int Vt_fg_edgH_yy_ID, int S_fg_edgV_xy_ID, int U_fg_edgV_xy_ID, int Vt_fg_edgV_xy_ID, int S_fg_edgH_xy_ID,
-  int U_fg_edgH_xy_ID, int Vt_fg_edgH_xy_ID);
+int DEF_Ig_VARS(int ncid, int gsum, int N_g_ID, int rank_avg_ID, int rank_edgV_ID, int rank_edgH_ID, int clen_avg_ID,
+   int clen_edgV_ID,int clen_edgH_ID, int N_t_ID, int *C_Ig_avg_ID, int *S_Ig_avg_ID, int *U_Ig_avg_ID, int *Vt_Ig_avg_ID,
+   int *C_Ig_edgV_ID, int *S_Ig_edgV_ID,int *U_Ig_edgV_ID, int *Vt_Ig_edgV_ID, int *C_Ig_edgH_ID, int *S_Ig_edgH_ID,
+   int *U_Ig_edgH_ID, int *Vt_Ig_edgH_ID);
 
+int OUTPUT_fg_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int gsum, int C_fg_avg_xx_ID,
+  int S_fg_avg_xx_ID, int U_fg_avg_xx_ID, int Vt_fg_avg_xx_ID, int C_fg_edgV_xx_ID, int S_fg_edgV_xx_ID, int U_fg_edgV_xx_ID,
+  int Vt_fg_edgV_xx_ID, int C_fg_avg_yy_ID, int S_fg_avg_yy_ID, int U_fg_avg_yy_ID, int Vt_fg_avg_yy_ID, int C_fg_edgH_yy_ID,
+  int S_fg_edgH_yy_ID, int U_fg_edgH_yy_ID,int Vt_fg_edgH_yy_ID, int C_fg_edgV_xy_ID, int S_fg_edgV_xy_ID, int U_fg_edgV_xy_ID,
+  int Vt_fg_edgV_xy_ID, int C_fg_edgH_xy_ID, int S_fg_edgH_xy_ID, int U_fg_edgH_xy_ID, int Vt_fg_edgH_xy_ID);
+
+int OUTPUT_Ig_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_m, size_t N_y, size_t N_x, int gsum,
+  int C_Ig_avg_ID, int S_Ig_avg_ID, int U_Ig_avg_ID, int Vt_Ig_avg_ID, int C_Ig_edgV_ID, int S_Ig_edgV_ID, int U_Ig_edgV_ID,
+  int Vt_Ig_edgV_ID, int C_Ig_edgH_ID, int S_Ig_edgH_ID, int U_Ig_edgH_ID, int Vt_Ig_edgH_ID);
+
+//LOCAL DEFINITIONS
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -38,57 +49,103 @@ int OUTPUT_fg_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_y,
 //================================================================================================================================//
 int main()
 {
-  // comment
-  int ncid_in, ncid_out, err;
-  int N_t_ID, N_g_ID, N_y_ID, N_x_ID;
+  //
+  int ncid_in, ncid_out, err, gsum, fg_pod, Ig_pod;
+  int N_t_ID, N_g_ID, N_m_ID, N_y_ID, N_x_ID;
   int rank_avg_ID, rank_edgV_ID, rank_edgH_ID, clen_avg_ID, clen_edgV_ID, clen_edgH_ID;
-  int ndims, dimids[4], gsum;
-  int S_fg_avg_xx_ID, U_fg_avg_xx_ID, Vt_fg_avg_xx_ID, S_fg_edgV_xx_ID, U_fg_edgV_xx_ID, Vt_fg_edgV_xx_ID;
-  int S_fg_avg_yy_ID, U_fg_avg_yy_ID, Vt_fg_avg_yy_ID, S_fg_edgH_yy_ID, U_fg_edgH_yy_ID, Vt_fg_edgH_yy_ID;
-  int S_fg_edgV_xy_ID, U_fg_edgV_xy_ID, Vt_fg_edgV_xy_ID, S_fg_edgH_xy_ID, U_fg_edgH_xy_ID, Vt_fg_edgH_xy_ID;
-  char infile[25], dsfile[100], dname[25], outfile[25];
-  size_t N_t, N_g, N_y, N_x, glen, glen_edgV, glen_edgH, gscale;
+  //
+  int C_fg_avg_xx_ID, S_fg_avg_xx_ID, U_fg_avg_xx_ID, Vt_fg_avg_xx_ID;
+  int C_fg_edgV_xx_ID, S_fg_edgV_xx_ID, U_fg_edgV_xx_ID, Vt_fg_edgV_xx_ID;
+  int C_fg_avg_yy_ID, S_fg_avg_yy_ID, U_fg_avg_yy_ID, Vt_fg_avg_yy_ID;
+  int C_fg_edgH_yy_ID, S_fg_edgH_yy_ID, U_fg_edgH_yy_ID, Vt_fg_edgH_yy_ID;
+  int C_fg_edgV_xy_ID, S_fg_edgV_xy_ID, U_fg_edgV_xy_ID, Vt_fg_edgV_xy_ID;
+  int C_fg_edgH_xy_ID, S_fg_edgH_xy_ID, U_fg_edgH_xy_ID, Vt_fg_edgH_xy_ID;
+  //
+  int C_Ig_avg_ID, S_Ig_avg_ID, U_Ig_avg_ID, Vt_Ig_avg_ID;
+  int C_Ig_edgV_ID, S_Ig_edgV_ID, U_Ig_edgV_ID, Vt_Ig_edgV_ID;
+  int C_Ig_edgH_ID, S_Ig_edgH_ID, U_Ig_edgH_ID, Vt_Ig_edgH_ID;
+  //
+  size_t N_t, N_g, N_m, N_y, N_x, gscale, mscale;
   size_t rank_avg, rank_edgV, rank_edgH, clen_avg, clen_edgV, clen_edgH;
+  char infile[25], dsfile[100], outfile[25];
   char loc[5] = "main";
 
+  //===========================================================================//
+  //                                                                           //
+  //     READING INPUTS                                                        //
+  //                                                                           //
+  //===========================================================================//
+  printf("Program start\nReading inputs\n");
   strcpy(infile,"input.inp"); //setting input file name (default)
 
-  INPUT(infile,dsfile,outfile,&gsum); //reading input file
-  printf("%s %s\n",dsfile,outfile);
+  INPUT(infile,dsfile,outfile,&gsum,&fg_pod,&Ig_pod); //reading input file
 
   err = nc_open(dsfile,NC_NOWRITE,&ncid_in); HANDLE_ERR(err,loc); //opening NetCDF dataset
-  GET_DIMS(ncid_in,&N_t,&N_g,&N_y,&N_x); //finding dimensions of problem domain
-  glen = N_t*N_g*N_y*N_x;
-  glen_edgV = N_t*N_g*N_y*(N_x+1);
-  glen_edgH = N_t*N_g*(N_y+1)*N_x;
+  GET_DIMS(ncid_in,&N_t,&N_g,&N_m,&N_y,&N_x); //finding dimensions of problem domain
 
   if (gsum == 1){ gscale = N_g; }
   else{ gscale = 1; }
-  clen_avg = gscale*N_x*N_y; clen_edgV = gscale*(N_x+1)*N_y; clen_edgH = gscale*N_x*(N_y+1);
+  if (Ig_pod == 1){ mscale = N_m; }
+  else{ mscale = 1; }
+  clen_avg = gscale*mscale*N_x*N_y; clen_edgV = gscale*mscale*(N_x+1)*N_y; clen_edgH = gscale*mscale*N_x*(N_y+1);
   rank_avg = min(clen_avg,N_t); rank_edgV = min(clen_edgV,N_t); rank_edgH = min(clen_edgH,N_t);
 
+  //===========================================================================//
+  //                                                                           //
+  //     INITIALIZING OUTPUT FILE                                              //
+  //                                                                           //
+  //===========================================================================//
+  printf("Initializing output file\n");
   err = nc_create(outfile,NC_NETCDF4,&ncid_out); HANDLE_ERR(err,loc); //opening NetCDF dataset
 
-  err = DEF_DIMS(ncid_out,N_t,N_g,N_y,N_x,rank_avg,rank_edgV,rank_edgH,clen_avg,clen_edgV,clen_edgH,&N_t_ID,&N_g_ID,&N_y_ID,
-    &N_x_ID,&rank_avg_ID,&rank_edgV_ID,&rank_edgH_ID,&clen_avg_ID,&clen_edgV_ID,&clen_edgH_ID);
+  err = DEF_DIMS(ncid_out,N_t,N_g,N_m,N_y,N_x,rank_avg,rank_edgV,rank_edgH,clen_avg,clen_edgV,clen_edgH,&N_t_ID,&N_g_ID,&N_m_ID,
+    &N_y_ID,&N_x_ID,&rank_avg_ID,&rank_edgV_ID,&rank_edgH_ID,&clen_avg_ID,&clen_edgV_ID,&clen_edgH_ID);
+  if (err != 0){ printf("Error occured while defining dimensions in %s\n",outfile); exit(1); }
 
-  err = DEF_VARS(ncid_out,gsum,N_g_ID,rank_avg_ID,rank_edgV_ID,rank_edgH_ID,clen_avg_ID,clen_edgV_ID,clen_edgH_ID,N_t_ID,
-    &S_fg_avg_xx_ID,&U_fg_avg_xx_ID,&Vt_fg_avg_xx_ID,&S_fg_edgV_xx_ID,&U_fg_edgV_xx_ID,&Vt_fg_edgV_xx_ID,&S_fg_avg_yy_ID,
-    &U_fg_avg_yy_ID,&Vt_fg_avg_yy_ID,&S_fg_edgH_yy_ID,&U_fg_edgH_yy_ID,&Vt_fg_edgH_yy_ID,&S_fg_edgV_xy_ID,&U_fg_edgV_xy_ID,
-    &Vt_fg_edgV_xy_ID,&S_fg_edgH_xy_ID,&U_fg_edgH_xy_ID,&Vt_fg_edgH_xy_ID);
+  if (fg_pod == 1){
+    err = DEF_fg_VARS(ncid_out,gsum,N_g_ID,rank_avg_ID,rank_edgV_ID,rank_edgH_ID,clen_avg_ID,clen_edgV_ID,clen_edgH_ID,N_t_ID,
+      &C_fg_avg_xx_ID,&S_fg_avg_xx_ID,&U_fg_avg_xx_ID,&Vt_fg_avg_xx_ID,&C_fg_edgV_xx_ID,&S_fg_edgV_xx_ID,&U_fg_edgV_xx_ID,
+      &Vt_fg_edgV_xx_ID,&C_fg_avg_yy_ID,&S_fg_avg_yy_ID,&U_fg_avg_yy_ID,&Vt_fg_avg_yy_ID,&C_fg_edgH_yy_ID,&S_fg_edgH_yy_ID,
+      &U_fg_edgH_yy_ID,&Vt_fg_edgH_yy_ID,&C_fg_edgV_xy_ID,&S_fg_edgV_xy_ID,&U_fg_edgV_xy_ID,&Vt_fg_edgV_xy_ID,&C_fg_edgH_xy_ID,
+      &S_fg_edgH_xy_ID,&U_fg_edgH_xy_ID,&Vt_fg_edgH_xy_ID);
+  }
+  else if (Ig_pod == 1){
+    err = DEF_Ig_VARS(ncid_out,gsum,N_g_ID,rank_avg_ID,rank_edgV_ID,rank_edgH_ID,clen_avg_ID,clen_edgV_ID,clen_edgH_ID,
+       N_t_ID,&C_Ig_avg_ID,&S_Ig_avg_ID,&U_Ig_avg_ID,&Vt_Ig_avg_ID,&C_Ig_edgV_ID,&S_Ig_edgV_ID,&U_Ig_edgV_ID,&Vt_Ig_edgV_ID,
+       &C_Ig_edgH_ID,&S_Ig_edgH_ID,&U_Ig_edgH_ID,&Vt_Ig_edgH_ID);
+  }
 
-  err = nc_enddef(ncid_out); HANDLE_ERR(err,loc);
+  if (err != 0){ printf("Error occured while defining variables in %s\n",outfile); exit(1); }
 
-  err = OUTPUT_fg_POD(ncid_in,ncid_out,N_t,N_g,N_y,N_x,gsum,
-     S_fg_avg_xx_ID,U_fg_avg_xx_ID,Vt_fg_avg_xx_ID,S_fg_edgV_xx_ID,
-     U_fg_edgV_xx_ID,Vt_fg_edgV_xx_ID,S_fg_avg_yy_ID,U_fg_avg_yy_ID,Vt_fg_avg_yy_ID,
-     S_fg_edgH_yy_ID,U_fg_edgH_yy_ID,Vt_fg_edgH_yy_ID,S_fg_edgV_xy_ID,U_fg_edgV_xy_ID,
-     Vt_fg_edgV_xy_ID,S_fg_edgH_xy_ID,U_fg_edgH_xy_ID,Vt_fg_edgH_xy_ID);
+  err = nc_enddef(ncid_out); HANDLE_ERR(err,loc); //changing output file to data mode
 
+  //===========================================================================//
+  //                                                                           //
+  //     PERFORMING THE POD                                                    //
+  //                                                                           //
+  //===========================================================================//
+  printf("Beginning POD calculations...\n");
+
+  if (fg_pod == 1){
+    err = OUTPUT_fg_POD(ncid_in,ncid_out,N_t,N_g,N_y,N_x,gsum,C_fg_avg_xx_ID,S_fg_avg_xx_ID,U_fg_avg_xx_ID,Vt_fg_avg_xx_ID,
+       C_fg_edgV_xx_ID,S_fg_edgV_xx_ID,U_fg_edgV_xx_ID,Vt_fg_edgV_xx_ID,C_fg_avg_yy_ID,S_fg_avg_yy_ID,U_fg_avg_yy_ID,
+       Vt_fg_avg_yy_ID,C_fg_edgH_yy_ID,S_fg_edgH_yy_ID,U_fg_edgH_yy_ID,Vt_fg_edgH_yy_ID,C_fg_edgV_xy_ID,S_fg_edgV_xy_ID,
+       U_fg_edgV_xy_ID,Vt_fg_edgV_xy_ID,C_fg_edgH_xy_ID,S_fg_edgH_xy_ID,U_fg_edgH_xy_ID,Vt_fg_edgH_xy_ID);
+  }
+  else if (Ig_pod == 1){
+    err = OUTPUT_Ig_POD(ncid_in,ncid_out,N_t,N_g,N_m,N_y,N_x,gsum,C_Ig_avg_ID,S_Ig_avg_ID,U_Ig_avg_ID,Vt_Ig_avg_ID,
+       C_Ig_edgV_ID,S_Ig_edgV_ID,U_Ig_edgV_ID,Vt_Ig_edgV_ID,C_Ig_edgH_ID,S_Ig_edgH_ID,U_Ig_edgH_ID,Vt_Ig_edgH_ID);
+  }
+
+  //===========================================================================//
+  //                                                                           //
+  //     END OF PROGRAM CLEAN UP                                               //
+  //                                                                           //
+  //===========================================================================//
   err = nc_close(ncid_in); HANDLE_ERR(err,loc); //closing NetCDF dataset
   err = nc_close(ncid_out); HANDLE_ERR(err,loc); //closing NetCDF dataset
 
-  printf("yuh\n");
+  printf("Program completed\n");
 }
 
 //================================================================================================================================//

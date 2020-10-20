@@ -5,12 +5,12 @@ INC_DIR = /usr/include
 #--------------------------------------------
 
 CC = gcc
-CFLAGS = -O0
+CFLAGS = -O0 -g
 CWARNINGS =  -Wall -Wextra -Wconversion
 CRUNTIMES = -fbounds-check #-fsanitize=bounds
 
 FC = gfortran
-FFLAGS = -O0
+FFLAGS = -O0 -g
 FWARNINGS =  -Wall -Wextra -Wunused-dummy-argument -Wconversion -Wconversion-extra -Wintrinsic-shadow -Wsurprising
 FRUNTIMES = -fbacktrace -fbounds-check -fcheck=all
 

@@ -9,13 +9,13 @@ CONTAINS
 !
 !==================================================================================================================================!
 SUBROUTINE SVD_CALC(dat,N_t,clen,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
-  INTEGER,INTENT(IN):: N_t, clen
+  INTEGER(c_size_t),INTENT(IN):: N_t, clen
   REAL(c_double),INTENT(IN):: dat(*)
   REAL(c_double),INTENT(OUT):: center(*), umat(*), sig(*), vtmat(*)
 
   REAL*8,ALLOCATABLE:: mat(:,:), u(:,:), s(:), vt(:,:)
-  INTEGER:: rank
-  INTEGER:: t, i, j, r
+  INTEGER(c_size_t):: rank
+  INTEGER(c_size_t):: t, i, j, r
 
   rank = MIN(clen,N_t)
   ALLOCATE(mat(clen,N_t))

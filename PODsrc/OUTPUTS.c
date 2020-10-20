@@ -4,11 +4,11 @@
 #include <string.h>
 
 //FROM NCDF_IO.c
-void HANDLE_ERR(int Status, char Location[]);
+void HANDLE_ERR(const int Status, const char *Location);
 
 //FROM CPOD_ROUTINES.c
-int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g, size_t clen, size_t rank,
-  int Cid, int Sid, int Uid, int Vtid);
+int GENERATE_POD(const int ncid_in, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
+  size_t rank, int Cid, int Sid, int Uid, int Vtid);
 
 //LOCAL FUNCTIONS
 #define min(a,b) \
@@ -19,9 +19,10 @@ int GENERATE_POD(int ncid_in, int ncid_out, char *dname, size_t N_t, size_t N_g,
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int DEF_DIMS(int ncid_out, size_t N_t, size_t N_g, size_t N_m, size_t N_y, size_t N_x, size_t rank_avg, size_t rank_edgV,
-   size_t rank_edgH,size_t clen_avg, size_t clen_edgV, size_t clen_edgH, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID,
-   int *N_x_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID)
+int DEF_DIMS(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y, const size_t N_x,
+   const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH, const size_t clen_avg, const size_t clen_edgV,
+   const size_t clen_edgH, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID,int *N_x_ID, int *rank_avg_ID, int *rank_edgV_ID,
+   int *rank_edgH_ID, int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID)
 {
   int err;
   char loc[9] = "OUT_DIMS";
@@ -46,7 +47,8 @@ int DEF_DIMS(int ncid_out, size_t N_t, size_t N_g, size_t N_m, size_t N_y, size_
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int DEF_POD_VARS(int ncid, int gsum, char *vname, int N_g_ID, int rank_ID, int clen_ID, int N_t_ID, int *Cid, int *Sid, int *Uid, int *Vtid)
+int DEF_POD_VARS(const int ncid, const int gsum, const char *vname, const int N_g_ID, const int rank_ID, const int clen_ID,
+  const int N_t_ID, int *Cid, int *Sid, int *Uid, int *Vtid)
 {
   int err;
   char loc[13] = "DEF_POD_VARS";
@@ -85,12 +87,13 @@ int DEF_POD_VARS(int ncid, int gsum, char *vname, int N_g_ID, int rank_ID, int c
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int DEF_fg_VARS(int ncid, int gsum, int N_g_ID, int rank_avg_ID, int rank_edgV_ID, int rank_edgH_ID, int clen_avg_ID,
-   int clen_edgV_ID,int clen_edgH_ID, int N_t_ID, int *C_fg_avg_xx_ID, int *S_fg_avg_xx_ID, int *U_fg_avg_xx_ID,
-   int *Vt_fg_avg_xx_ID, int *C_fg_edgV_xx_ID, int *S_fg_edgV_xx_ID,int *U_fg_edgV_xx_ID, int *Vt_fg_edgV_xx_ID,
-   int *C_fg_avg_yy_ID, int *S_fg_avg_yy_ID, int *U_fg_avg_yy_ID, int *Vt_fg_avg_yy_ID,int *C_fg_edgH_yy_ID, int *S_fg_edgH_yy_ID,
-   int *U_fg_edgH_yy_ID, int *Vt_fg_edgH_yy_ID, int *C_fg_edgV_xy_ID, int *S_fg_edgV_xy_ID, int *U_fg_edgV_xy_ID,
-   int *Vt_fg_edgV_xy_ID, int *C_fg_edgH_xy_ID, int *S_fg_edgH_xy_ID, int *U_fg_edgH_xy_ID, int *Vt_fg_edgH_xy_ID)
+int DEF_fg_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank_avg_ID, const int rank_edgV_ID,
+   const int rank_edgH_ID, const int clen_avg_ID,const int clen_edgV_ID, const int clen_edgH_ID, const int N_t_ID,
+   int *C_fg_avg_xx_ID, int *S_fg_avg_xx_ID, int *U_fg_avg_xx_ID,int *Vt_fg_avg_xx_ID, int *C_fg_edgV_xx_ID,
+   int *S_fg_edgV_xx_ID, int *U_fg_edgV_xx_ID, int *Vt_fg_edgV_xx_ID, int *C_fg_avg_yy_ID, int *S_fg_avg_yy_ID,
+   int *U_fg_avg_yy_ID, int *Vt_fg_avg_yy_ID,int *C_fg_edgH_yy_ID, int *S_fg_edgH_yy_ID, int *U_fg_edgH_yy_ID,
+   int *Vt_fg_edgH_yy_ID, int *C_fg_edgV_xy_ID, int *S_fg_edgV_xy_ID, int *U_fg_edgV_xy_ID, int *Vt_fg_edgV_xy_ID,
+   int *C_fg_edgH_xy_ID, int *S_fg_edgH_xy_ID, int *U_fg_edgH_xy_ID, int *Vt_fg_edgH_xy_ID)
 {
   int err;
 
@@ -108,10 +111,10 @@ int DEF_fg_VARS(int ncid, int gsum, int N_g_ID, int rank_avg_ID, int rank_edgV_I
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int DEF_Ig_VARS(int ncid, int gsum, int N_g_ID, int rank_avg_ID, int rank_edgV_ID, int rank_edgH_ID, int clen_avg_ID,
-   int clen_edgV_ID,int clen_edgH_ID, int N_t_ID, int *C_Ig_avg_ID, int *S_Ig_avg_ID, int *U_Ig_avg_ID, int *Vt_Ig_avg_ID,
-   int *C_Ig_edgV_ID, int *S_Ig_edgV_ID,int *U_Ig_edgV_ID, int *Vt_Ig_edgV_ID, int *C_Ig_edgH_ID, int *S_Ig_edgH_ID,
-   int *U_Ig_edgH_ID, int *Vt_Ig_edgH_ID)
+int DEF_Ig_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank_avg_ID, const int rank_edgV_ID,
+   const int rank_edgH_ID, const int clen_avg_ID,const int clen_edgV_ID, const int clen_edgH_ID, const int N_t_ID,
+   int *C_Ig_avg_ID, int *S_Ig_avg_ID, int *U_Ig_avg_ID, int *Vt_Ig_avg_ID,int *C_Ig_edgV_ID, int *S_Ig_edgV_ID,
+   int *U_Ig_edgV_ID, int *Vt_Ig_edgV_ID, int *C_Ig_edgH_ID, int *S_Ig_edgH_ID, int *U_Ig_edgH_ID, int *Vt_Ig_edgH_ID)
 {
   int err;
 
@@ -126,11 +129,13 @@ int DEF_Ig_VARS(int ncid, int gsum, int N_g_ID, int rank_avg_ID, int rank_edgV_I
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int OUTPUT_fg_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_y, size_t N_x, int gsum, int C_fg_avg_xx_ID,
-  int S_fg_avg_xx_ID, int U_fg_avg_xx_ID, int Vt_fg_avg_xx_ID, int C_fg_edgV_xx_ID, int S_fg_edgV_xx_ID, int U_fg_edgV_xx_ID,
-  int Vt_fg_edgV_xx_ID, int C_fg_avg_yy_ID, int S_fg_avg_yy_ID, int U_fg_avg_yy_ID, int Vt_fg_avg_yy_ID, int C_fg_edgH_yy_ID,
-  int S_fg_edgH_yy_ID, int U_fg_edgH_yy_ID,int Vt_fg_edgH_yy_ID, int C_fg_edgV_xy_ID, int S_fg_edgV_xy_ID, int U_fg_edgV_xy_ID,
-  int Vt_fg_edgV_xy_ID, int C_fg_edgH_xy_ID, int S_fg_edgH_xy_ID, int U_fg_edgH_xy_ID, int Vt_fg_edgH_xy_ID)
+int OUTPUT_fg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_y, const size_t N_x,
+  const int gsum, const int C_fg_avg_xx_ID,const int S_fg_avg_xx_ID, const int U_fg_avg_xx_ID, const int Vt_fg_avg_xx_ID,
+  const int C_fg_edgV_xx_ID, const int S_fg_edgV_xx_ID, const int U_fg_edgV_xx_ID,const int Vt_fg_edgV_xx_ID,
+  const int C_fg_avg_yy_ID, const int S_fg_avg_yy_ID, const int U_fg_avg_yy_ID, const int Vt_fg_avg_yy_ID,
+  const int C_fg_edgH_yy_ID, const int S_fg_edgH_yy_ID, const int U_fg_edgH_yy_ID, const int Vt_fg_edgH_yy_ID,
+  const int C_fg_edgV_xy_ID, const int S_fg_edgV_xy_ID, const int U_fg_edgV_xy_ID, const int Vt_fg_edgV_xy_ID,
+  const int C_fg_edgH_xy_ID, const int S_fg_edgH_xy_ID, const int U_fg_edgH_xy_ID, const int Vt_fg_edgH_xy_ID)
 {
   int err;
   char dname[25];
@@ -173,9 +178,10 @@ int OUTPUT_fg_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_y,
 //================================================================================================================================//
 //
 //================================================================================================================================//
-int OUTPUT_Ig_POD(int ncid_in, int ncid_out, size_t N_t, size_t N_g, size_t N_m, size_t N_y, size_t N_x, int gsum,
-  int C_Ig_avg_ID, int S_Ig_avg_ID, int U_Ig_avg_ID, int Vt_Ig_avg_ID, int C_Ig_edgV_ID, int S_Ig_edgV_ID, int U_Ig_edgV_ID,
-  int Vt_Ig_edgV_ID, int C_Ig_edgH_ID, int S_Ig_edgH_ID, int U_Ig_edgH_ID, int Vt_Ig_edgH_ID)
+int OUTPUT_Ig_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y, 
+  const size_t N_x, const int gsum, const int C_Ig_avg_ID, const int S_Ig_avg_ID, const int U_Ig_avg_ID, const int Vt_Ig_avg_ID,
+  const int C_Ig_edgV_ID, const int S_Ig_edgV_ID, const int U_Ig_edgV_ID, const int Vt_Ig_edgV_ID, const int C_Ig_edgH_ID,
+  const int S_Ig_edgH_ID, const int U_Ig_edgH_ID, const int Vt_Ig_edgH_ID)
 {
   int err;
   char dname[25];

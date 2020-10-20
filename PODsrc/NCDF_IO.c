@@ -5,7 +5,7 @@
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void HANDLE_ERR(int Status, char Location[])
+void HANDLE_ERR(const int Status, const char *Location)
 {
   if (Status != NC_NOERR){
     printf("***   NETCDF ERROR ENCOUNTERED   ***\n");
@@ -18,7 +18,7 @@ void HANDLE_ERR(int Status, char Location[])
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void GET_VAR_DOUBLE(int ncid, char name[], double **var, size_t size)
+void GET_VAR_DOUBLE(const int ncid, const char *name, double **var, const size_t size)
 {
   int err, vID;
   char loc[15] = "GET_VAR_DOUBLE";

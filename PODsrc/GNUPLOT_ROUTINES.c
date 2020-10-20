@@ -22,7 +22,8 @@
 //   int pt       = gnuplot point type
 //   char *lc     = character array containing gnuplot line color
 //================================================================================================================================//
-int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, int logscale, int pt, char *lc, char *saveas)
+int gnuplot_1d(const char *title, const double *data, const double *crd, const int dim, const char *plttyp, const int logscale,
+  const int pt, const char *lc, const char *saveas)
 {
   FILE *gnuplot_Pipe;
   int err, i;
@@ -79,7 +80,7 @@ int gnuplot_1d(char *title, double *data, double *crd, int dim, char *plttyp, in
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void GNUP_ERR(int err)
+void GNUP_ERR(const int err)
 {
   if(err != 0){
     if(err == 1){ printf("Failed to open gnuplot_Pipe"); exit(2); }

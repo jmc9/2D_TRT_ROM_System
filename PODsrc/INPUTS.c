@@ -7,12 +7,12 @@
 void HANDLE_ERR(int Status, char Location[]);
 
 //FROM MISC_PROCS.c
-int delimit(char *line, char del, char **parts, int nparts);
+int delimit(const char *line, const char del, char **parts, const int nparts);
 
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x)
+void GET_DIMS(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x)
 {
   int err;
   int N_t_ID, N_g_ID, N_m_ID, N_y_ID, N_x_ID;
@@ -37,7 +37,7 @@ void GET_DIMS(int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void INPUT(char *infile, char *dsfile, char *outfile, int *gsum, int *fg_pod, int *Ig_pod)
+void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_pod, int *Ig_pod)
 {
   FILE *inpf;
   char line[256];

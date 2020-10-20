@@ -19,8 +19,8 @@ SUBROUTINE SVD_CALC(dat,N_t,clen,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
 
   rank = MIN(clen,N_t)
   ALLOCATE(mat(clen,N_t))
-  ALLOCATE(u(clen,clen))
-  ALLOCATE(vt(N_t,N_t))
+  ALLOCATE(u(clen,rank))
+  ALLOCATE(vt(rank,N_t))
   ALLOCATE(s(rank))
 
   !filling in centering vector with zeros
@@ -84,9 +84,9 @@ END SUBROUTINE SVD_CALC
 !   datamat (REAL) -- matrix to be decomposed by SVD, dimensions (dim1 x dim2)
 !
 ! OUTPUTS:: umat, sig, vtmat
-!   umat (REAL) -- matrix of dimension(dim1 x dim1), the 'left singular vectors' of datamat are the columns
+!   umat (REAL) -- matrix of dimension(dim1 x MIN(dim1,dim2)), the 'left singular vectors' of datamat are the columns
 !   sig (REAL) -- vector of dimension(MIN(dim1,dim2)), the 'singular values' of datamat
-!   vtmat (REAL) -- matrix of dimension(dim2 x dim2), the 'right singular vectors' of datamat are the rows
+!   vtmat (REAL) -- matrix of dimension(MIN(dim1,dim2) x dim2), the 'right singular vectors' of datamat are the rows
 !
 ! INTERNALS:: dim1, dim2, LWORK, info, WORK
 !   dim1 (INT) -- first dimension of 'datamat' (rows)
@@ -105,7 +105,7 @@ SUBROUTINE SVD_DECOMP(datamat,umat,sig,vtmat)
   LWORK=MAX(1,3*MIN(dim1,dim2) + MAX(dim1,dim2),5*MIN(dim1,dim2)) !honestly still dont know what the fuck this is but it works
   ALLOCATE(WORK(LWORK))
 
-  CALL DGESVD('A','A',dim1,dim2,datamat,dim1,sig,umat,dim1,vtmat,dim2,WORK,LWORK,info)  !lapack SVD function
+  CALL DGESVD('S','S',dim1,dim2,datamat,dim1,sig,umat,dim1,vtmat,dim2,WORK,LWORK,info)  !lapack SVD function
   IF (info .NE. 0) STOP "SVD failed"
 
   DEALLOCATE(WORK)

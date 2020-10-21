@@ -9,6 +9,7 @@ MODULE ALGORITHMS
   USE INITIALIZERS
   USE netcdf
   USE NCDF_IO
+  USE POD_ROUTINES
 
   IMPLICIT NONE
 
@@ -137,6 +138,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: G_old_ID, Pold_L_ID, Pold_B_ID, Pold_R_ID, Pold_T_ID
   INTEGER:: Gold_hat_ID, Rhat_old_ID, PL_ID, PB_ID, PR_ID, PT_ID
   INTEGER:: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
+
+  !--------------------------------------------------!
+  REAL*8,ALLOCATABLE:: C_fg_avg_xx(:), S_fg_avg_xx(:), U_fg_avg_xx(:,:), V_fg_avg_xx(:,:)
+  INTEGER:: rrank_fg_avg_xx
 
   !===========================================================================!
   !                                                                           !

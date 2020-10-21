@@ -350,4 +350,71 @@ SUBROUTINE NF_PUT_t_VAR4D(ncID,varID,Values,t)
 
 END SUBROUTINE NF_PUT_t_VAR4D
 
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE NF_INQ_DIM(ncID,dname,len)
+  INTEGER,INTENT(IN):: ncID
+  CHARACTER(*),INTENT(IN):: dname
+  INTEGER,INTENT(OUT):: len
+  INTEGER:: Status, dimID
+  CHARACTER(25):: name
+  CHARACTER(40):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_INQ_DIM'
+
+  Status = nf90_inq_dimid(ncID,dname,dimID)
+  CALL HANDLE_ERR(Status,Location)
+
+  Status = nf90_inquire_dimension(ncID,dimID,name,len)
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_INQ_DIM
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE NF_INQ_VAR_1D(ncID,Vname,data,start,cnt)
+  INTEGER,INTENT(IN):: ncID, start(:), cnt(:)
+  CHARACTER(*),INTENT(IN):: vname
+  REAL*8,INTENT(OUT):: data(:)
+  INTEGER:: Status, varID
+  CHARACTER(43):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_INQ_VAR_1D'
+
+  Status = nf90_inq_varid(ncID,vname,varID)
+  CALL HANDLE_ERR(Status,Location)
+
+  Status = nf90_get_var(ncID,varID,data,start,cnt)
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_INQ_VAR_1D
+
+SUBROUTINE NF_INQ_VAR_2D(ncID,Vname,data,start,cnt)
+  INTEGER,INTENT(IN):: ncID, start(:), cnt(:)
+  CHARACTER(*),INTENT(IN):: vname
+  REAL*8,INTENT(OUT):: data(:,:)
+  INTEGER:: Status, varID
+  CHARACTER(43):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_INQ_VAR_1D'
+
+  Status = nf90_inq_varid(ncID,vname,varID)
+  CALL HANDLE_ERR(Status,Location)
+
+  Status = nf90_get_var(ncID,varID,data,start,cnt)
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_INQ_VAR_2D
+
+SUBROUTINE NF_INQ_VAR_3D(ncID,Vname,data,start,cnt)
+  INTEGER,INTENT(IN):: ncID, start(:), cnt(:)
+  CHARACTER(*),INTENT(IN):: vname
+  REAL*8,INTENT(OUT):: data(:,:,:)
+  INTEGER:: Status, varID
+  CHARACTER(43):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_INQ_VAR_1D'
+
+  Status = nf90_inq_varid(ncID,vname,varID)
+  CALL HANDLE_ERR(Status,Location)
+
+  Status = nf90_get_var(ncID,varID,data,start,cnt)
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_INQ_VAR_3D
+
 END MODULE NCDF_IO

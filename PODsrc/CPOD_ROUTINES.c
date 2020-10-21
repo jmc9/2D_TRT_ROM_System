@@ -205,7 +205,7 @@ int POD_CALC(const double *data, const size_t N_t, const size_t N_g, const size_
     //reforming the datamatrix to isolate a single group
     temp = (double *)malloc(sizeof(double)*N_t*clen);
     err = gdat_reform(N_t,N_g,clen,g,data,temp);
-
+    
     //calculating the SVD of the datamatrix
     SVD_CALC(temp,&N_t,&clen,&*center[0],&*umat[0],&*sig[0],&*vtmat[0]);
 
@@ -226,9 +226,13 @@ int POD_CALC(const double *data, const size_t N_t, const size_t N_g, const size_
 int gdat_reform(const size_t n_t, const size_t n_g, const size_t clen, const size_t g, const double *gdat, double *vec)
 {
 
+  size_t p1 = 0;
+  size_t p2 = 0;
   for(size_t t=0; t<n_t; t++){
+    p2 = g*clen+t*n_g*clen;
     for(size_t i=0; i<clen; i++){
-      vec[i+t*clen] = gdat[i+g*clen+t*n_g*clen];
+      vec[p1] = gdat[i+p2];
+      p1 = p1 + 1;
     }
   }
 

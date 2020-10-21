@@ -15,7 +15,7 @@ SUBROUTINE SVD_CALC(dat,N_t,clen,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
 
   REAL*8,ALLOCATABLE:: mat(:,:), u(:,:), s(:), vt(:,:)
   INTEGER(c_size_t):: rank
-  INTEGER(c_size_t):: t, i, j, r
+  INTEGER(c_size_t):: t, i, j, r, p1
 
   rank = MIN(clen,N_t)
   ALLOCATE(mat(clen,N_t))
@@ -29,9 +29,11 @@ SUBROUTINE SVD_CALC(dat,N_t,clen,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
   END DO
 
   !calculating centering vector as column sum of data matrix
+  p1 = 0
   DO t=1,N_t
     DO i=1,clen
-      center(i) = center(i) + dat(i+(t-1)*clen)
+      p1 = p1 + 1
+      center(i) = center(i) + dat(p1)
     END DO
   END DO
 
@@ -41,9 +43,11 @@ SUBROUTINE SVD_CALC(dat,N_t,clen,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
   END DO
 
   !centering the data matrix
+  p1 = 0
   DO t=1,N_t
     DO i=1,clen
-      mat(i,t) = dat(i+(t-1)*clen) - center(i)
+      p1 = p1 + 1
+      mat(i,t) = dat(p1) - center(i)
     END DO
   END DO
 
@@ -51,16 +55,20 @@ SUBROUTINE SVD_CALC(dat,N_t,clen,center,umat,sig,vtmat) BIND(c, name="SVD_CALC")
   CALL SVD_DECOMP(mat,u,s,vt)
 
   !vectorizing left singular vector matrix
+  p1 = 0
   DO r=1,rank
     DO i=1,clen
-      umat(i+(r-1)*clen) = u(i,r)
+      p1 = p1 + 1
+      umat(p1) = u(i,r)
     END DO
   END DO
 
   !vectorizing right singular vector matrix
+  p1 = 0
   DO t=1,N_t
     DO r=1,rank
-      vtmat(r+(t-1)*rank) = vt(r,t)
+      p1 = p1 + 1
+      vtmat(p1) = vt(r,t)
     END DO
   END DO
 
@@ -105,8 +113,10 @@ SUBROUTINE SVD_DECOMP(datamat,umat,sig,vtmat)
   LWORK=MAX(1,3*MIN(dim1,dim2) + MAX(dim1,dim2),5*MIN(dim1,dim2)) !honestly still dont know what the fuck this is but it works
   ALLOCATE(WORK(LWORK))
 
-  CALL DGESVD('S','S',dim1,dim2,datamat,dim1,sig,umat,dim1,vtmat,dim2,WORK,LWORK,info)  !lapack SVD function
+  CALL DGESVD('S','O',dim1,dim2,datamat,dim1,sig,umat,dim1,vtmat,dim2,WORK,LWORK,info)  !lapack SVD function
   IF (info .NE. 0) STOP "SVD failed"
+
+  vtmat = datamat(1:MIN(dim1,dim2),1:dim2)
 
   DEALLOCATE(WORK)
 

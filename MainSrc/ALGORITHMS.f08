@@ -24,7 +24,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   N_t,Res_Calc,Use_Line_Search,Use_Safety_Search,run_type,kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,&
   N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
   Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
-  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
+  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:)
@@ -33,11 +33,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,INTENT(IN):: c, cV, h, pi, Kap0, erg
   REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr1, Conv_gr2
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
-  REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low
-  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
+  REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low, POD_err
+  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, PODgsum
   INTEGER,INTENT(IN):: database_gen, use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
   LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search, kapE_dT_flag
-  CHARACTER(*),INTENT(IN):: run_type
+  CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dset
 
   !----------------Output File ID's------------------!
   INTEGER,INTENT(IN):: outID
@@ -140,8 +140,19 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
 
   !--------------------------------------------------!
-  REAL*8,ALLOCATABLE:: C_fg_avg_xx(:), S_fg_avg_xx(:), U_fg_avg_xx(:,:), V_fg_avg_xx(:,:)
-  INTEGER:: rrank_fg_avg_xx
+  REAL*8,ALLOCATABLE:: C_fg_avg_xx(:), S_fg_avg_xx(:), U_fg_avg_xx(:), V_fg_avg_xx(:)
+  REAL*8,ALLOCATABLE:: C_fg_edgV_xx(:), S_fg_edgV_xx(:), U_fg_edgV_xx(:), V_fg_edgV_xx(:)
+  REAL*8,ALLOCATABLE:: C_fg_avg_yy(:), S_fg_avg_yy(:), U_fg_avg_yy(:), V_fg_avg_yy(:)
+  REAL*8,ALLOCATABLE:: C_fg_edgH_yy(:), S_fg_edgH_yy(:), U_fg_edgH_yy(:), V_fg_edgH_yy(:)
+  REAL*8,ALLOCATABLE:: C_fg_edgV_xy(:), S_fg_edgV_xy(:), U_fg_edgV_xy(:), V_fg_edgV_xy(:)
+  REAL*8,ALLOCATABLE:: C_fg_edgH_xy(:), S_fg_edgH_xy(:), U_fg_edgH_xy(:), V_fg_edgH_xy(:)
+  INTEGER,ALLOCATABLE:: rrank_fg_avg_xx(:), rrank_fg_edgV_xx(:), rrank_fg_avg_yy(:), rrank_fg_edgH_yy(:)
+  INTEGER,ALLOCATABLE:: rrank_fg_edgV_xy(:), rrank_fg_edgH_xy(:)
+
+  REAL*8,ALLOCATABLE:: C_I_avg(:), S_I_avg(:), U_I_avg(:), V_I_avg(:)
+  REAL*8,ALLOCATABLE:: C_I_edgV(:), S_I_edgV(:), U_I_edgV(:), V_I_edgV(:)
+  REAL*8,ALLOCATABLE:: C_I_edgH(:), S_I_edgH(:), U_I_edgH(:), V_I_edgH(:)
+  INTEGER,ALLOCATABLE:: rrank_I_avg(:), rrank_I_edgV(:), rrank_I_edgH(:)
 
   !===========================================================================!
   !                                                                           !
@@ -177,6 +188,21 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   IF (Res_Calc) THEN
     ALLOCATE(RT_Residual(4,N_g,5),RT_ResLoc_x(4,N_g,5),RT_ResLoc_y(4,N_g,5))
     ALLOCATE(MGQD_Residual(N_g,5,5),MGQD_BC_Residual(N_g,4))
+  END IF
+
+  !===========================================================================!
+  !                                                                           !
+  !     READING IN POD DATA                                                   !
+  !                                                                           !
+  !===========================================================================!
+  IF ((run_type .EQ. "mg_pod").AND.(POD_type .EQ. 'fg')) THEN
+    CALL INPUT_fg_POD(POD_dset,PODgsum,N_x,N_y,N_g,N_t,POD_err,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx,&
+      C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,&
+      rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,&
+      V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy)
+  ELSE IF ((run_type .EQ. "mg_pod").AND.(POD_type .EQ. 'Ig')) THEN
+    CALL INPUT_Ig_POD(POD_dset,PODgsum,N_x,N_y,N_m,N_g,N_t,POD_err,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg,&
+      C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH)
   END IF
 
   !===========================================================================!

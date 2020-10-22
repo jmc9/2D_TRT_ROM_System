@@ -12,7 +12,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
-  quad_weight,tpoints,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc)
+  quad_weight,tpoints,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset)
 
   IMPLICIT NONE
 
@@ -29,6 +29,10 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
   CHARACTER(100),INTENT(OUT):: enrgy_strc, quadrature
   LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search, Res_Calc, kapE_dT_flag
+
+  REAL*8,INTENT(OUT):: POD_err
+  INTEGER,INTENT(OUT):: PODgsum
+  CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:)
@@ -67,6 +71,10 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
 
   sig_R=2d0*pi**5/(15d0*c**2*h**3*erg**4*comp_unit) !(erg/(ev**4 cm**2 sh))
   aR=4d0*sig_R/c
+
+  IF (run_type .EQ. 'mg_pod') THEN
+    CALL INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
+  END IF
 
   CALL INPUT_PARAMETERS(inpunit,erg,xlen,ylen,N_x,N_y,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&
     bcT_lower,Tini)
@@ -545,6 +553,79 @@ SUBROUTINE INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_
   END IF
 
 END SUBROUTINE INPUT_SOLVER_OPTS
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
+
+  IMPLICIT NONE
+
+  !INPUT VARIABLES
+  INTEGER,INTENT(IN):: inpunit
+
+  !OUTPUT VARIABLES
+  REAL*8,INTENT(OUT):: POD_err
+  INTEGER,INTENT(OUT):: PODgsum
+  CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
+
+  !LOCAL VARIABLES
+  CHARACTER(1000):: line
+  CHARACTER(100):: key
+  CHARACTER(100):: block
+  CHARACTER(100),DIMENSION(3):: args
+  INTEGER:: io, io2, block_found
+
+  !DEFAULT VALUES
+  POD_dset = 'PODout.h5'
+  POD_err = 1d-5
+  PODgsum = 1
+  POD_Type = 'fg'
+
+  block = '[POD_OPTS]'
+  CALL LOCATE_BLOCK(inpunit,block,block_found)
+
+  IF (block_found .EQ. 0) STOP '[POD_OPTS] block was not located in input file'
+
+  DO
+    READ(inpunit,'(A)',IOSTAT=io) line
+
+    IF (io .GT. 0) THEN !io > 0 means bad read
+      STOP 'Something went wrong reading general.inp'
+
+    ELSE IF (io .LT. 0) THEN !io < 0 signals end of file
+      EXIT
+
+    ELSE !checking which key is specified and putting argument in correct variable
+      READ(line,*,IOSTAT=io2) key, args !reading in key/argument pairs
+
+      IF (key(1:1) .EQ. '[') THEN
+        EXIT
+
+      ELSE IF (trim(key) .EQ. 'dataset') THEN
+        READ(args(1),*) POD_dset
+
+      ELSE IF (trim(key) .EQ. 'POD_type') THEN
+        READ(args(1),*) POD_type
+        IF ( ALL(POD_type .NE. (/'fg','Ig'/)) ) THEN
+          STOP 'unrecognized POD_type (source - subroutine INPUT_POD_OPTS :: module INPUTS)'
+        END IF
+
+      ELSE IF (trim(key) .EQ. 'gsum') THEN
+        READ(args(1),*) PODgsum
+        IF (ALL(PODgsum .NE. (/0,1/))) STOP 'POD_Type must be 0 or 1'
+
+      ELSE IF (trim(key) .EQ. 'POD_err') THEN
+        READ(args(1),*) POD_err
+        IF ((POD_err .LE. 0).OR.(POD_err .GT. 1)) STOP 'POD_err must be between 0 and 1'
+
+      END IF
+
+    END IF
+
+  END DO
+
+END SUBROUTINE INPUT_POD_OPTS
 
 !==================================================================================================================================!
 !

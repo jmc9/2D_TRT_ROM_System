@@ -15,7 +15,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   bcT_bottom,bcT_right,bcT_top,Tini,E_Bound_Low,T_Bound_Low,N_x,N_y,N_m,N_g,N_t,database_gen,use_grey,maxit_RTE,&
   maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
   Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
-  QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
+  QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type)
 
   INTEGER,INTENT(OUT):: outID
   INTEGER,INTENT(OUT):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -24,13 +24,13 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
 
   REAL*8,INTENT(IN):: c, h, pi, erg, Comp_Unit, cv
   REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt, Theta
-  REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low
+  REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low, POD_err
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: database_gen, use_grey, maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads, BC_type(:)
   INTEGER,INTENT(IN):: I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
   INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out, E_out, F_out, D_out
-  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out
-  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc
+  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out, PODgsum
+  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc, POD_Type
   LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, kapE_dT_flag
 
   INTEGER:: Status
@@ -91,6 +91,17 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   !===========================================================================!
   Status = nf90_put_att(outID,NF90_GLOBAL,'run_type',run_type)
   CALL HANDLE_ERR(Status)
+
+  IF (run_type .EQ. 'mg_pod') THEN
+    Status = nf90_put_att(outID,NF90_GLOBAL,'POD_Type',POD_Type)
+    CALL HANDLE_ERR(Status)
+
+    Status = nf90_put_att(outID,NF90_GLOBAL,'PODgsum',PODgsum)
+    CALL HANDLE_ERR(Status)
+
+    Status = nf90_put_att(outID,NF90_GLOBAL,'POD_err',POD_err)
+    CALL HANDLE_ERR(Status)
+  END IF
 
   Status = nf90_put_att(outID,NF90_GLOBAL,'database_gen',database_gen)
   CALL HANDLE_ERR(Status)

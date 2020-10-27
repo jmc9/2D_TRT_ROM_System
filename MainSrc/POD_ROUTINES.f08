@@ -13,6 +13,87 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_avg_xy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,C_fg_avg_xx,&
+  S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,&
+  U_fg_avg_yy,V_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,&
+  V_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,&
+  rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy,N_x,N_y,N_g,t,PODgsum)
+
+  REAL*8,INTENT(OUT):: fg_avg_xx(*), fg_avg_yy(*), fg_avg_xy(*)
+  REAL*8,INTENT(OUT):: fg_edgV_xx(*), fg_edgV_xy(*)
+  REAL*8,INTENT(OUT):: fg_edgH_yy(*), fg_edgH_xy(*)
+
+  REAL*8,INTENT(IN):: C_fg_avg_xx(*), S_fg_avg_xx(*), U_fg_avg_xx(*), V_fg_avg_xx(*)
+  REAL*8,INTENT(IN):: C_fg_edgV_xx(*), S_fg_edgV_xx(*), U_fg_edgV_xx(*), V_fg_edgV_xx(*)
+  REAL*8,INTENT(IN):: C_fg_avg_yy(*), S_fg_avg_yy(*), U_fg_avg_yy(*), V_fg_avg_yy(*)
+  REAL*8,INTENT(IN):: C_fg_edgH_yy(*), S_fg_edgH_yy(*), U_fg_edgH_yy(*), V_fg_edgH_yy(*)
+  REAL*8,INTENT(IN):: C_fg_edgV_xy(*), S_fg_edgV_xy(*), U_fg_edgV_xy(*), V_fg_edgV_xy(*)
+  REAL*8,INTENT(IN):: C_fg_edgH_xy(*), S_fg_edgH_xy(*), U_fg_edgH_xy(*), V_fg_edgH_xy(*)
+  INTEGER,INTENT(IN):: rrank_fg_avg_xx(*), rrank_fg_edgV_xx(*), rrank_fg_avg_yy(*), rrank_fg_edgH_yy(*)
+  INTEGER,INTENT(IN):: rrank_fg_edgV_xy(*), rrank_fg_edgH_xy(*)
+  INTEGER,INTENT(IN):: N_x, N_y, N_g, t, PODgsum
+
+  INTEGER:: i, g, r, p1, p2, p3, p4, n
+
+  IF (PODgsum .EQ. 0) THEN
+    n = N_x*N_y
+
+    DO i=1,n*N_g
+      fg_avg_xx(i) = 0d0
+    END DO
+
+    p2 = 0
+    p3 = 0
+    DO g=1,N_g
+      DO r=1,rrank_fg_avg_xx(g)
+        p1 = (g-1)*n
+        p4 = 300*p3 + (t-1)*rrank_fg_avg_xx(g)
+
+        DO i=1,n
+          p1 = p1 + 1
+          p2 = p2 + 1
+
+            fg_avg_xx(p1) = fg_avg_xx(p1) + S_fg_avg_xx(r+p3)*U_fg_avg_xx(p2)*V_fg_avg_xx(r+p4)
+
+        END DO
+      END DO
+
+      p3 = p3 + rrank_fg_avg_xx(g)
+    END DO
+
+    DO i=1,n*N_g
+      fg_avg_xx(i) = fg_avg_xx(i) + C_fg_avg_xx(i)
+    END DO
+
+  ELSE IF (PODgsum .EQ. 1) THEN
+    n = N_x*N_y*N_g
+
+    DO i=1,n
+      fg_avg_xx(i) = 0d0
+    END DO
+
+    p2 = 0
+    DO r=1,rrank_fg_avg_xx(1)
+      p3 = r + (t-1)*rrank_fg_avg_xx(1)
+      DO i=1,n
+        p2 = p2 + 1
+
+        fg_avg_xx(i) = fg_avg_xx(i) + S_fg_avg_xx(r)*U_fg_avg_xx(p2)*V_fg_avg_xx(p3)
+
+      END DO
+    END DO
+
+    DO i=1,n
+      fg_avg_xx(i) = fg_avg_xx(i) + C_fg_avg_xx(i)
+    END DO
+
+  END IF
+
+END SUBROUTINE POD_RECONSTRUCT_fg
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
 SUBROUTINE INPUT_fg_POD(Fname,PODgsum,N_x,N_y,N_g,N_t,eps,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx,&
   C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,&
   rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,&
@@ -259,7 +340,7 @@ SUBROUTINE READ_POD_GPART(ncID,name,clen,N_t,N_g,g,eps,C,S,U,V,rrank)
   !Reading the centering vector
   IF (.NOT. ALLOCATED(C)) ALLOCATE(C(N_g*clen))
   WRITE(name2,'(2A)') 'C_',name
-  CALL NF_INQ_VAR_1D(ncID,name2,C((g-1)*N_g+1:g*N_g),(/1,g/),(/clen,1/))
+  CALL NF_INQ_VAR_1D(ncID,name2,C((g-1)*clen+1:g*clen),(/1,g/),(/clen,1/))
 
   !Reading the vector of singular values
   ALLOCATE(S2(rank),Sn(rank))
@@ -293,6 +374,7 @@ SUBROUTINE READ_POD_GPART(ncID,name,clen,N_t,N_g,g,eps,C,S,U,V,rrank)
     U2 = U
     DEALLOCATE(U)
     ALLOCATE(U(SIZE(U2)+clen*rrank))
+    U(1:SIZE(U2)) = U2
     DEALLOCATE(U2)
   ELSE
     ALLOCATE(U(clen*rrank))
@@ -303,6 +385,7 @@ SUBROUTINE READ_POD_GPART(ncID,name,clen,N_t,N_g,g,eps,C,S,U,V,rrank)
     V2 = V
     DEALLOCATE(V)
     ALLOCATE(V(SIZE(V2)+N_t*rrank))
+    V(1:SIZE(V2)) = V2
     DEALLOCATE(V2)
   ELSE
     ALLOCATE(V(N_t*rrank))
@@ -310,9 +393,9 @@ SUBROUTINE READ_POD_GPART(ncID,name,clen,N_t,N_g,g,eps,C,S,U,V,rrank)
 
   !Reading singular vector matrices U and V (only first rrank vectors in each matrix)
   WRITE(name2,'(2A)') 'U_',name
-  CALL NF_INQ_VAR_1D(ncID,name2,U(SIZE(U,1)-clen*rrank+1:clen*rrank),(/1,1,g/),(/clen,rrank,1/))
+  CALL NF_INQ_VAR_1D(ncID,name2,U(SIZE(U)-clen*rrank+1:SIZE(U)),(/1,1,g/),(/clen,rrank,1/))
   WRITE(name2,'(2A)') 'Vt_',name
-  CALL NF_INQ_VAR_1D(ncID,name2,V(SIZE(V,1)-N_t*rrank+1:N_t*rrank),(/1,1,g/),(/rrank,N_t,1/))
+  CALL NF_INQ_VAR_1D(ncID,name2,V(SIZE(V)-N_t*rrank+1:SIZE(V)),(/1,1,g/),(/rrank,N_t,1/))
 
 END SUBROUTINE READ_POD_GPART
 

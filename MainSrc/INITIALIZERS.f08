@@ -160,7 +160,7 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   fg_avg_xx,fg_avg_yy,fg_avg_xy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,fg_avg_xx_old,fg_avg_yy_old,fg_edgV_xx_old,&
   fg_edgV_xy_old,fg_edgH_yy_old,fg_edgH_xy_old,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,&
   Fg_in_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,c,Comp_Unit,N_y,N_x,N_g,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
-  MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type,Tini,nu_g,pi,Open_Threads)
+  MGQD_Fy_edgH,G_old,Pold_L,Pold_B,Pold_R,Pold_T,BC_Type,Tini,nu_g,pi,Open_Threads,Maxit_GLOQD,MGQD_Kits,GQD_Kits)
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
@@ -178,13 +178,14 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   REAL*8,ALLOCATABLE,INTENT(OUT):: MGQD_E_avg(:,:), MGQD_E_edgV(:,:), MGQD_E_edgH(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: MGQD_Fx_edgV(:,:), MGQD_Fy_edgH(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: MGQD_Kits(:), GQD_Kits(:)
 
   REAL*8,INTENT(IN):: I_edgV(:,:,:,:), I_edgH(:,:,:,:)
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:)
   REAL*8,INTENT(IN):: Tini, nu_g(:)
   REAL*8,INTENT(IN):: c, Comp_Unit, pi
   INTEGER,INTENT(IN):: N_y, N_x, N_g
-  INTEGER,INTENT(IN):: BC_Type(:), Open_Threads
+  INTEGER,INTENT(IN):: BC_Type(:), Open_Threads, Maxit_GLOQD
 
   REAL*8:: bg
   INTEGER:: g
@@ -255,6 +256,9 @@ SUBROUTINE MGQD_INIT(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Eg_avg_old,Eg_edgV
   ! ALLOCATE(MGQD_Residual(N_x,N_y,N_g,5,2,maxit_MLOQD,maxit_RTE))
 
   ALLOCATE(G_old(N_x,N_y,N_g),Pold_L(N_x,N_y,N_g),Pold_B(N_x,N_y,N_g),Pold_R(N_x,N_y,N_g),Pold_T(N_x,N_y,N_g))
+
+  !Krylov iterations (mat-vec products)
+  ALLOCATE(MGQD_Kits(N_g),GQD_Kits(Maxit_GLOQD))
 
   MGQD_E_avg = 0d0
   MGQD_E_edgV = 0d0

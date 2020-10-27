@@ -2,14 +2,14 @@
 
 MOD_DIR = ./mods
 OBJ_DIR = ./obj
-RAD_DIR = ../rad_routines
 MATH_DIR = /mnt/c/math_routines
+SKIT_DIR = /mnt/c/SPARSKIT2
 INC_DIR = /usr/include
 
 #--------------------------------------------
 
 FC = gfortran
-FFLAGS = -O0 -fopenmp -I $(MATH_DIR)
+FFLAGS = -O0 -fopenmp -I $(MATH_DIR) -I $(SKIT_DIR)
 WARNINGS =  -Wall -Wextra -Wunused-dummy-argument -Wconversion -Wconversion-extra -Wintrinsic-shadow -Wsurprising
 RUNTIMES = -fbacktrace -fbounds-check -fcheck=all
 LAPACK = -llapack -lblas
@@ -30,7 +30,8 @@ SRC_OBJ = main.o \
 					TEMP_FUNCTIONS.o \
 					GLOQD_SOLVES.o \
 					NCDF_IO.o \
-					POD_ROUTINES.o
+					POD_ROUTINES.o \
+					DISTDOT.o
 
 EXEC = 2dtrt.exe
 
@@ -47,7 +48,7 @@ all :
 	mv *mod $(MOD_DIR)
 
 $(EXEC) : $(SRC_OBJ)
-	$(FC) $(FFLAGS) $(WARNINGS) $(RUNTIMES) $^ -o $@ -L$(MATH_DIR) -ljmcmath -Wl,-rpath=$(MATH_DIR) $(LAPACK) $(NCDF)
+	$(FC) $(FFLAGS) $(WARNINGS) $(RUNTIMES) $^ -o $@ -L$(MATH_DIR) -ljmcmath -lskit -L$(SKIT_DIR) -Wl,-rpath=$(MATH_DIR) $(LAPACK) $(NCDF)
 	ls -fl $@
 
 .f08.o :
@@ -68,6 +69,7 @@ ALGORITHMS.o : TRANSPORT_SOLVES.o MLOQD_SOLVES.o GLOQD_SOLVES.o UPDATES.o CONVER
 CONVERGENCE_CHECKS.o :
 MLOQD_SOLVES.o : QD_SOLVERS.o
 GLOQD_SOLVES.o : QD_SOLVERS.o
-QD_SOLVERS.o :
+QD_SOLVERS.o : DISTDOT.o
 NCDF_IO.o :
 POD_ROUTINES.o : NCDF_IO.o
+DISTDOT.o :

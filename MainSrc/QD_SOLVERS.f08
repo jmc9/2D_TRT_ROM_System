@@ -37,10 +37,11 @@ CONTAINS
 !   BC_[L,B,R,T] - right hand sides of the boundary conditions
 !
 !==================================================================================================================================!
-RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,MBy_T,MBy_L,MBy_R,&
+RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,MBy_T,MBy_L,MBy_R,&
   EB_RHS,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
 
-  REAL*8,INTENT(OUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
+  REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
+  INTEGER,INTENT(OUT):: Its
 
   REAL*8,INTENT(IN):: EB_L(:,:), EB_B(:,:), EB_C(:,:), EB_R(:,:), EB_T(:,:)
   REAL*8,INTENT(IN):: MBx_C(:,:), MBx_R(:,:), MBx_B(:,:), MBx_T(:,:)
@@ -49,8 +50,10 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MB
   REAL*8,INTENT(IN):: Cp_L(:), Cp_B(:), Cp_R(:), Cp_T(:)
   REAL*8,INTENT(IN):: BC_L(:), BC_B(:), BC_R(:), BC_T(:)
 
-  REAL*8,ALLOCATABLE:: mat(:,:), sol(:)
-  INTEGER:: N_x, N_y, i, j, r, t, k, row_n, row_size, b, br
+  REAL*8,ALLOCATABLE:: mat(:,:), sol(:), sol2(:)
+  REAL*8,ALLOCATABLE:: mat_sp(:), mat_Usp(:), w(:), fpar(:), w2(:)
+  INTEGER,ALLOCATABLE:: ja(:), ia(:), jlu(:), ju(:), jw(:), ipar(:)
+  INTEGER:: N_x, N_y, i, j, r, t, k, row_n, row_size, b, br, err
 
   N_y = SIZE(E_avg,2)
   N_x = SIZE(E_avg,1)
@@ -377,18 +380,62 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MB
   !                                                                           !
   !     Solving the now built linear system                                   !
   !                                                                           !
-  !     Just using a direct solve right now to test                           !
+  !     Linear solver: BI-CGSTAB preconditioned with ILUT                     !
+  !     -> Using tools from the SPARSKIT2 library                             !
   !                                                                           !
   !===========================================================================!
-  CALL GAUSS_COMPLETE(mat,sol)
+  !allocating all arrays for the linear solve
+  ALLOCATE(mat_sp(19*N_x*N_y+N_x+N_y),ja(19*N_x*N_y+N_x+N_y),ia(3*N_x*N_y+N_x+N_y))
+  ALLOCATE(mat_Usp(19*N_x*N_y+N_x+N_y),jlu(19*N_x*N_y+N_x+N_y),ju(3*N_x*N_y+N_x+N_y))
+  ALLOCATE(w(3*N_x*N_y+N_x+N_y+1),jw(2*(3*N_x*N_y+N_x+N_y)))
+  ALLOCATE(sol2(N_x+N_y+3*N_x*N_y),w2((N_x+N_y+3*N_x*N_y)*8),ipar(16),fpar(16))
 
-  E_edgV(1,1) = sol(1) !left
+  !initializing all new arrays to zero
+  mat_sp = 0d0
+  ja = 0
+  ia = 0
+  mat_Usp = 0d0
+  jlu = 0
+  ju = 0
+  w = 0d0
+  jw = 0
+  ipar = 0
+  fpar = 0d0
+  w2 = 0d0
+  sol2=0d0
+
+  !Putting the coefficient matrix into sparse (compressed row sparse) format
+  !the sparse formatted matrix is contained in (mat_sp, ja, ia)
+  CALL DNSCSR(3*N_x*N_y+N_x+N_y,3*N_x*N_y+N_x+N_y,19*N_x*N_y+N_x+N_y,mat,3*N_x*N_y+N_x+N_y,mat_sp,ja,ia,err)
+  IF (err .NE. 0) STOP 'DNSCSR TERMINATED TOO EARLY'
+
+  !Performing preconditioning with ILUT
+  !using a fill level of 3 and 'drop tolerance' of 1d-6
+  CALL ILUT(3*N_x*N_y+N_x+N_y,mat_sp,ja,ia,3,1d-6,mat_Usp,jlu,ju,19*N_x*N_y+N_x+N_y,w,jw,err)
+  IF (err .NE. 0) THEN
+    WRITE(*,*) err
+    STOP 'BAD ILUT'
+  END IF
+
+  !setting options for BI-CGSTAB
+  ipar(1) = 0  !tell solver to initialize new linear solve
+  ipar(2) = 2  !use right preconditioning
+  ipar(3) = -1 !termination condition
+  ipar(4) = (N_x+N_y+3*N_x*N_y)*8 !length of the work space
+  ipar(5) = 10   !useless for BI-CGSTAB, default is 10
+  ipar(6) = 2000 !max number of mat-vec products
+
+  fpar(1) = 1d-13 !relative tolerance
+  fpar(2) = 1d-15 !absolute tolerance
+
+  !putting initial guess for solution in the vector sol2
+  sol2(1) = E_edgV(1,1)
   DO i=1,N_x
     k = 4*i + 1
-    E_edgH(i,1)   = sol(k-3) !bottom
-    E_avg(i,1)    = sol(k-2) !center
-    E_edgV(i+1,1) = sol(k-1) !right
-    E_edgH(i,2)   = sol(k)   !top
+    sol2(k-3) = E_edgH(i,1)
+    sol2(k-2) = E_avg(i,1)
+    sol2(k-1) = E_edgV(i+1,1)
+    sol2(k) = E_edgH(i,2)
   END DO
 
   row_n = 4*N_x + 1
@@ -396,22 +443,83 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MB
 
   DO j=2,N_y
     k = row_n + 4
-    E_edgV(1,j) = sol(k-3) !left
+    sol2(k-3) = E_edgV(1,j)
     DO i=1,N_x
       k = row_n + 3*i + 1
-      E_avg(i,j)    = sol(k-2) !center
-      E_edgV(i+1,j) = sol(k-1) !right
-      E_edgH(i,j+1) = sol(k)   !top
+      sol2(k-2) = E_avg(i,j)
+      sol2(k-1) = E_edgV(i+1,j)
+      sol2(k) = E_edgH(i,j+1)
     END DO
     row_n = row_n + row_size
   END DO
 
-  DEALLOCATE(mat,sol)
+  !--------------------------------------------------!
+  !      Performing linear solve via BI-CGSTAB       !
+  !--------------------------------------------------!
+  KLOOP: DO
+    CALL BCGSTAB(3*N_x*N_y+N_x+N_y,sol,sol2,ipar,fpar,w2)
+
+    IF (ipar(1) .EQ. 0) THEN !successful termination
+      EXIT KLOOP
+    ELSE IF (ipar(1) .EQ. 1) THEN !require matrix vector product with A
+      CALL AMUX(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_sp,ja,ia)
+      CYCLE KLOOP
+    ELSE IF (ipar(1) .EQ. 2) THEN !require matrix vector product with A^T
+      CALL ATMUX(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_sp,ja,ia)
+      CYCLE KLOOP
+    ELSE IF ((ipar(1) .EQ. 3).OR.(ipar(1) .EQ. 5)) THEN !require matrix vector product with M
+      CALL LUSOL(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_Usp,jlu,ju)
+      CYCLE KLOOP
+    ELSE IF ((ipar(1) .EQ. 4).OR.(ipar(1) .EQ. 6)) THEN !require matrix vector product with M^T
+      CALL LUTSOL(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_Usp,jlu,ju)
+      CYCLE KLOOP
+    ELSE IF (ipar(1) .LT. 0) THEN !UNsuccessful termination
+      CALL GAUSS_COMPLETE(mat,sol) !if BI-CGSTAB fails to solve the system, resort to direct solution by gaussian elimination
+      sol2=sol
+      ipar(7) = -1 !flag that a direct solve was used
+      EXIT KLOOP
+    END IF
+
+  END DO KLOOP
+  Its = ipar(7) !store total matrix-vector product count
+
+  !deallocate all arrays except for solution vector
+  DEALLOCATE(mat,mat_sp,mat_Usp,sol,ja,ia,jlu,ju,w,jw,w2,ipar,fpar)
+
+  !--------------------------------------------------!
+  !               Collecting Solution                !
+  !--------------------------------------------------!
+  E_edgV(1,1) = sol2(1) !left
+  DO i=1,N_x
+    k = 4*i + 1
+    E_edgH(i,1)   = sol2(k-3) !bottom
+    E_avg(i,1)    = sol2(k-2) !center
+    E_edgV(i+1,1) = sol2(k-1) !right
+    E_edgH(i,2)   = sol2(k)   !top
+  END DO
+
+  row_n = 4*N_x + 1
+  row_size = 3*N_x + 1
+
+  DO j=2,N_y
+    k = row_n + 4
+    E_edgV(1,j) = sol2(k-3) !left
+    DO i=1,N_x
+      k = row_n + 3*i + 1
+      E_avg(i,j)    = sol2(k-2) !center
+      E_edgV(i+1,j) = sol2(k-1) !right
+      E_edgH(i,j+1) = sol2(k)   !top
+    END DO
+    row_n = row_n + row_size
+  END DO
+
+  DEALLOCATE(sol2)
 
 END SUBROUTINE QD_FV
 
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+
 
 END MODULE QD_SOLVERS

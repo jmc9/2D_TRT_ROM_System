@@ -300,12 +300,12 @@ END SUBROUTINE GQD_In_Calc
 SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,KapE_Bar_dT,Its,Deltas,dresiduals,Temp_Mold,&
   KapE_bar_Mold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,&
   DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,&
-  line_src,E_Bound_Low,T_Bound_Low,Eps1,Eps2,Maxits,MGQD_It,Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag)
+  line_src,E_Bound_Low,T_Bound_Low,Eps1,Eps2,Maxits,MGQD_It,Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag,GQD_Kits)
 
   !OUTPUTS
   REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Temp(:,:), KapE_Bar(:,:)
   REAL*8,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:), Q_bar(:,:), KapE_Bar_dT(:,:)
-  INTEGER,INTENT(OUT):: Its
+  INTEGER,INTENT(OUT):: Its, GQD_Kits(*)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Deltas(:,:), dresiduals(:,:)
 
   !INPUTS
@@ -545,7 +545,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,K
     !     (solving for Delta E's)                                               !
     !                                                                           !
     !===========================================================================!
-    CALL QD_FV(Del_E_avg,Del_E_edgV,Del_E_edgH,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
+    CALL QD_FV(Del_E_avg,Del_E_edgV,Del_E_edgH,GQD_Kits(Its),EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
       MBy_T,MBy_L,MBy_R,dr_G,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
 
     !===========================================================================!

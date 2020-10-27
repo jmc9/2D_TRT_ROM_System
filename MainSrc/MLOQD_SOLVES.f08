@@ -78,11 +78,12 @@ END SUBROUTINE OLD_MGQD_COEFS
 SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
   fg_edgH_xy,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Src,KapE,KapR,Delx,&
   Dely,A,c,Delt,Theta,Open_Threads,Res_Calc,MGQD_Residual,MGQD_BC_Residual,G_old,Pold_L,Pold_B,Pold_R,Pold_T,&
-  Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old)
+  Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old,MGQD_Kits)
 
-  REAL*8,INTENT(OUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
+  REAL*8,INTENT(INOUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
   REAL*8,INTENT(OUT):: MGQD_Residual(:,:,:), MGQD_BC_Residual(:,:)
+  INTEGER,INTENT(OUT):: MGQD_Kits(*)
 
   REAL*8,INTENT(IN):: G_old(:,:,:), Pold_L(:,:,:), Pold_B(:,:,:), Pold_R(:,:,:), Pold_T(:,:,:)
   REAL*8,INTENT(IN):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:)
@@ -214,7 +215,10 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
     !     Finding Eg's by inverting the reduced linear system                   !
     !                                                                           !
     !===========================================================================!
-    CALL QD_FV(E1,E2,E3,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
+    E1=Eg_avg(:,:,g)
+    E2=Eg_edgV(:,:,g)
+    E3=Eg_edgH(:,:,g)
+    CALL QD_FV(E1,E2,E3,MGQD_Kits(g),EB_L,EB_B,EB_C,EB_R,EB_T,MBx_C,MBx_R,MBx_B,MBx_T,MBy_C,&
       MBy_T,MBy_L,MBy_R,Ghat,MBx_RHS,MBy_RHS,Cp_L,Cp_B,Cp_R,Cp_T,BC_L,BC_B,BC_R,BC_T)
     Eg_avg(:,:,g)=E1
     Eg_edgV(:,:,g)=E2

@@ -21,10 +21,11 @@ int GENERATE_POD(const int ncid_in, const int ncid_out, const char *dname, const
 //================================================================================================================================//
 int DEF_DIMS(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y, const size_t N_x,
    const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH, const size_t clen_avg, const size_t clen_edgV,
-   const size_t clen_edgH, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID,int *N_x_ID, int *rank_avg_ID, int *rank_edgV_ID,
-   int *rank_edgH_ID, int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID)
+   const size_t clen_edgH, const double tlen, const double Delt, const double xlen, const double ylen, double *Delx, double *Dely,
+   int *BC_Type, double *bcT, const double Tini, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID, int *N_x_ID, int *rank_avg_ID,
+   int *rank_edgV_ID, int *rank_edgH_ID, int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID)
 {
-  int err;
+  int err, id, Bnds_ID, dims[1];
   char loc[9] = "OUT_DIMS";
 
   err = nc_def_dim(ncid_out,"N_x",N_x,N_x_ID); HANDLE_ERR(err,loc);
@@ -32,6 +33,7 @@ int DEF_DIMS(const int ncid_out, const size_t N_t, const size_t N_g, const size_
   err = nc_def_dim(ncid_out,"N_m",N_m,N_m_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"N_g",N_g,N_g_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"N_t",N_t,N_t_ID); HANDLE_ERR(err,loc);
+  err = nc_def_dim(ncid_out,"Boundaries",4,&Bnds_ID); HANDLE_ERR(err,loc);
 
   err = nc_def_dim(ncid_out,"rank_avg",rank_avg,rank_avg_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"rank_edgV",rank_edgV,rank_edgV_ID); HANDLE_ERR(err,loc);
@@ -40,6 +42,37 @@ int DEF_DIMS(const int ncid_out, const size_t N_t, const size_t N_g, const size_
   err = nc_def_dim(ncid_out,"clen_avg",clen_avg,clen_avg_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"clen_edgV",clen_edgV,clen_edgV_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"clen_edgH",clen_edgH,clen_edgH_ID); HANDLE_ERR(err,loc);
+
+  err = nc_def_var(ncid_out,"tlen",NC_DOUBLE,0,0,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,&tlen); HANDLE_ERR(err,loc);
+
+  err = nc_def_var(ncid_out,"Delt",NC_DOUBLE,0,0,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,&Delt); HANDLE_ERR(err,loc);
+
+  err = nc_def_var(ncid_out,"xlen",NC_DOUBLE,0,0,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,&xlen); HANDLE_ERR(err,loc);
+
+  err = nc_def_var(ncid_out,"ylen",NC_DOUBLE,0,0,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,&ylen); HANDLE_ERR(err,loc);
+
+  dims[0] = (*N_x_ID);
+  err = nc_def_var(ncid_out,"Delx",NC_DOUBLE,1,dims,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,Delx); HANDLE_ERR(err,loc);
+
+  dims[0] = (*N_y_ID);
+  err = nc_def_var(ncid_out,"Dely",NC_DOUBLE,1,dims,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,Dely); HANDLE_ERR(err,loc);
+
+  dims[0] = Bnds_ID;
+  err = nc_def_var(ncid_out,"BC_Type",NC_DOUBLE,1,dims,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_int(ncid_out,id,BC_Type); HANDLE_ERR(err,loc);
+
+  dims[0] = Bnds_ID;
+  err = nc_def_var(ncid_out,"bcT",NC_DOUBLE,1,dims,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,bcT); HANDLE_ERR(err,loc);
+
+  err = nc_def_var(ncid_out,"Tini",NC_DOUBLE,0,0,&id); HANDLE_ERR(err,loc);
+  err = nc_put_var_double(ncid_out,id,&Tini); HANDLE_ERR(err,loc);
 
   return err;
 }

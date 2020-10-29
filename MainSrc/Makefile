@@ -31,7 +31,8 @@ SRC_OBJ = main.o \
 					GLOQD_SOLVES.o \
 					NCDF_IO.o \
 					POD_ROUTINES.o \
-					DISTDOT.o
+					DISTDOT.o \
+					GRID_FUNCTIONS.o
 
 EXEC = 2dtrt.exe
 
@@ -59,7 +60,7 @@ clean :
 	rm -rf $(MOD_DIR)
 	rm -rf $(OBJ_DIR)
 
-main.o : INPUTS.o OUTPUTS.o ALGORITHMS.o
+main.o : INPUTS.o OUTPUTS.o ALGORITHMS.o GRID_FUNCTIONS.o
 INPUTS.o :
 OUTPUTS.o : NCDF_IO.o
 TRANSPORT_SOLVES.o :
@@ -73,3 +74,4 @@ QD_SOLVERS.o : DISTDOT.o
 NCDF_IO.o :
 POD_ROUTINES.o : NCDF_IO.o
 DISTDOT.o :
+GRID_FUNCTIONS.o :

@@ -155,6 +155,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: C_I_edgH(:), S_I_edgH(:), U_I_edgH(:), V_I_edgH(:)
   INTEGER,ALLOCATABLE:: rrank_I_avg(:), rrank_I_edgV(:), rrank_I_edgH(:)
 
+  REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d
+  REAL*8,ALLOCATABLE:: Delx_d(:), Dely_d(:), bcT_d(:)
+  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t
+  INTEGER,ALLOCATABLE:: BC_Type_d(:)
+
   !===========================================================================!
   !                                                                           !
   !     INITIALIZING ARRAYS                                                   !
@@ -197,10 +202,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   !                                                                           !
   !===========================================================================!
   IF ((run_type .EQ. "mg_pod").AND.(POD_type .EQ. 'fg')) THEN
-    CALL INPUT_fg_POD(POD_dset,PODgsum,N_x,N_y,N_g,N_t,POD_err,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx,&
-      C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,&
-      rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,&
-      V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy)
+    CALL INPUT_fg_POD(POD_dset,PODgsum,POD_err,dN_x,dN_y,dN_m,dN_g,dN_t,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,&
+      rrank_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,&
+      V_fg_avg_yy,rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,&
+      U_fg_edgV_xy,V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy,tlen_d,&
+      xlen_d,ylen_d,Tini_d,Delt_d,Delx_d,Dely_d,bcT_d,BC_Type_d)
   ELSE IF ((run_type .EQ. "mg_pod").AND.(POD_type .EQ. 'Ig')) THEN
     CALL INPUT_Ig_POD(POD_dset,PODgsum,N_x,N_y,N_m,N_g,N_t,POD_err,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg,&
       C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH)

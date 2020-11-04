@@ -5,9 +5,10 @@
 
 //FROM NCDF_IO.c
 void HANDLE_ERR(const int Status, const char *Location);
+void GET_VAR_DOUBLE(const int ncid, const char *name, double **var, size_t size);
 
 //FROM CPOD_ROUTINES.c
-int GENERATE_POD(const int ncid_in, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
+int GENERATE_POD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
   size_t rank, int Cid, int Sid, int Uid, int Vtid);
 
 //LOCAL FUNCTIONS
@@ -162,6 +163,24 @@ int DEF_Ig_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank
 //================================================================================================================================//
 //
 //================================================================================================================================//
+int DEF_meanIg_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank_avg_ID, const int rank_edgV_ID,
+   const int rank_edgH_ID, const int clen_avg_ID,const int clen_edgV_ID, const int clen_edgH_ID, const int N_t_ID,
+   int *C_Ig_avg_ID, int *S_Ig_avg_ID, int *U_Ig_avg_ID, int *Vt_Ig_avg_ID,int *C_Ig_edgV_ID, int *S_Ig_edgV_ID,
+   int *U_Ig_edgV_ID, int *Vt_Ig_edgV_ID, int *C_Ig_edgH_ID, int *S_Ig_edgH_ID, int *U_Ig_edgH_ID, int *Vt_Ig_edgH_ID)
+{
+  int err;
+
+  err = DEF_POD_VARS(ncid,gsum,"Mean_Ig_avg",N_g_ID,rank_avg_ID,clen_avg_ID,N_t_ID,&(*C_Ig_avg_ID),&(*S_Ig_avg_ID),&(*U_Ig_avg_ID),&(*Vt_Ig_avg_ID));
+  err = DEF_POD_VARS(ncid,gsum,"Mean_Ig_edgV",N_g_ID,rank_edgV_ID,clen_edgV_ID,N_t_ID,&(*C_Ig_edgV_ID),&(*S_Ig_edgV_ID),&(*U_Ig_edgV_ID),&(*Vt_Ig_edgV_ID));
+  err = DEF_POD_VARS(ncid,gsum,"Mean_Ig_edgH",N_g_ID,rank_edgH_ID,clen_edgH_ID,N_t_ID,&(*C_Ig_edgH_ID),&(*S_Ig_edgH_ID),&(*U_Ig_edgH_ID),&(*Vt_Ig_edgH_ID));
+
+  return err;
+
+}
+
+//================================================================================================================================//
+//
+//================================================================================================================================//
 int OUTPUT_fg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_y, const size_t N_x,
   const int gsum, const int C_fg_avg_xx_ID,const int S_fg_avg_xx_ID, const int U_fg_avg_xx_ID, const int Vt_fg_avg_xx_ID,
   const int C_fg_edgV_xx_ID, const int S_fg_edgV_xx_ID, const int U_fg_edgV_xx_ID,const int Vt_fg_edgV_xx_ID,
@@ -172,7 +191,8 @@ int OUTPUT_fg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const
 {
   int err;
   char dname[25];
-  size_t clen, rank, n_g, gscale;
+  size_t clen, rank, n_g, gscale, len;
+  double *data;
 
   if (gsum == 1){
     n_g = 0; gscale = N_g;
@@ -183,27 +203,39 @@ int OUTPUT_fg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const
 
   printf("... fg_avg_xx start\n");
   memset(dname,0,25); strcpy(dname,"fg_avg_xx"); clen = gscale*N_y*N_x; rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_fg_avg_xx_ID,S_fg_avg_xx_ID,U_fg_avg_xx_ID,Vt_fg_avg_xx_ID);
+  len = N_t*N_g*N_y*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_fg_avg_xx_ID,S_fg_avg_xx_ID,U_fg_avg_xx_ID,Vt_fg_avg_xx_ID);
+  free(data);
 
   printf("... fg_edgV_xx start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgV_xx"); clen = gscale*N_y*(N_x+1); rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgV_xx_ID,S_fg_edgV_xx_ID,U_fg_edgV_xx_ID,Vt_fg_edgV_xx_ID);
+  len = N_t*N_g*N_y*(N_x+1); GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgV_xx_ID,S_fg_edgV_xx_ID,U_fg_edgV_xx_ID,Vt_fg_edgV_xx_ID);
+  free(data);
 
   printf("... fg_avg_yy start\n");
   memset(dname,0,25); strcpy(dname,"fg_avg_yy"); clen = gscale*N_y*N_x; rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_fg_avg_yy_ID,S_fg_avg_yy_ID,U_fg_avg_yy_ID,Vt_fg_avg_yy_ID);
+  len = N_t*N_g*N_y*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_fg_avg_yy_ID,S_fg_avg_yy_ID,U_fg_avg_yy_ID,Vt_fg_avg_yy_ID);
+  free(data);
 
   printf("... fg_edgH_yy start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgH_yy"); clen = gscale*(N_y+1)*N_x; rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgH_yy_ID,S_fg_edgH_yy_ID,U_fg_edgH_yy_ID,Vt_fg_edgH_yy_ID);
+  len = N_t*N_g*(N_y+1)*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgH_yy_ID,S_fg_edgH_yy_ID,U_fg_edgH_yy_ID,Vt_fg_edgH_yy_ID);
+  free(data);
 
   printf("... fg_edgV_xy start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgV_xy"); clen = gscale*N_y*(N_x+1); rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgV_xy_ID,S_fg_edgV_xy_ID,U_fg_edgV_xy_ID,Vt_fg_edgV_xy_ID);
+  len = N_t*N_g*N_y*(N_x+1); GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgV_xy_ID,S_fg_edgV_xy_ID,U_fg_edgV_xy_ID,Vt_fg_edgV_xy_ID);
+  free(data);
 
   printf("... fg_edgH_xy start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgH_xy"); clen = gscale*(N_y+1)*N_x; rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgH_xy_ID,S_fg_edgH_xy_ID,U_fg_edgH_xy_ID,Vt_fg_edgH_xy_ID);
+  len = N_t*N_g*(N_y+1)*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_fg_edgH_xy_ID,S_fg_edgH_xy_ID,U_fg_edgH_xy_ID,Vt_fg_edgH_xy_ID);
+  free(data);
 
   return err;
 }
@@ -218,7 +250,8 @@ int OUTPUT_Ig_POD(const int ncid_in, const int ncid_out, const size_t N_t, const
 {
   int err;
   char dname[25];
-  size_t clen, rank, n_g, gscale;
+  size_t clen, rank, n_g, gscale, len;
+  double *data;
 
   if (gsum == 1){
     n_g = 0; gscale = N_g;
@@ -229,15 +262,137 @@ int OUTPUT_Ig_POD(const int ncid_in, const int ncid_out, const size_t N_t, const
 
   printf("... I_avg start\n");
   memset(dname,0,25); strcpy(dname,"I_avg"); clen = gscale*N_m*N_y*N_x; rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_avg_ID,S_Ig_avg_ID,U_Ig_avg_ID,Vt_Ig_avg_ID);
+  len = N_t*N_g*N_m*N_y*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_avg_ID,S_Ig_avg_ID,U_Ig_avg_ID,Vt_Ig_avg_ID);
+  free(data);
 
   printf("... I_edgV start\n");
   memset(dname,0,25); strcpy(dname,"I_edgV"); clen = gscale*N_m*N_y*(N_x+1); rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_edgV_ID,S_Ig_edgV_ID,U_Ig_edgV_ID,Vt_Ig_edgV_ID);
+  len = N_t*N_g*N_m*N_y*(N_x+1); GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_edgV_ID,S_Ig_edgV_ID,U_Ig_edgV_ID,Vt_Ig_edgV_ID);
+  free(data);
 
   printf("... I_edgH start\n");
   memset(dname,0,25); strcpy(dname,"I_edgH"); clen = gscale*N_m*(N_y+1)*N_x; rank = min(clen,N_t);
-  err = GENERATE_POD(ncid_in,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_edgH_ID,S_Ig_edgH_ID,U_Ig_edgH_ID,Vt_Ig_edgH_ID);
+  len = N_t*N_g*N_m*(N_y+1)*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_edgH_ID,S_Ig_edgH_ID,U_Ig_edgH_ID,Vt_Ig_edgH_ID);
+  free(data);
+
+  return err;
+}
+
+//================================================================================================================================//
+//
+//================================================================================================================================//
+int OUTPUT_meanIg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
+  const size_t N_x, const int gsum, const int C_Ig_avg_ID, const int S_Ig_avg_ID, const int U_Ig_avg_ID, const int Vt_Ig_avg_ID,
+  const int C_Ig_edgV_ID, const int S_Ig_edgV_ID, const int U_Ig_edgV_ID, const int Vt_Ig_edgV_ID, const int C_Ig_edgH_ID,
+  const int S_Ig_edgH_ID, const int U_Ig_edgH_ID, const int Vt_Ig_edgH_ID)
+{
+  int err;
+  char dname[25];
+  size_t clen, rank, n_g, gscale, len, len2, p1, p2;
+  double *data, *data2;
+  double c;
+
+  c = 299.792458;
+  if (gsum == 1){
+    n_g = 0; gscale = N_g;
+  }
+  else{
+    n_g = N_g; gscale = 1;
+  }
+
+  /*-------------------------------------------------------------
+  -------------------------------------------------------------*/
+  printf("... mean I_avg start\n");
+  memset(dname,0,25); strcpy(dname,"Eg_avg_HO");
+  len = N_t*N_g*N_y*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data2,len);
+
+  memset(dname,0,25); strcpy(dname,"I_avg");
+  len = N_t*N_g*N_m*N_y*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+
+  len = N_t*N_g;
+  len2 = N_y*N_x;
+  p1 = 0;
+  for(size_t i=0; i<len; i++){
+    for(size_t m=0; m<N_m; m++){
+      p2 = i*len2;
+      for(size_t j=0; j<len2; j++){
+
+        data[p1] = data[p1]/(data2[p2]*c);
+        p1 = p1 + 1;
+        p2 = p2 + 1;
+
+      }
+    }
+  }
+  free(data2);
+
+  memset(dname,0,25); strcpy(dname,"Mean_I_avg"); clen = gscale*N_m*N_y*N_x; rank = min(clen,N_t);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_avg_ID,S_Ig_avg_ID,U_Ig_avg_ID,Vt_Ig_avg_ID);
+  free(data);
+
+
+  /*-------------------------------------------------------------
+  -------------------------------------------------------------*/
+  printf("... mean I_edgV start\n");
+  memset(dname,0,25); strcpy(dname,"Eg_edgV_HO");
+  len = N_t*N_g*N_y*(N_x+1); GET_VAR_DOUBLE(ncid_in,dname,&data2,len);
+
+  memset(dname,0,25); strcpy(dname,"I_edgV");
+  len = N_t*N_g*N_m*N_y*(N_x+1); GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+
+  len = N_t*N_g;
+  len2 = N_y*(N_x+1);
+  p1 = 0;
+  for(size_t i=0; i<len; i++){
+    for(size_t m=0; m<N_m; m++){
+      p2 = i*len2;
+      for(size_t j=0; j<len2; j++){
+
+        data[p1] = data[p1]/(data2[p2]*c);
+        p1 = p1 + 1;
+        p2 = p2 + 1;
+
+      }
+    }
+  }
+  free(data2);
+
+  memset(dname,0,25); strcpy(dname,"Mean_I_edgV"); clen = gscale*N_m*N_y*(N_x+1); rank = min(clen,N_t);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_edgV_ID,S_Ig_edgV_ID,U_Ig_edgV_ID,Vt_Ig_edgV_ID);
+  free(data);
+
+  /*-------------------------------------------------------------
+  -------------------------------------------------------------*/
+  printf("... mean I_edgH start\n");
+  memset(dname,0,25); strcpy(dname,"Eg_edgH_HO");
+  len = N_t*N_g*(N_y+1)*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data2,len);
+
+  memset(dname,0,25); strcpy(dname,"I_edgH");
+  len = N_t*N_g*N_m*(N_y+1)*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data,len);
+
+  len = N_t*N_g;
+  len2 = (N_y+1)*N_x;
+  p1 = 0;
+  for(size_t i=0; i<len; i++){
+    for(size_t m=0; m<N_m; m++){
+      p2 = i*len2;
+      for(size_t j=0; j<len2; j++){
+
+        data[p1] = data[p1]/(data2[p2]*c);
+        p1 = p1 + 1;
+        p2 = p2 + 1;
+
+      }
+    }
+  }
+  free(data2);
+
+  memset(dname,0,25); strcpy(dname,"Mean_I_edgH"); clen = gscale*N_m*(N_y+1)*N_x; rank = min(clen,N_t);
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_Ig_edgH_ID,S_Ig_edgH_ID,U_Ig_edgH_ID,Vt_Ig_edgH_ID);
+  free(data);
 
   return err;
 }

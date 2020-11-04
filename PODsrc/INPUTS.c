@@ -68,7 +68,7 @@ void GET_DIMS(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y
 //================================================================================================================================//
 //
 //================================================================================================================================//
-void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_pod, int *Ig_pod)
+void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_pod, int *Ig_pod, int *Mean_Ig_pod)
 {
   FILE *inpf;
   char line[256];
@@ -94,6 +94,7 @@ void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_p
   (*gsum) = 0;
   (*fg_pod) = 1;
   (*Ig_pod) = 0;
+  (*Mean_Ig_pod) = 0;
 
   //moving line by line through file to grab inputs
   while ( fgets(line, 255, inpf) != NULL ){ //placing current line of input file into 'line' character array
@@ -123,10 +124,17 @@ void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_p
       if (strcmp(inps[1],"fg") == 0){
         (*fg_pod) = 1;
         (*Ig_pod) = 0;
+        (*Mean_Ig_pod) = 0;
       }
       else if (strcmp(inps[1],"Ig") == 0){
         (*fg_pod) = 0;
         (*Ig_pod) = 1;
+        (*Mean_Ig_pod) = 0;
+      }
+      else if (strcmp(inps[1],"meanIg") == 0){
+        (*fg_pod) = 0;
+        (*Ig_pod) = 0;
+        (*Mean_Ig_pod) = 1;
       }
     }
 
@@ -143,6 +151,18 @@ void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_p
   if ((*fg_pod) == 1 && (*Ig_pod) == 1){
     printf("Invalid inputs detected\n");
     printf("Both fg_pod and Ig_pod detected\n");
+    printf("Terminating program\n");
+    exit(1);
+  }
+  else if ((*fg_pod) == 1 && (*Mean_Ig_pod) == 1){
+    printf("Invalid inputs detected\n");
+    printf("Both fg_pod and Mean_Ig_pod detected\n");
+    printf("Terminating program\n");
+    exit(1);
+  }
+  else if ((*Ig_pod) == 1 && (*Mean_Ig_pod) == 1){
+    printf("Invalid inputs detected\n");
+    printf("Both Ig_pod and Mean_Ig_pod detected\n");
     printf("Terminating program\n");
     exit(1);
   }

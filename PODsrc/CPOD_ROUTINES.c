@@ -35,14 +35,13 @@ int SIG_PLOT(const char *pname, const double *sig, const double *sigp, const int
 //
 // GENERATE_POD
 //================================================================================================================================//
-int GENERATE_POD(const int ncid_in, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
+int GENERATE_POD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
   size_t rank, int Cid, int Sid, int Uid, int Vtid)
 {
   int err;
   char loc[13] = "GENERATE_POD";
-  size_t len;
   char buf[25], pname[25], drop[25];
-  double *data, *center, *umat, *sig, *vtmat, *sigp;
+  double *center, *umat, *sig, *vtmat, *sigp;
 
   size_t startp[3], countp[3];
   ptrdiff_t stridep[3];
@@ -50,16 +49,6 @@ int GENERATE_POD(const int ncid_in, const int ncid_out, const char *dname, const
   //creating directory to put plots
   err = make_dir(dname); //setting up directory
   strcpy(drop,dname); strcat(drop,"/"); //creating path to directory
-
-  if (N_g > 0){
-    len = N_g*N_t*clen;
-  }
-  else{
-    len = N_t*clen;
-  }
-
-  //reading in datamatrix from NetCDF dataset
-  GET_VAR_DOUBLE(ncid_in,dname,&data,len);
 
   //checking type of dataset to perform POD on
   if(N_g > 0){ //if N_g>0, then a multigroup dataset has been detected
@@ -143,7 +132,7 @@ int GENERATE_POD(const int ncid_in, const int ncid_out, const char *dname, const
 
   }
 
-  free(data);
+  // free(data);
 
   return 0;
 }

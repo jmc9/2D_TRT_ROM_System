@@ -8,7 +8,7 @@
 void HANDLE_ERR(const int Status, const char *Location);
 
 //FROM INPUTS.c
-void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_pod, int *Ig_pod);
+void INPUT(const char *infile, char *dsfile, char *outfile, int *gsum, int *fg_pod, int *Ig_pod, int *Mean_Ig_pod);
 void GET_DIMS(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x, double *tlen, double *Delt,
   double *xlen, double *ylen, double **Delx, double **Dely, int *BC_Type, double *bcT, double *Tini);
 
@@ -28,9 +28,14 @@ int DEF_fg_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank
    int *C_fg_edgH_xy_ID, int *S_fg_edgH_xy_ID, int *U_fg_edgH_xy_ID, int *Vt_fg_edgH_xy_ID);
 
 int DEF_Ig_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank_avg_ID, const int rank_edgV_ID,
-   const int rank_edgH_ID, const int clen_avg_ID,const int clen_edgV_ID, const int clen_edgH_ID, const int N_t_ID,
-   int *C_Ig_avg_ID, int *S_Ig_avg_ID, int *U_Ig_avg_ID, int *Vt_Ig_avg_ID,int *C_Ig_edgV_ID, int *S_Ig_edgV_ID,
-   int *U_Ig_edgV_ID, int *Vt_Ig_edgV_ID, int *C_Ig_edgH_ID, int *S_Ig_edgH_ID, int *U_Ig_edgH_ID, int *Vt_Ig_edgH_ID);
+  const int rank_edgH_ID, const int clen_avg_ID,const int clen_edgV_ID, const int clen_edgH_ID, const int N_t_ID,
+  int *C_Ig_avg_ID, int *S_Ig_avg_ID, int *U_Ig_avg_ID, int *Vt_Ig_avg_ID,int *C_Ig_edgV_ID, int *S_Ig_edgV_ID,
+  int *U_Ig_edgV_ID, int *Vt_Ig_edgV_ID, int *C_Ig_edgH_ID, int *S_Ig_edgH_ID, int *U_Ig_edgH_ID, int *Vt_Ig_edgH_ID);
+
+int DEF_meanIg_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank_avg_ID, const int rank_edgV_ID,
+  const int rank_edgH_ID, const int clen_avg_ID,const int clen_edgV_ID, const int clen_edgH_ID, const int N_t_ID,
+  int *C_Ig_avg_ID, int *S_Ig_avg_ID, int *U_Ig_avg_ID, int *Vt_Ig_avg_ID,int *C_Ig_edgV_ID, int *S_Ig_edgV_ID,
+  int *U_Ig_edgV_ID, int *Vt_Ig_edgV_ID, int *C_Ig_edgH_ID, int *S_Ig_edgH_ID, int *U_Ig_edgH_ID, int *Vt_Ig_edgH_ID);
 
 int OUTPUT_fg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_y, const size_t N_x,
   const int gsum, const int C_fg_avg_xx_ID,const int S_fg_avg_xx_ID, const int U_fg_avg_xx_ID, const int Vt_fg_avg_xx_ID,
@@ -41,6 +46,11 @@ int OUTPUT_fg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const
   const int C_fg_edgH_xy_ID, const int S_fg_edgH_xy_ID, const int U_fg_edgH_xy_ID, const int Vt_fg_edgH_xy_ID);
 
 int OUTPUT_Ig_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
+  const size_t N_x, const int gsum, const int C_Ig_avg_ID, const int S_Ig_avg_ID, const int U_Ig_avg_ID, const int Vt_Ig_avg_ID,
+  const int C_Ig_edgV_ID, const int S_Ig_edgV_ID, const int U_Ig_edgV_ID, const int Vt_Ig_edgV_ID, const int C_Ig_edgH_ID,
+  const int S_Ig_edgH_ID, const int U_Ig_edgH_ID, const int Vt_Ig_edgH_ID);
+
+int OUTPUT_meanIg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
   const size_t N_x, const int gsum, const int C_Ig_avg_ID, const int S_Ig_avg_ID, const int U_Ig_avg_ID, const int Vt_Ig_avg_ID,
   const int C_Ig_edgV_ID, const int S_Ig_edgV_ID, const int U_Ig_edgV_ID, const int Vt_Ig_edgV_ID, const int C_Ig_edgH_ID,
   const int S_Ig_edgH_ID, const int U_Ig_edgH_ID, const int Vt_Ig_edgH_ID);
@@ -57,7 +67,7 @@ int OUTPUT_Ig_POD(const int ncid_in, const int ncid_out, const size_t N_t, const
 int main()
 {
   //
-  int ncid_in, ncid_out, err, gsum, fg_pod, Ig_pod;
+  int ncid_in, ncid_out, err, gsum, fg_pod, Ig_pod, Mean_Ig_pod;
   int N_t_ID, N_g_ID, N_m_ID, N_y_ID, N_x_ID;
   int rank_avg_ID, rank_edgV_ID, rank_edgH_ID, clen_avg_ID, clen_edgV_ID, clen_edgH_ID;
   //
@@ -87,14 +97,14 @@ int main()
   printf("Program start\nReading inputs\n");
   strcpy(infile,"input.inp"); //setting input file name (default)
 
-  INPUT(infile,dsfile,outfile,&gsum,&fg_pod,&Ig_pod); //reading input file
+  INPUT(infile,dsfile,outfile,&gsum,&fg_pod,&Ig_pod,&Mean_Ig_pod); //reading input file
 
   err = nc_open(dsfile,NC_NOWRITE,&ncid_in); HANDLE_ERR(err,loc); //opening NetCDF dataset
   GET_DIMS(ncid_in,&N_t,&N_g,&N_m,&N_y,&N_x,&tlen,&Delt,&xlen,&ylen,&Delx,&Dely,BC_Type,bcT,&Tini); //finding dimensions of problem domain
-// printf("%e\n",Tini);
+
   if (gsum == 1){ gscale = N_g; }
   else{ gscale = 1; }
-  if (Ig_pod == 1){ mscale = N_m; }
+  if ((Ig_pod == 1) || (Mean_Ig_pod == 1)){ mscale = N_m; }
   else{ mscale = 1; }
   clen_avg = gscale*mscale*N_x*N_y; clen_edgV = gscale*mscale*(N_x+1)*N_y; clen_edgH = gscale*mscale*N_x*(N_y+1);
   rank_avg = min(clen_avg,N_t); rank_edgV = min(clen_edgV,N_t); rank_edgH = min(clen_edgH,N_t);
@@ -124,6 +134,11 @@ int main()
        N_t_ID,&C_Ig_avg_ID,&S_Ig_avg_ID,&U_Ig_avg_ID,&Vt_Ig_avg_ID,&C_Ig_edgV_ID,&S_Ig_edgV_ID,&U_Ig_edgV_ID,&Vt_Ig_edgV_ID,
        &C_Ig_edgH_ID,&S_Ig_edgH_ID,&U_Ig_edgH_ID,&Vt_Ig_edgH_ID);
   }
+  else if (Mean_Ig_pod == 1){
+    err = DEF_meanIg_VARS(ncid_out,gsum,N_g_ID,rank_avg_ID,rank_edgV_ID,rank_edgH_ID,clen_avg_ID,clen_edgV_ID,clen_edgH_ID,
+       N_t_ID,&C_Ig_avg_ID,&S_Ig_avg_ID,&U_Ig_avg_ID,&Vt_Ig_avg_ID,&C_Ig_edgV_ID,&S_Ig_edgV_ID,&U_Ig_edgV_ID,&Vt_Ig_edgV_ID,
+       &C_Ig_edgH_ID,&S_Ig_edgH_ID,&U_Ig_edgH_ID,&Vt_Ig_edgH_ID);
+  }
 
   if (err != 0){ printf("Error occured while defining variables in %s\n",outfile); exit(1); }
 
@@ -144,6 +159,10 @@ int main()
   }
   else if (Ig_pod == 1){
     err = OUTPUT_Ig_POD(ncid_in,ncid_out,N_t,N_g,N_m,N_y,N_x,gsum,C_Ig_avg_ID,S_Ig_avg_ID,U_Ig_avg_ID,Vt_Ig_avg_ID,
+       C_Ig_edgV_ID,S_Ig_edgV_ID,U_Ig_edgV_ID,Vt_Ig_edgV_ID,C_Ig_edgH_ID,S_Ig_edgH_ID,U_Ig_edgH_ID,Vt_Ig_edgH_ID);
+  }
+  else if (Mean_Ig_pod == 1){
+    err = OUTPUT_meanIg_POD(ncid_in,ncid_out,N_t,N_g,N_m,N_y,N_x,gsum,C_Ig_avg_ID,S_Ig_avg_ID,U_Ig_avg_ID,Vt_Ig_avg_ID,
        C_Ig_edgV_ID,S_Ig_edgV_ID,U_Ig_edgV_ID,Vt_Ig_edgV_ID,C_Ig_edgH_ID,S_Ig_edgH_ID,U_Ig_edgH_ID,Vt_Ig_edgH_ID);
   }
 

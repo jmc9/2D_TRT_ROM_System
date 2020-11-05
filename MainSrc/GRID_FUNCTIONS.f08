@@ -167,7 +167,7 @@ SUBROUTINE MAP_GRIDS(Map,Grid1,Grid2,len1,len2,Vec_Locs)
   END DO G2
 
   IF (PRESENT(Vec_Locs)) THEN
-    i=len2*4
+    i=len2*2
     DO j=1,i
       Vec_Locs(j) = (Map(j)+1)/2
     END DO
@@ -198,6 +198,34 @@ FUNCTION DIST(xp1, yp1, xp2, yp2)
   DIST = ABS( SQRT(xp1**2 + yp1**2) - SQRT(xp2**2 + yp2**2) )
 
 END FUNCTION DIST
+
+!==================================================================================================================================!
+! FUNCTION BILINEAR_INTERPOLATE
+!
+!DEF:
+!  Performs Bilinear Interpolation to find the value of a function f(x,y) given: f_11 = f(x1,y1), f_21 = f(x2,y1)
+!                                                                                f_12 = f(x1,y2), f_22 = f(x2,y2)
+!
+!INPUT:
+!
+!OUTPUT:
+!  BILINEAR_INTERPOLATE (REAL*8) - the function value f(x,y)
+!
+!==================================================================================================================================!
+FUNCTION BILINEAR_INTERPOLATE(f_11,f_12,f_21,f_22,x,x1,x2,y,y1,y2)
+  REAL*8:: BILINEAR_INTERPOLATE
+  REAL*8,INTENT(IN):: x, x1, x2, y, y1, y2
+  REAL*8,INTENT(IN):: f_11, f_12, f_21, f_22
+  REAL*8:: xx1, xx2, yy1, yy2
+
+  xx1 = x - x1
+  xx2 = x2 - x
+  yy1 = y - y1
+  yy2 = y2 - y
+
+  BILINEAR_INTERPOLATE = ( f_11*xx2*yy2 + f_21*xx1*yy2 + f_12*xx2*yy1 + f_22*xx1*yy1 )/( (x2 - x1)*(y2 - y1) )
+
+END FUNCTION BILINEAR_INTERPOLATE
 
 !==================================================================================================================================!
 !

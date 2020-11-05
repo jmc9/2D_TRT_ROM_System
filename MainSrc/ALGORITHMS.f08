@@ -221,13 +221,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
     ALLOCATE(Sim_Grid_Avg(2*N_x*N_y), Sim_Grid_EdgV(2*(N_x+1)*N_y), Sim_Grid_EdgH(2*N_x*(N_y+1)))
     CALL GRIDMAP_GEN_AVG(Sim_Grid_Avg,Delx,Dely,N_x,N_y)
-    CALL GRIDMAP_GEN_EDGV(Sim_Grid_EdgV,Delx,Dely,N_x,N_y)
-    CALL GRIDMAP_GEN_EDGH(Sim_Grid_EdgH,Delx,Dely,N_x,N_y)
+    CALL GRIDMAP_GEN_EDGV(Sim_Grid_EdgV,Delx,Dely,N_x+1,N_y)
+    CALL GRIDMAP_GEN_EDGH(Sim_Grid_EdgH,Delx,Dely,N_x,N_y+1)
 
     ALLOCATE(Dat_Grid_Avg(2*dN_x*dN_y), Dat_Grid_EdgV(2*(dN_x+1)*dN_y), Dat_Grid_EdgH(2*dN_x*(dN_y+1)))
     CALL GRIDMAP_GEN_AVG(Dat_Grid_Avg,Delx_d,Dely_d,dN_x,dN_y)
-    CALL GRIDMAP_GEN_EDGV(Dat_Grid_EdgV,Delx_d,Dely_d,dN_x,dN_y)
-    CALL GRIDMAP_GEN_EDGH(Dat_Grid_EdgH,Delx_d,Dely_d,dN_x,dN_y)
+    CALL GRIDMAP_GEN_EDGV(Dat_Grid_EdgV,Delx_d,Dely_d,dN_x+1,dN_y)
+    CALL GRIDMAP_GEN_EDGH(Dat_Grid_EdgH,Delx_d,Dely_d,dN_x,dN_y+1)
 
     ALLOCATE(GMap_xyAvg(4*dN_x*dN_y), GMap_xyEdgV(4*(dN_x+1)*dN_y), GMap_xyEdgH(4*dN_x*(dN_y+1)))
     ALLOCATE(VMap_xyAvg(4*dN_x*dN_y), VMap_xyEdgV(4*(dN_x+1)*dN_y), VMap_xyEdgH(4*dN_x*(dN_y+1)))
@@ -235,6 +235,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     CALL MAP_GRIDS(GMap_xyEdgV, Dat_Grid_EdgV, Sim_Grid_EdgV, 2*(dN_x+1)*dN_y, 2*(N_x+1)*N_y, VMap_xyEdgV)
     CALL MAP_GRIDS(GMap_xyEdgH, Dat_Grid_EdgH, Sim_Grid_EdgH, 2*dN_x*(dN_y+1), 2*N_x*(N_y+1), VMap_xyEdgH)
   END IF
+  stop
 
   !===========================================================================!
   !                                                                           !

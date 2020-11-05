@@ -113,8 +113,9 @@ END SUBROUTINE GRIDMAP_GEN_EDGH
 !OUTPUT:
 !
 !==================================================================================================================================!
-SUBROUTINE MAP_GRIDS(Map,Grid1,Grid2,len1,len2)
+SUBROUTINE MAP_GRIDS(Map,Grid1,Grid2,len1,len2,Vec_Locs)
   INTEGER,INTENT(OUT):: Map(*)
+  INTEGER,INTENT(OUT),OPTIONAL:: Vec_Locs(*)
   REAL*8,INTENT(IN):: Grid1(*), Grid2(*)
   INTEGER,INTENT(IN):: len1, len2
   REAL*8:: d(4), r
@@ -164,6 +165,13 @@ SUBROUTINE MAP_GRIDS(Map,Grid1,Grid2,len1,len2)
     mp = mp + 4 !Moving to next map position
 
   END DO G2
+
+  IF (PRESENT(Vec_Locs)) THEN
+    i=len2*4
+    DO j=1,i
+      Vec_Locs(j) = (Map(j)+1)/2
+    END DO
+  END IF
 
 END SUBROUTINE MAP_GRIDS
 

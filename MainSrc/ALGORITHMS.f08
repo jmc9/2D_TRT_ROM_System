@@ -10,6 +10,7 @@ MODULE ALGORITHMS
   USE netcdf
   USE NCDF_IO
   USE POD_ROUTINES
+  USE GRID_FUNCTIONS
 
   IMPLICIT NONE
 
@@ -160,6 +161,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t
   INTEGER,ALLOCATABLE:: BC_Type_d(:)
 
+  REAL*8,ALLOCATABLE:: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:)
+  REAL*8,ALLOCATABLE:: Dat_Grid_Avg(:), Dat_Grid_EdgV(:), Dat_Grid_EdgH(:)
+  INTEGER,ALLOCATABLE:: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:)
+  INTEGER,ALLOCATABLE:: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:)
+
   !===========================================================================!
   !                                                                           !
   !     INITIALIZING ARRAYS                                                   !
@@ -201,15 +207,33 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   !     READING IN POD DATA                                                   !
   !                                                                           !
   !===========================================================================!
-  IF ((run_type .EQ. "mg_pod").AND.(POD_type .EQ. 'fg')) THEN
-    CALL INPUT_fg_POD(POD_dset,PODgsum,POD_err,dN_x,dN_y,dN_m,dN_g,dN_t,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,&
-      rrank_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,&
-      V_fg_avg_yy,rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,&
-      U_fg_edgV_xy,V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy,tlen_d,&
-      xlen_d,ylen_d,Tini_d,Delt_d,Delx_d,Dely_d,bcT_d,BC_Type_d)
-  ELSE IF ((run_type .EQ. "mg_pod").AND.(POD_type .EQ. 'Ig')) THEN
-    CALL INPUT_Ig_POD(POD_dset,PODgsum,N_x,N_y,N_m,N_g,N_t,POD_err,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg,&
-      C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH)
+  IF (run_type .EQ. "mg_pod") THEN
+    IF (POD_type .EQ. 'fg') THEN
+      CALL INPUT_fg_POD(POD_dset,PODgsum,POD_err,dN_x,dN_y,dN_m,dN_g,dN_t,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,&
+        rrank_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,&
+        V_fg_avg_yy,rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,&
+        U_fg_edgV_xy,V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy,tlen_d,&
+        xlen_d,ylen_d,Tini_d,Delt_d,Delx_d,Dely_d,bcT_d,BC_Type_d)
+    ELSE IF (POD_type .EQ. 'Ig') THEN
+      CALL INPUT_Ig_POD(POD_dset,PODgsum,N_x,N_y,N_m,N_g,N_t,POD_err,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg,&
+        C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH)
+    END IF
+
+    ALLOCATE(Sim_Grid_Avg(2*N_x*N_y), Sim_Grid_EdgV(2*(N_x+1)*N_y), Sim_Grid_EdgH(2*N_x*(N_y+1)))
+    CALL GRIDMAP_GEN_AVG(Sim_Grid_Avg,Delx,Dely,N_x,N_y)
+    CALL GRIDMAP_GEN_EDGV(Sim_Grid_EdgV,Delx,Dely,N_x,N_y)
+    CALL GRIDMAP_GEN_EDGH(Sim_Grid_EdgH,Delx,Dely,N_x,N_y)
+
+    ALLOCATE(Dat_Grid_Avg(2*dN_x*dN_y), Dat_Grid_EdgV(2*(dN_x+1)*dN_y), Dat_Grid_EdgH(2*dN_x*(dN_y+1)))
+    CALL GRIDMAP_GEN_AVG(Dat_Grid_Avg,Delx_d,Dely_d,dN_x,dN_y)
+    CALL GRIDMAP_GEN_EDGV(Dat_Grid_EdgV,Delx_d,Dely_d,dN_x,dN_y)
+    CALL GRIDMAP_GEN_EDGH(Dat_Grid_EdgH,Delx_d,Dely_d,dN_x,dN_y)
+
+    ALLOCATE(GMap_xyAvg(4*dN_x*dN_y), GMap_xyEdgV(4*(dN_x+1)*dN_y), GMap_xyEdgH(4*dN_x*(dN_y+1)))
+    ALLOCATE(VMap_xyAvg(4*dN_x*dN_y), VMap_xyEdgV(4*(dN_x+1)*dN_y), VMap_xyEdgH(4*dN_x*(dN_y+1)))
+    CALL MAP_GRIDS(GMap_xyAvg, Dat_Grid_Avg, Sim_Grid_Avg, 2*dN_x*dN_y, 2*N_x*N_y, VMap_xyAvg)
+    CALL MAP_GRIDS(GMap_xyEdgV, Dat_Grid_EdgV, Sim_Grid_EdgV, 2*(dN_x+1)*dN_y, 2*(N_x+1)*N_y, VMap_xyEdgV)
+    CALL MAP_GRIDS(GMap_xyEdgH, Dat_Grid_EdgH, Sim_Grid_EdgH, 2*dN_x*(dN_y+1), 2*N_x*(N_y+1), VMap_xyEdgH)
   END IF
 
   !===========================================================================!

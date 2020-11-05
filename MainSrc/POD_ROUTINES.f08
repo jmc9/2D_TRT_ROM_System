@@ -11,6 +11,17 @@ END INTERFACE
 CONTAINS
 
 !==================================================================================================================================!
+! SUBROUTINE POD_RECONSTRUCT_fg
+!
+!DEF:
+!  Reconstructs multigroup qd-factors at a specific time instant (fg(t)) from a truncated SVD representation
+!
+!INPUT:
+!  N_t, N_g, N_y, N_x - size of the grid in time/ energy/ y-length/ x-length, respectively
+!                     - Note that these are the grid sizes from the original decomposition, *NOT* the grid for the current simulation
+!  PODgsum - flag to denote whether the given decomposition was performed over the entire phase space or groupwise for each qd factor
+!
+!OUTPUT:
 !
 !==================================================================================================================================!
 SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,C_fg_avg_xx,&
@@ -50,6 +61,20 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
 END SUBROUTINE POD_RECONSTRUCT_fg
 
 !==================================================================================================================================!
+! SUBROUTINE POD_RECONSTRUCT
+!
+!DEF:
+!  Reconstructs data at a specific instant of time from a truncated SVD representation
+!
+!INPUT:
+!  N_t, N_g, N_y, N_x - size of the grid in time/ energy/ y-length/ x-length, respectively
+!                     - Note that these are the grid sizes from the original decomposition, *NOT* the grid for the current simulation
+!
+!  PODgsum - flag to denote whether the given decomposition was performed over the entire phase space or groupwise for each qd factor
+!
+!  t - time step number to locate the desired instant of time to reconstruct data from (= Time/Delt)
+!
+!OUTPUT:
 !
 !==================================================================================================================================!
 SUBROUTINE POD_RECONSTRUCT(dat,C,S,U,V,rank,len,N_g,N_t,t,PODgsum)

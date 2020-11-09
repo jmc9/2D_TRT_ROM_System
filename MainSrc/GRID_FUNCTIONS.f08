@@ -62,52 +62,6 @@ END SUBROUTINE GRIDMAP_GEN_AVG
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE GRIDMAP_GEN_AVG_BNDS(GridMap,Delx,Dely,N_x,N_y)
-  REAL*8,INTENT(OUT):: GridMap(*)
-  REAL*8,INTENT(IN):: Delx(*), Dely(*)
-  INTEGER,INTENT(IN):: N_x, N_y
-  REAL*8:: xloc(N_x+2), yloc
-  INTEGER:: i, j, p
-
-  xloc(1) = 0d0
-  xloc(2) = Delx(1)/2d0
-  DO i=2,N_x
-    xloc(i+1) = xloc(i) + (Delx(i-1) + Delx(i))/2d0
-  END DO
-  xloc(N_x+2) = xloc(N_x-1) + Delx(N_x)/2d0
-
-  p = 0
-  yloc = 0d0
-  DO i=1,N_x+2
-    p = p + 1
-    GridMap(p) = xloc(i)
-    p = p + 1
-    GridMap(p) = yloc
-  END DO
-
-  DO j=2,N_y+1
-    yloc = yloc + Dely(j-1)/2d0
-    DO i=1,N_x+2
-      p = p + 1
-      GridMap(p) = xloc(i)
-      p = p + 1
-      GridMap(p) = yloc
-    END DO
-    yloc = yloc + Dely(j-1)/2d0
-  END DO
-
-  DO i=1,N_x+2
-    p = p + 1
-    GridMap(p) = xloc(i)
-    p = p + 1
-    GridMap(p) = yloc
-  END DO
-
-END SUBROUTINE GRIDMAP_GEN_AVG_BNDS
-
-!==================================================================================================================================!
-!
-!==================================================================================================================================!
 SUBROUTINE GRIDMAP_GEN_EDGV(GridMap,Delx,Dely,N_x,N_y)
   REAL*8,INTENT(OUT):: GridMap(*)
   REAL*8,INTENT(IN):: Delx(*), Dely(*)
@@ -286,7 +240,6 @@ SUBROUTINE MAP_GRIDS(Map,Grid1,Grid2,len1,len2,xlen1,Vec_Locs)
     i=len2*2
     DO j=1,i
       Vec_Locs(j) = (Map(j)+1)/2
-      ! IF (MOD(j,4) .EQ. 0) write(*,*) Vec_Locs(j-3:j), j/4
     END DO
   END IF
 
@@ -438,5 +391,172 @@ SUBROUTINE AVG_APND_BND(f_out,f_in,LR_Bnd,BT_Bnd,Crn_Bnd,N_g,N_y,N_x)
   END DO
 
 END SUBROUTINE AVG_APND_BND
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE COLLECT_LR_BND(bnd,f,N_g,N_y,N_x)
+  REAL*8,INTENT(OUT):: bnd(*)
+  REAL*8,INTENT(IN):: f(*)
+  INTEGER,INTENT(IN):: N_g, N_y, N_x
+  INTEGER:: g, j, i, p1, p2
+
+  p1=0
+  p2=0
+  DO g=1,N_g
+
+    DO j=1,N_y
+
+      p1 = p1 + 1
+      p2 = p2 + 1
+      bnd(p2) = f(p1)
+
+      p1 = p1 + (N_x-1)
+      p2 = p2 + 1
+      bnd(p2) = f(p1)
+
+    END DO
+
+  END DO
+
+END SUBROUTINE COLLECT_LR_BND
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE COLLECT_BT_BND(bnd,f,N_g,N_y,N_x)
+  REAL*8,INTENT(OUT):: bnd(*)
+  REAL*8,INTENT(IN):: f(*)
+  INTEGER,INTENT(IN):: N_g, N_y, N_x
+  INTEGER:: g, j, i, p1, p2
+
+  p1=0
+  p2=0
+  DO g=1,N_g
+    DO j=1,N_x
+
+      p1 = p1 + 1
+      p2 = p2 + 1
+
+      bnd(p2) = f(p1)
+
+    END DO
+
+    p1 = p1 + (N_y-2)*N_x
+    DO j=1,N_x
+
+      p1 = p1 + 1
+      p2 = p2 + 1
+
+      bnd(p2) = f(p1)
+
+    END DO
+  END DO
+
+END SUBROUTINE COLLECT_BT_BND
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE COLLECT_CRN_BND(bnd,f,N_g,N_y,N_x)
+  REAL*8,INTENT(OUT):: bnd(*)
+  REAL*8,INTENT(IN):: f(*)
+  INTEGER,INTENT(IN):: N_g, N_y, N_x
+  INTEGER:: g, j, i, p1, p2
+
+  p1=0
+  p2=0
+  DO g=1,N_g
+    p1 = p1 + 1
+    p2 = p2 + 1
+    bnd(p2) = f(p1)
+
+    p1 = p1 + (N_x-1)
+    p2 = p2 + 1
+    bnd(p2) = f(p1)
+
+    p1 = p1 + (N_y-2)*N_x + 1
+    p2 = p2 + 1
+    bnd(p2) = f(p1)
+
+    p1 = p1 + (N_x-1)
+    p2 = p2 + 1
+    bnd(p2) = f(p1)
+  END DO
+
+END SUBROUTINE COLLECT_CRN_BND
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE EXTND_BT_BND(f_out,f_in,N_g,N_y,N_x)
+  REAL*8,INTENT(OUT):: f_out(*)
+  REAL*8,INTENT(IN):: f_in(*)
+  INTEGER,INTENT(IN):: N_g, N_y, N_x
+  INTEGER:: g, j, i, p1, p2
+
+  p1=0
+  p2=0
+  DO g=1,N_g
+
+    DO i=1,N_x
+      p1 = p1 + 1
+      p2 = p2 + 1
+      f_out(p2) = f_in(p1)
+    END DO
+
+    p1 = p1 - N_x
+    DO j=1,N_y
+
+      DO i=1,N_x
+        p1 = p1 + 1
+        p2 = p2 + 1
+        f_out(p2) = f_in(p1)
+      END DO
+
+    END DO
+
+    p1 = p1 - N_x
+    DO i=1,N_x
+      p1 = p1 + 1
+      p2 = p2 + 1
+      f_out(p2) = f_in(p1)
+    END DO
+
+  END DO
+
+END SUBROUTINE EXTND_BT_BND
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE EXTND_LR_BND(f_out,f_in,N_g,N_y,N_x)
+  REAL*8,INTENT(OUT):: f_out(*)
+  REAL*8,INTENT(IN):: f_in(*)
+  INTEGER,INTENT(IN):: N_g, N_y, N_x
+  INTEGER:: g, j, i, p1, p2
+
+  p1=0
+  p2=0
+  DO g=1,N_g
+
+    DO j=1,N_y
+      p2 = p2 + 1
+      f_out(p2) = f_in(p1+1)
+
+      DO i=1,N_x
+        p1 = p1 + 1
+        p2 = p2 + 1
+        f_out(p2) = f_in(p1)
+      END DO
+
+      p2 = p2 + 1
+      f_out(p2) = f_in(p1)
+
+    END DO
+
+  END DO
+
+END SUBROUTINE EXTND_LR_BND
 
 END MODULE GRID_FUNCTIONS

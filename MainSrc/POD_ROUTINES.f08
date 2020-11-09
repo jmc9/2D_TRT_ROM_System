@@ -61,40 +61,43 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   ! VERTICAL (y=const) CELL FACE DATA
   !
   !----------------------------------------
+
+  !----------vector lengths----------!
+
+  len = (dN_x+1)*(dN_y+2)*dN_g !length of EdgV data vector with boundary cells above/below the grid
+  ALLOCATE(f2(len)) !allocating space to hold reconstituted POD data, with appended boundary cells
+
   len = (dN_x+1)*dN_y*dN_g !length of EdgV-type data vector
   ALLOCATE(f(len)) !allocating space to hold reconstituted POD data
+
+  !----------fg_edgV_xx----------!
 
   !reconstructing fg_edgV_xx from decomposition (on the same grid it was decomposed on)
   CALL POD_RECONSTRUCT(f,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,len,N_g,N_t,t,PODgsum)
 
   !storing the fg_xx boundary data (for the left/right boundaries only)
-  p1=0
-  p2=0
-  DO g=1,dN_g
-    DO j=1,dN_y
+  CALL COLLECT_LR_BND(xxbnd,f,dN_g,dN_y,dN_x+1)
 
-      p1 = p1 + 1
-      p2 = p2 + 1
-
-      xxbnd(p1) = f(p2)
-
-      p1 = p1 + 1
-      p2 = p2 + dN_x
-
-      xxbnd(p1) = f(p2)
-
-    END DO
-  END DO
+  !Appending on extra 'boundary data' above/below the grid for mapping purposes
+  CALL EXTND_BT_BND(f2,f,dN_g,dN_y,dN_x+1)
 
   !mapping the vector of fg_edgV_xx data from the decomposition grid to the simulation grid
-  CALL FMAP(f,fg_edgV_xx,Dat_Grid_EdgV,Sim_Grid_EdgV,GMap_xyEdgV,VMap_xyEdgV,(dN_x+1)*dN_y,(N_x+1)*N_y,len,(N_x+1)*N_y*N_g)
+  CALL FMAP(f2,fg_edgV_xx,Dat_Grid_EdgV,Sim_Grid_EdgV,GMap_xyEdgV,VMap_xyEdgV, (dN_x+1)*(dN_y+2), (N_x+1)*N_y, &
+  (dN_x+1)*(dN_y+2)*N_g, (N_x+1)*N_y*N_g)
+
+  !----------fg_edgV_xy----------!
 
   !reconstructing fg_edgV_xy from decomposition (on the same grid it was decomposed on)
   CALL POD_RECONSTRUCT(f,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,V_fg_edgV_xy,rrank_fg_edgV_xy,len,N_g,N_t,t,PODgsum)
-  !mapping the vector of fg_edgV_xy data from the decomposition grid to the simulation grid
-  CALL FMAP(f,fg_edgV_xy,Dat_Grid_EdgV,Sim_Grid_EdgV,GMap_xyEdgV,VMap_xyEdgV,(dN_x+1)*dN_y,(N_x+1)*N_y,len,(N_x+1)*N_y*N_g)
 
-  DEALLOCATE(f) !deallocating POD data vector
+  !Appending on extra 'boundary data' above/below the grid for mapping purposes
+  CALL EXTND_BT_BND(f2,f,dN_g,dN_y,dN_x+1)
+
+  !mapping the vector of fg_edgV_xy data from the decomposition grid to the simulation grid
+  CALL FMAP(f2,fg_edgV_xy,Dat_Grid_EdgV,Sim_Grid_EdgV,GMap_xyEdgV,VMap_xyEdgV, (dN_x+1)*(dN_y+2), (N_x+1)*N_y, &
+  (dN_x+1)*(dN_y+2)*N_g, (N_x+1)*N_y*N_g)
+
+  DEALLOCATE(f,f2) !deallocating POD data vector
 
 
   !----------------------------------------
@@ -102,51 +105,48 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   ! HORIZONTAL (x=const) CELL FACE DATA
   !
   !----------------------------------------
+
+  !----------vector lengths----------!
+
+  len = (dN_x+2)*(dN_y+1)*dN_g !length of EdgH data vector with boundary cells left/right of the grid
+  ALLOCATE(f2(len)) !allocating space to hold reconstituted POD data, with appended boundary cells
+
   len = dN_x*(dN_y+1)*dN_g !length of EdgH-type data vector
   ALLOCATE(f(len)) !allocating space to hold reconstituted POD data
+
+  !----------fg_edgH_yy----------!
 
   !reconstructing fg_edgH_yy from decomposition (on the same grid it was decomposed on)
   CALL POD_RECONSTRUCT(f,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,len,N_g,N_t,t,PODgsum)
 
   !storing the fg_yy boundary data (for the top/bottom boundaries only)
-  p1=0
-  p2=0
-  DO g=1,dN_g
-    DO j=1,dN_x
+  CALL COLLECT_BT_BND(yybnd,f,dN_g,dN_y+1,dN_x)
 
-      p1 = p1 + 1
-      p2 = p2 + 1
-
-      yybnd(p1) = f(p2)
-
-    END DO
-
-    p2 = p2 + (dN_y-1)*dN_x
-    DO j=1,dN_x
-
-      p1 = p1 + 1
-      p2 = p2 + 1
-
-      yybnd(p1) = f(p2)
-
-    END DO
-  END DO
+  !Appending on extra 'boundary data' left/right of the grid for mapping purposes
+  CALL EXTND_LR_BND(f2,f,dN_g,dN_y+1,dN_x)
 
   !mapping the vector of fg_edgH_yy data from the decomposition grid to the simulation grid
-  CALL FMAP(f,fg_edgH_yy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH,dN_x*(dN_y+1),N_x*(N_y+1),len,N_x*(N_y+1)*N_g)
+  CALL FMAP(f2,fg_edgH_yy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH,dN_x*(dN_y+1),N_x*(N_y+1),len,N_x*(N_y+1)*N_g)
+
+  !----------fg_edgH_xy----------!
 
   !reconstructing fg_edgH_xy from decomposition (on the same grid it was decomposed on)
   CALL POD_RECONSTRUCT(f,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy,len,N_g,N_t,t,PODgsum)
-  !mapping the vector of fg_edgH_xy data from the decomposition grid to the simulation grid
-  CALL FMAP(f,fg_edgH_xy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH,dN_x*(dN_y+1),N_x*(N_y+1),len,N_x*(N_y+1)*N_g)
 
-  DEALLOCATE(f) !deallocating POD data vector
+  !Appending on extra 'boundary data' left/right of the grid for mapping purposes
+  CALL EXTND_LR_BND(f2,f,dN_g,dN_y+1,dN_x)
+
+  !mapping the vector of fg_edgH_xy data from the decomposition grid to the simulation grid
+  CALL FMAP(f2,fg_edgH_xy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH,dN_x*(dN_y+1),N_x*(N_y+1),len,N_x*(N_y+1)*N_g)
+
+  DEALLOCATE(f,f2) !deallocating POD data vector
 
   !----------------------------------------
   !
   ! CELL AVERAGED DATA
   !
   !----------------------------------------
+
   len = ((dN_x+2)*(dN_y+2))*dN_g !length of cell-averaged data vector with boundary cells
   ALLOCATE(f2(len)) !allocating space to hold reconstituted POD data, with appended boundary cells
 
@@ -159,49 +159,11 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   !appending boundary data to the vector of cell-averaged fg_xx (on the decomposition grid)
   !Note that this is only done for the purposes of mapping to the simulation grid
   ALLOCATE(bnd2((2*dN_x)*dN_g))
-  p1=0
-  p2=0
-  p3=0
-  DO g=1,dN_g
-    p1 = p1 + 1
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-
-    p1 = p1 - 1
-    DO i=1,dN_x
-
-      p1 = p1 + 1
-      p2 = p2 + 1
-
-      bnd2(p2) = f(p1)
-
-    END DO
-
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-
-    p1 = p1 + (dN_y-2)*dN_x
-
-    p1 = p1 + 1
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-
-    p1 = p1 - 1
-    DO i=1,dN_x
-
-      p1 = p1 + 1
-      p2 = p2 + 1
-
-      bnd2(p2) = f(p1)
-
-    END DO
-
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-  END DO
+  CALL COLLECT_BT_BND(bnd2,f,dN_g,dN_y,dN_x)
+  CALL COLLECT_CRN_BND(crnbnd,f,dN_g,dN_y,dN_x)
 
   CALL AVG_APND_BND(f2,f,xxbnd,bnd2,crnbnd,dN_g,dN_y,dN_x)
-  DEALLOCATE(bnd2)
+  DEALLOCATE(bnd2,xxbnd)
 
   !mapping the vector of fg_avg_xx data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_avg_xx,Dat_Grid_Avg,Sim_Grid_Avg,GMap_xyAvg,VMap_xyAvg, (dN_x+2)*(dN_y+2), N_x*N_y, &
@@ -213,48 +175,17 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   !appending boundary data to the vector of cell-averaged fg_xx (on the decomposition grid)
   !Note that this is only done for the purposes of mapping to the simulation grid
   ALLOCATE(bnd2((2*dN_y)*dN_g))
-  p1=0
-  p2=0
-  p3=0
-  DO g=1,dN_g
-    p1 = p1 + 1
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-
-    p1 = p1 + dN_x-1
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-
-    p1 = p1 - dN_x
-    DO j=1,dN_y
-
-      p1 = p1 + 1
-      p2 = p2 + 1
-      bnd2(p2) = f(p1)
-
-      p1 = p1 + dN_x-1
-      p2 = p2 + 1
-      bnd2(p2) = f(p1)
-
-    END DO
-
-    p1 = p1 - dN_x + 1
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-
-    p1 = p1 + dN_x-1
-    p3 = p3 + 1
-    crnbnd(p3) = f(p1)
-  END DO
+  CALL COLLECT_LR_BND(bnd2,f,dN_g,dN_y,dN_x)
+  CALL COLLECT_CRN_BND(crnbnd,f,dN_g,dN_y,dN_x)
 
   CALL AVG_APND_BND(f2,f,bnd2,yybnd,crnbnd,dN_g,dN_y,dN_x)
-  DEALLOCATE(bnd2)
+  DEALLOCATE(bnd2,yybnd,crnbnd)
 
   !mapping the vector of fg_avg_yy data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_avg_yy,Dat_Grid_Avg,Sim_Grid_Avg,GMap_xyAvg,VMap_xyAvg, (dN_x+2)*(dN_y+2), N_x*N_y, &
   (dN_x+2)*(dN_y+2)*dN_g, N_x*N_y*N_g)
 
-  DEALLOCATE(f,f2,xxbnd,yybnd,crnbnd) !deallocating POD data vector
+  DEALLOCATE(f,f2) !deallocating POD data vector
 
 END SUBROUTINE POD_RECONSTRUCT_fg
 
@@ -340,17 +271,18 @@ END SUBROUTINE POD_RECONSTRUCT
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx,&
-  C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,&
-  rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,&
-  V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy,tlen,xlen,ylen,Tini,Delt,&
-  Delx,Dely,bcT,BC_Type)
+SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg,C_fg_avg_xx,S_fg_avg_xx,&
+  U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,&
+  S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,&
+  C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,&
+  rrank_fg_edgH_xy,tlen,xlen,ylen,Tini,Delt,Delx,Dely,bcT,BC_Type)
 
   CHARACTER(*),INTENT(IN):: Fname
   INTEGER,INTENT(IN):: PODgsum
   REAL*8,INTENT(IN):: eps
   REAL*8,INTENT(OUT):: tlen, xlen, ylen, Tini, Delt
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:), bcT(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: C_BCg(:), S_BCg(:), U_BCg(:), V_BCg(:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: C_fg_avg_xx(:), S_fg_avg_xx(:), U_fg_avg_xx(:), V_fg_avg_xx(:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: C_fg_edgV_xx(:), S_fg_edgV_xx(:), U_fg_edgV_xx(:), V_fg_edgV_xx(:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: C_fg_avg_yy(:), S_fg_avg_yy(:), U_fg_avg_yy(:), V_fg_avg_yy(:)
@@ -359,7 +291,7 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_fg_avg_xx,S_fg_a
   REAL*8,ALLOCATABLE,INTENT(OUT):: C_fg_edgH_xy(:), S_fg_edgH_xy(:), U_fg_edgH_xy(:), V_fg_edgH_xy(:)
   INTEGER,INTENT(OUT):: N_x, N_y, N_m, N_g, N_t
   INTEGER,ALLOCATABLE,INTENT(OUT):: rrank_fg_avg_xx(:), rrank_fg_edgV_xx(:), rrank_fg_avg_yy(:), rrank_fg_edgH_yy(:)
-  INTEGER,ALLOCATABLE,INTENT(OUT):: rrank_fg_edgV_xy(:), rrank_fg_edgH_xy(:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: rrank_fg_edgV_xy(:), rrank_fg_edgH_xy(:), rrank_BCg(:)
   INTEGER,ALLOCATABLE,INTENT(OUT):: BC_Type(:)
 
   INTEGER:: ncID, clen, g
@@ -386,7 +318,10 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_fg_avg_xx,S_fg_a
 
   IF (PODgsum .EQ. 1) THEN
     ALLOCATE(rrank_fg_avg_xx(1), rrank_fg_edgV_xx(1), rrank_fg_avg_yy(1), rrank_fg_edgH_yy(1))
-    ALLOCATE(rrank_fg_edgV_xy(1), rrank_fg_edgH_xy(1))
+    ALLOCATE(rrank_fg_edgV_xy(1), rrank_fg_edgH_xy(1), rrank_BCg(1))
+
+    clen = N_g*2*(N_x+N_y)
+    CALL READ_POD(ncID,'BCg',clen,N_t,eps,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg(1))
 
     clen = N_x*N_y*N_g
     CALL READ_POD(ncID,'fg_avg_xx',clen,N_t,eps,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx(1))
@@ -408,9 +343,12 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_fg_avg_xx,S_fg_a
 
   ELSE
     ALLOCATE(rrank_fg_avg_xx(N_g), rrank_fg_edgV_xx(N_g), rrank_fg_avg_yy(N_g), rrank_fg_edgH_yy(N_g))
-    ALLOCATE(rrank_fg_edgV_xy(N_g), rrank_fg_edgH_xy(N_g))
+    ALLOCATE(rrank_fg_edgV_xy(N_g), rrank_fg_edgH_xy(N_g), rrank_BCg(N_g))
 
     DO g=1,N_g
+      clen = 2*(N_x+N_y)
+      CALL READ_POD(ncID,'BCg',clen,N_t,N_g,g,eps,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg(g))
+
       clen = N_x*N_y
       CALL READ_POD(ncID,'fg_avg_xx',clen,N_t,N_g,g,eps,C_fg_avg_xx,S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx(g))
 

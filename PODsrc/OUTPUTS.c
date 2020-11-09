@@ -21,10 +21,11 @@ int GENERATE_POD(const double *data, const int ncid_out, const char *dname, cons
 //
 //================================================================================================================================//
 int DEF_DIMS(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y, const size_t N_x,
-   const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH, const size_t clen_avg, const size_t clen_edgV,
-   const size_t clen_edgH, const double tlen, const double Delt, const double xlen, const double ylen, double *Delx, double *Dely,
-   int *BC_Type, double *bcT, const double Tini, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID, int *N_x_ID, int *rank_avg_ID,
-   int *rank_edgV_ID, int *rank_edgH_ID, int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID)
+  const size_t rank_BC, const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH, const size_t BClen,
+  const size_t clen_avg, const size_t clen_edgV, const size_t clen_edgH, const double tlen, const double Delt, const double xlen,
+  const double ylen, double *Delx, double *Dely, int *BC_Type, double *bcT, const double Tini, int *N_t_ID, int *N_g_ID,
+  int *N_m_ID, int *N_y_ID, int *N_x_ID, int *rank_BC_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *BClen_ID,
+  int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID)
 {
   int err, id, Bnds_ID, dims[1];
   char loc[9] = "OUT_DIMS";
@@ -36,10 +37,16 @@ int DEF_DIMS(const int ncid_out, const size_t N_t, const size_t N_g, const size_
   err = nc_def_dim(ncid_out,"N_t",N_t,N_t_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"Boundaries",4,&Bnds_ID); HANDLE_ERR(err,loc);
 
+  if (rank_BC != 0){
+    err = nc_def_dim(ncid_out,"rank_BC",rank_BC,rank_BC_ID); HANDLE_ERR(err,loc);
+  }
   err = nc_def_dim(ncid_out,"rank_avg",rank_avg,rank_avg_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"rank_edgV",rank_edgV,rank_edgV_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"rank_edgH",rank_edgH,rank_edgH_ID); HANDLE_ERR(err,loc);
 
+  if (BClen != 0){
+    err = nc_def_dim(ncid_out,"BClen",BClen,BClen_ID); HANDLE_ERR(err,loc);
+  }
   err = nc_def_dim(ncid_out,"clen_avg",clen_avg,clen_avg_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"clen_edgV",clen_edgV,clen_edgV_ID); HANDLE_ERR(err,loc);
   err = nc_def_dim(ncid_out,"clen_edgH",clen_edgH,clen_edgH_ID); HANDLE_ERR(err,loc);
@@ -121,6 +128,20 @@ int DEF_POD_VARS(const int ncid, const int gsum, const char *vname, const int N_
 //================================================================================================================================//
 //
 //================================================================================================================================//
+int DEF_GBCs(const int ncid, const int gsum, const int N_g_ID, const int rank_BC_ID, const int BClen_ID, const int N_t_ID,
+   int *C_BCg_ID, int *S_BCg_ID, int *U_BCg_ID, int *Vt_BCg_ID)
+{
+  int err;
+
+  err = DEF_POD_VARS(ncid,gsum,"BCg_avg",N_g_ID,rank_BC_ID,BClen_ID,N_t_ID,&(*C_BCg_ID),&(*S_BCg_ID),&(*U_BCg_ID),&(*Vt_BCg_ID));
+
+  return err;
+
+}
+
+//================================================================================================================================//
+//
+//================================================================================================================================//
 int DEF_fg_VARS(const int ncid, const int gsum, const int N_g_ID, const int rank_avg_ID, const int rank_edgV_ID,
    const int rank_edgH_ID, const int clen_avg_ID,const int clen_edgV_ID, const int clen_edgH_ID, const int N_t_ID,
    int *C_fg_avg_xx_ID, int *S_fg_avg_xx_ID, int *U_fg_avg_xx_ID,int *Vt_fg_avg_xx_ID, int *C_fg_edgV_xx_ID,
@@ -176,6 +197,109 @@ int DEF_meanIg_VARS(const int ncid, const int gsum, const int N_g_ID, const int 
 
   return err;
 
+}
+
+//================================================================================================================================//
+//
+//================================================================================================================================//
+int OUTPUT_BCg_POD(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_y, const size_t N_x,
+  const int gsum, const int C_BCg_ID,const int S_BCg_ID, const int U_BCg_ID, const int Vt_BCg_ID)
+{
+  int err;
+  char dname[25];
+  size_t clen, rank, n_g, gscale, len, p1, p2;
+  double *data, *data2;
+
+  if (gsum == 1){
+    n_g = 0; gscale = N_g;
+  }
+  else{
+    n_g = N_g; gscale = 1;
+  }
+
+  clen = gscale*2*(N_x+N_y); rank = min(clen,N_t);
+  len = N_t*N_g*2*(N_x+N_y);
+  data = (double *)malloc(sizeof(double)*len);
+
+  printf("... BCg start\n");
+
+  //
+  // Read Cg_L, store in data vector
+  //
+  memset(dname,0,25); strcpy(dname,"Cg_L");
+  len = N_t*N_g*N_y; GET_VAR_DOUBLE(ncid_in,dname,&data2,len);
+
+  len = N_t*N_g; p1=0; p2=0;
+  for(size_t i=0; i<len; i++){
+    for(size_t j=0; j<N_y; j++){
+      p1 = p1 + 1;
+      p2 = p2 + 1;
+      data[p1] = data2[p2];
+    }
+    p1 = p1 + N_y + 2*N_x;
+  }
+  free(data2);
+
+  //
+  // Read Cg_B, store in data vector
+  //
+  memset(dname,0,25); strcpy(dname,"Cg_B");
+  len = N_t*N_g*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data2,len);
+
+  len = N_t*N_g; p1=0; p2=0;
+  for(size_t i=0; i<len; i++){
+    p1 = p1 + N_y;
+    for(size_t j=0; j<N_x; j++){
+      p1 = p1 + 1;
+      p2 = p2 + 1;
+      data[p1] = data2[p2];
+    }
+    p1 = p1 + N_y + N_x;
+  }
+  free(data2);
+
+  //
+  // Read Cg_R, store in data vector
+  //
+  memset(dname,0,25); strcpy(dname,"Cg_R");
+  len = N_t*N_g*N_y; GET_VAR_DOUBLE(ncid_in,dname,&data2,len);
+
+  len = N_t*N_g; p1=0; p2=0;
+  for(size_t i=0; i<len; i++){
+    p1 = p1 + N_y + N_x;
+    for(size_t j=0; j<N_y; j++){
+      p1 = p1 + 1;
+      p2 = p2 + 1;
+      data[p1] = data2[p2];
+    }
+    p1 = p1 + N_x;
+  }
+  free(data2);
+
+  //
+  // Read Cg_T, store in data vector
+  //
+  memset(dname,0,25); strcpy(dname,"Cg_T");
+  len = N_t*N_g*N_x; GET_VAR_DOUBLE(ncid_in,dname,&data2,len);
+
+  len = N_t*N_g; p1=0; p2=0;
+  for(size_t i=0; i<len; i++){
+    p1 = p1 + 2*N_y + N_x;
+    for(size_t j=0; j<N_x; j++){
+      p1 = p1 + 1;
+      p2 = p2 + 1;
+      data[p1] = data2[p2];
+    }
+  }
+  free(data2);
+
+  //
+  // Now perform POD on the vector containing all boundary factors
+  //
+  err = GENERATE_POD(data,ncid_out,dname,N_t,n_g,clen,rank,C_BCg_ID,S_BCg_ID,U_BCg_ID,Vt_BCg_ID);
+  free(data);
+
+  return err;
 }
 
 //================================================================================================================================//

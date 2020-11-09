@@ -133,7 +133,7 @@ int DEF_GBCs(const int ncid, const int gsum, const int N_g_ID, const int rank_BC
 {
   int err;
 
-  err = DEF_POD_VARS(ncid,gsum,"BCg_avg",N_g_ID,rank_BC_ID,BClen_ID,N_t_ID,&(*C_BCg_ID),&(*S_BCg_ID),&(*U_BCg_ID),&(*Vt_BCg_ID));
+  err = DEF_POD_VARS(ncid,gsum,"BCg",N_g_ID,rank_BC_ID,BClen_ID,N_t_ID,&(*C_BCg_ID),&(*S_BCg_ID),&(*U_BCg_ID),&(*Vt_BCg_ID));
 
   return err;
 

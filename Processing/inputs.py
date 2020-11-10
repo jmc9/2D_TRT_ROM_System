@@ -27,7 +27,7 @@ def input(infile):
 
     if dsets:
         if dsets == ['none']: dsets = [rset]
-        else: dsets = [rset,dsets[0][0:]]
+        else: dsets.insert(0,rset)
     else: dsets = [rset]
 
     file.close()
@@ -64,20 +64,25 @@ def inp_flags(dset):
 def domain_parms(dset):
     Delx = dset['Delx'][:]
     Dely = dset['Dely'][:]
-    Delt = dset['Delt']; N_t = dset.dimensions['N_t'].size
+    Delt = dset['Delt']
+
+    N_t = dset.dimensions['N_t'].size
+    N_g = dset.dimensions['N_g'].size
+    N_y = dset.dimensions['N_y'].size
+    N_x = dset.dimensions['N_x'].size
 
     A=[]
     for j in range(len(Dely)):
         for i in range(len(Delx)):
             A.append(Dely[j]*Delx[i])
 
-    Delt = 2e-3
+    Delt = 2e-2
 
     (xp,yp) = cell_coords(Delx,Dely)
     tp = []
     for i in range(N_t): tp.append((i+1)*Delt)
 
-    return (xp,yp,tp,Delx,Dely,Delt,A)
+    return (xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x)
 
 #==================================================================================================================================#
 #

@@ -126,7 +126,8 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   CALL EXTND_LR_BND(f2,f,dN_g,dN_y+1,dN_x)
 
   !mapping the vector of fg_edgH_yy data from the decomposition grid to the simulation grid
-  CALL FMAP(f2,fg_edgH_yy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH,dN_x*(dN_y+1),N_x*(N_y+1),len,N_x*(N_y+1)*N_g)
+  CALL FMAP(f2,fg_edgH_yy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH, (dN_x+2)*(dN_y+1), N_x*(N_y+1), &
+  (dN_x+2)*(dN_y+1)*dN_g, N_x*(N_y+1)*N_g)
 
   !----------fg_edgH_xy----------!
 
@@ -137,7 +138,8 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   CALL EXTND_LR_BND(f2,f,dN_g,dN_y+1,dN_x)
 
   !mapping the vector of fg_edgH_xy data from the decomposition grid to the simulation grid
-  CALL FMAP(f2,fg_edgH_xy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH,dN_x*(dN_y+1),N_x*(N_y+1),len,N_x*(N_y+1)*N_g)
+  CALL FMAP(f2,fg_edgH_xy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH, (dN_x+2)*(dN_y+1), N_x*(N_y+1), &
+  (dN_x+2)*(dN_y+1)*dN_g, N_x*(N_y+1)*N_g)
 
   DEALLOCATE(f,f2) !deallocating POD data vector
 

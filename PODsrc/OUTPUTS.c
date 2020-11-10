@@ -232,9 +232,9 @@ int OUTPUT_BCg_POD(const int ncid_in, const int ncid_out, const size_t N_t, cons
   len = N_t*N_g; p1=0; p2=0;
   for(size_t i=0; i<len; i++){
     for(size_t j=0; j<N_y; j++){
+      data[p1] = data2[p2];
       p1 = p1 + 1;
       p2 = p2 + 1;
-      data[p1] = data2[p2];
     }
     p1 = p1 + N_y + 2*N_x;
   }
@@ -250,9 +250,9 @@ int OUTPUT_BCg_POD(const int ncid_in, const int ncid_out, const size_t N_t, cons
   for(size_t i=0; i<len; i++){
     p1 = p1 + N_y;
     for(size_t j=0; j<N_x; j++){
+      data[p1] = data2[p2];
       p1 = p1 + 1;
       p2 = p2 + 1;
-      data[p1] = data2[p2];
     }
     p1 = p1 + N_y + N_x;
   }
@@ -268,9 +268,9 @@ int OUTPUT_BCg_POD(const int ncid_in, const int ncid_out, const size_t N_t, cons
   for(size_t i=0; i<len; i++){
     p1 = p1 + N_y + N_x;
     for(size_t j=0; j<N_y; j++){
+      data[p1] = data2[p2];
       p1 = p1 + 1;
       p2 = p2 + 1;
-      data[p1] = data2[p2];
     }
     p1 = p1 + N_x;
   }
@@ -286,9 +286,9 @@ int OUTPUT_BCg_POD(const int ncid_in, const int ncid_out, const size_t N_t, cons
   for(size_t i=0; i<len; i++){
     p1 = p1 + 2*N_y + N_x;
     for(size_t j=0; j<N_x; j++){
+      data[p1] = data2[p2];
       p1 = p1 + 1;
       p2 = p2 + 1;
-      data[p1] = data2[p2];
     }
   }
   free(data2);

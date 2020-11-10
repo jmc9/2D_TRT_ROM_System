@@ -119,6 +119,73 @@ SUBROUTINE GRIDMAP_GEN_EDGH(GridMap,Delx,Dely,N_x,N_y)
 END SUBROUTINE GRIDMAP_GEN_EDGH
 
 !==================================================================================================================================!
+!
+!==================================================================================================================================!
+! SUBROUTINE GRIDMAP_GEN_BNDS(GridMap,Delx,Dely,N_x,N_y,xlen,ylen)
+!   REAL*8,INTENT(OUT):: GridMap(*)
+!   REAL*8,INTENT(IN):: Delx(*), Dely(*), xlen, ylen
+!   INTEGER,INTENT(IN):: N_x, N_y
+!   INTEGER:: p
+!
+!   p = 1
+!   CALL GRIDMAP_GEN_LR_BND(GridMap(p),0d0,Dely,N_y)
+!
+!   p = p + 2*N_y
+!   CALL GRIDMAP_GEN_BT_BND(GridMap(p),Delx,0d0,N_x)
+!
+!   p = p + 2*N_x
+!   CALL GRIDMAP_GEN_LR_BND(GridMap(p),xlen,Dely,N_y)
+!
+!   p = p + 2*N_y
+!   CALL GRIDMAP_GEN_BT_BND(GridMap(p),Delx,ylen,N_x)
+!
+! END SUBROUTINE GRIDMAP_GEN_BNDS
+
+SUBROUTINE GRIDMAP_GEN_LR_BND(GridMap,x,Dely,N_y)
+  REAL*8,INTENT(OUT):: GridMap(*)
+  REAL*8,INTENT(IN):: x, Dely(*)
+  INTEGER,INTENT(IN):: N_y
+  REAL*8:: yloc
+  INTEGER:: i, p
+
+  p = 0
+  yloc = 0d0
+  DO i=1,N_y
+    yloc = yloc + Dely(i)/2d0
+
+    p = p + 1
+    GridMap(p) = x
+    p = p + 1
+    GridMap(p) = yloc
+
+    yloc = yloc + Dely(i)/2d0
+  END DO
+
+END SUBROUTINE GRIDMAP_GEN_LR_BND
+
+SUBROUTINE GRIDMAP_GEN_BT_BND(GridMap,Delx,y,N_x)
+  REAL*8,INTENT(OUT):: GridMap(*)
+  REAL*8,INTENT(IN):: Delx(*), y
+  INTEGER,INTENT(IN):: N_x
+  REAL*8:: xloc
+  INTEGER:: i, p
+
+  p = 0
+  xloc = 0d0
+  DO i=1,N_x
+    xloc = xloc + Delx(i)/2d0
+
+    p = p + 1
+    GridMap(p) = xloc
+    p = p + 1
+    GridMap(p) = y
+
+    xloc = xloc + Delx(i)/2d0
+  END DO
+
+END SUBROUTINE GRIDMAP_GEN_BT_BND
+
+!==================================================================================================================================!
 ! SUBROUTINE MAP_GRIDS
 !
 !DEF:
@@ -289,10 +356,25 @@ FUNCTION BILINEAR_INTERPOLATE(f_11,f_12,f_21,f_22,x,x1,x2,y,y1,y2)
   REAL*8:: xx1, xx2, yy1, yy2
 
 
-  IF (((x2 - x1)*(y2 - y1)) .EQ. 0d0) THEN
-    BILINEAR_INTERPOLATE = f_11
+  IF ((x2 - x1) .EQ. 0) THEN !x-coordinates of all pts are the same
+    IF ((y2 - y1) .EQ. 0) THEN !already have exact point, return this value
+      BILINEAR_INTERPOLATE = f_11
 
-  ELSE
+    ELSE !only interpolate along y direction
+      yy1 = y - y1
+      yy2 = y2 - y
+
+      BILINEAR_INTERPOLATE = ( f_11*yy2 + f_12*yy1 )/( (y2 - y1) )
+
+    END IF
+
+  ELSE IF ((y2 - y1) .EQ. 0) THEN !y-coordinates of all pts are the same, interpolate only along x-direction
+    xx1 = x - x1
+    xx2 = x2 - x
+
+    BILINEAR_INTERPOLATE = ( f_11*xx2 + f_21*xx1)/( (x2 - x1) )
+
+  ELSE !4 unique points, can perform bilinear interpolation across x and y directions
     xx1 = x - x1
     xx2 = x2 - x
     yy1 = y - y1

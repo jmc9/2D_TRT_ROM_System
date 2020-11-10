@@ -74,6 +74,10 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
 
   IF (run_type .EQ. 'mg_pod') THEN
     CALL INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
+
+    IF (POD_Type .EQ. 'fg') THEN
+      maxit_RTE = 1
+    END IF
   END IF
 
   CALL INPUT_PARAMETERS(inpunit,erg,xlen,ylen,N_x,N_y,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&

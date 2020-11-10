@@ -25,11 +25,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   N_t,Res_Calc,Use_Line_Search,Use_Safety_Search,run_type,kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,&
   N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
   Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
-  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type)
+  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:)
-  REAL*8,INTENT(IN):: Delx(:), Dely(:), Delt, Theta, tlen
+  REAL*8,INTENT(IN):: Delx(:), Dely(:), Delt, Theta, tlen, xlen, ylen
   REAL*8,INTENT(IN):: Start_Time
   REAL*8,INTENT(IN):: c, cV, h, pi, Kap0, erg
   REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr1, Conv_gr2
@@ -116,7 +116,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8:: MGQD_Tnorm, MGQD_Enorm, MGQD_Trho, MGQD_Erho
   REAL*8:: Time
   INTEGER:: MGQD_Its, EGP_Its, Status
-  INTEGER:: RT_Its, RT_start_Its, t
+  INTEGER:: RT_Its, RT_start_Its, t, HO_Form
   INTEGER,ALLOCATABLE:: MGQD_Kits(:), GQD_Kits(:)
   LOGICAL:: RT_Conv, MGQD_conv, Tconv, Econv
 
@@ -161,13 +161,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
   REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d
   REAL*8,ALLOCATABLE:: Delx_d(:), Dely_d(:), bcT_d(:), Delx2(:), Dely2(:)
-  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t
+  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, o
   INTEGER,ALLOCATABLE:: BC_Type_d(:)
 
-  REAL*8,ALLOCATABLE:: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:)
-  REAL*8,ALLOCATABLE:: Dat_Grid_Avg(:), Dat_Grid_EdgV(:), Dat_Grid_EdgH(:)
-  INTEGER,ALLOCATABLE:: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:)
-  INTEGER,ALLOCATABLE:: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:)
+  REAL*8,ALLOCATABLE:: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
+  REAL*8,ALLOCATABLE:: Dat_Grid_Avg(:), Dat_Grid_EdgV(:), Dat_Grid_EdgH(:), Dat_Grid_Bnds(:)
+  INTEGER,ALLOCATABLE:: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:), GMap_xyBnds(:)
+  INTEGER,ALLOCATABLE:: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
 
   !===========================================================================!
   !                                                                           !
@@ -225,26 +225,44 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     ALLOCATE(Delx2(dN_x+2),Dely2(dN_y+2))
     Delx2(1) = 0d0
     Delx2(2:dN_x+1) = Delx_d
-    Delx2(dN_x+2) = xlen_d
+    Delx2(dN_x+2) = 0d0
     Dely2(1) = 0d0
     Dely2(2:dN_y+1) = Dely_d
-    Dely2(dN_y+2) = ylen_d
+    Dely2(dN_y+2) = 0d0
 
-    ALLOCATE(Sim_Grid_Avg(2*N_x*N_y), Sim_Grid_EdgV(2*(N_x+1)*N_y), Sim_Grid_EdgH(2*N_x*(N_y+1)))
+    ALLOCATE(Sim_Grid_Avg(2*N_x*N_y), Sim_Grid_EdgV(2*(N_x+1)*N_y), Sim_Grid_EdgH(2*N_x*(N_y+1)), Sim_Grid_Bnds(4*(N_x+N_y)))
     CALL GRIDMAP_GEN_AVG(Sim_Grid_Avg,Delx,Dely,N_x,N_y)
     CALL GRIDMAP_GEN_EDGV(Sim_Grid_EdgV,Delx,Dely,N_x+1,N_y)
     CALL GRIDMAP_GEN_EDGH(Sim_Grid_EdgH,Delx,Dely,N_x,N_y+1)
 
-    ALLOCATE(Dat_Grid_Avg(2*((dN_x+2)*(dN_y+2))), Dat_Grid_EdgV(2*(dN_x+1)*(dN_y+2)), Dat_Grid_EdgH(2*(dN_x+2)*(dN_y+1)))
+    CALL GRIDMAP_GEN_LR_BND(Sim_Grid_Bnds(1),0d0,Dely,N_y)
+    CALL GRIDMAP_GEN_BT_BND(Sim_Grid_Bnds(2*N_y+1),Delx,0d0,N_x)
+    CALL GRIDMAP_GEN_LR_BND(Sim_Grid_Bnds(2*(N_y+N_x)+1),ylen,Dely,N_y)
+    CALL GRIDMAP_GEN_BT_BND(Sim_Grid_Bnds(4*N_y+2*N_x+1),Delx,xlen,N_x)
+
+    ALLOCATE(Dat_Grid_Avg(2*((dN_x+2)*(dN_y+2))), Dat_Grid_EdgV(2*(dN_x+1)*(dN_y+2)), Dat_Grid_EdgH(2*(dN_x+2)*(dN_y+1)), &
+    Dat_Grid_Bnds(4*(dN_x+dN_y)+16))
     CALL GRIDMAP_GEN_AVG(Dat_Grid_Avg,Delx2,Dely2,dN_x+2,dN_y+2)
     CALL GRIDMAP_GEN_EDGV(Dat_Grid_EdgV,Delx_d,Dely2,dN_x+1,dN_y+2)
     CALL GRIDMAP_GEN_EDGH(Dat_Grid_EdgH,Delx2,Dely_d,dN_x+2,dN_y+1)
 
-    ALLOCATE(GMap_xyAvg(4*N_x*N_y), GMap_xyEdgV(4*(N_x+1)*N_y), GMap_xyEdgH(4*N_x*(N_y+1)))
-    ALLOCATE(VMap_xyAvg(4*N_x*N_y), VMap_xyEdgV(4*(N_x+1)*N_y), VMap_xyEdgH(4*N_x*(N_y+1)))
+    CALL GRIDMAP_GEN_LR_BND(Dat_Grid_Bnds(1),0d0,Dely2,dN_y+2)
+    CALL GRIDMAP_GEN_BT_BND(Dat_Grid_Bnds(2*dN_y+5),Delx2,0d0,dN_x+2)
+    CALL GRIDMAP_GEN_LR_BND(Dat_Grid_Bnds(2*(dN_y+dN_x)+9),ylen_d,Dely2,dN_y+2)
+    CALL GRIDMAP_GEN_BT_BND(Dat_Grid_Bnds(4*dN_y+2*dN_x+13),Delx2,xlen_d,dN_x+2)
+
+    ALLOCATE(GMap_xyAvg(4*N_x*N_y), GMap_xyEdgV(4*(N_x+1)*N_y), GMap_xyEdgH(4*N_x*(N_y+1)), GMap_xyBnds(8*(N_x+N_y)))
+    ALLOCATE(VMap_xyAvg(4*N_x*N_y), VMap_xyEdgV(4*(N_x+1)*N_y), VMap_xyEdgH(4*N_x*(N_y+1)), VMap_xyBnds(8*(N_x+N_y)))
     CALL MAP_GRIDS(GMap_xyAvg, Dat_Grid_Avg, Sim_Grid_Avg, 2*((dN_x+2)*(dN_y+2)), 2*N_x*N_y, 2*(dN_x+2), VMap_xyAvg)
     CALL MAP_GRIDS(GMap_xyEdgV, Dat_Grid_EdgV, Sim_Grid_EdgV, 2*(dN_x+1)*(dN_y+2), 2*(N_x+1)*N_y, 2*(dN_x+1), VMap_xyEdgV)
     CALL MAP_GRIDS(GMap_xyEdgH, Dat_Grid_EdgH, Sim_Grid_EdgH, 2*(dN_x+2)*(dN_y+1), 2*N_x*(N_y+1), 2*(dN_x+2), VMap_xyEdgH)
+
+    CALL MAP_GRIDS(GMap_xyBnds(1), Dat_Grid_Bnds(1), Sim_Grid_Bnds(1), 2*dN_y+2, 2*N_y, 2, VMap_xyBnds(1))
+    CALL MAP_GRIDS(GMap_xyBnds(4*N_y+1), Dat_Grid_Bnds(2*dN_y+5), Sim_Grid_Bnds(2*N_y+1), 2*dN_y+2, 2*N_y, 0, VMap_xyBnds(4*N_y+1))
+    CALL MAP_GRIDS(GMap_xyBnds(4*(N_y+N_x)+1), Dat_Grid_Bnds(2*(dN_y+dN_x)+9), Sim_Grid_Bnds(2*(N_y+N_x)+1), 2*dN_y+2, &
+    2*N_y, 2, VMap_xyBnds(4*(N_y+N_x)+1))
+    CALL MAP_GRIDS(GMap_xyBnds(8*N_y+4*N_x+1), Dat_Grid_Bnds(4*dN_y+2*dN_x+13), Sim_Grid_Bnds(4*N_y+2*N_x+1), 2*dN_y+2, &
+    2*N_y, 0, VMap_xyBnds(8*N_y+4*N_x+1))
   END IF
 
   !===========================================================================!
@@ -270,9 +288,17 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
+    HO_Form = 0
   ELSE IF ( run_type .EQ. 'mlqd' ) THEN
     RT_start_Its = 2
+    HO_Form = 0
+  ELSE IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
+    RT_start_Its = 1
+    HO_Form = 1
   ELSE
+    WRITE(*,*)
+    WRITE(*,*)' ERROR IN ALGORITHMS: Unknown run_type/POD_Type detected'
+    STOP
     RT_start_Its = Maxit_RTE + 1
   END IF
 
@@ -334,7 +360,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       !the RTE is not necessarily solved all the time
       !only solving the RTE on and after the 2nd outer iteration for the mlqd algorithm
       !for methods that don't use the RTE it is never solved
-      IF (RT_Its .GE. RT_start_Its) THEN
+      IF ((HO_Form .EQ. 0).AND.(RT_Its .GE. RT_start_Its)) THEN
 
         !solving the RTE
         CALL TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega_y,Delx,Dely,A,&
@@ -369,6 +395,19 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
         !calculating new MGQD boundary factors with the current iterate's intensities
         CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type,Threads)
+
+      ELSE IF (HO_Form .EQ. 1) THEN
+
+        CALL POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,C_fg_avg_xx,&
+          S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,C_fg_avg_yy,S_fg_avg_yy,&
+          U_fg_avg_yy,V_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,&
+          V_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,&
+          rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,t,PODgsum,Sim_Grid_Avg,&
+          Sim_Grid_EdgV,Sim_Grid_EdgH,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,VMap_xyAvg,&
+          VMap_xyEdgV,VMap_xyEdgH)
+
+        CALL POD_RECONSTRUCT_BCg(Cg_L,Cg_B,Cg_R,Cg_T,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,&
+          t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,GMap_xyBnds,VMap_xyBnds)
 
       END IF
 
@@ -541,7 +580,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       Temp_RTold = Temp
 
       !writing current iterate to terminal
-      write(*,*) RT_Its, MGQD_Its, TR_Tnorm, TR_Enorm
+      ! write(*,*) RT_Its, MGQD_Its, TR_Tnorm, TR_Enorm
 
     END DO
 

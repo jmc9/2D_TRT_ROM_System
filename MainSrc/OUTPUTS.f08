@@ -327,7 +327,7 @@ END SUBROUTINE OUTFILE_INIT
 !
 !==================================================================================================================================!
 SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
-  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,N_x_ID,N_y_ID,N_m_ID,N_g_ID,&
+  MGQD_F_out,QDfg_out,fg_pod_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,N_x_ID,N_y_ID,N_m_ID,N_g_ID,&
   N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
   Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,&
   HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,&
@@ -340,12 +340,13 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_avg_xy_ID,fg_edgV_xx_ID,fg_edgV_xy_ID,fg_edgH_yy_ID,&
   fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,&
   Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,&
-  dr_MB_ID,dr_MR_ID,dr_MT_ID)
+  dr_MB_ID,dr_MR_ID,dr_MT_ID,rrank_BCg_ID,rrank_fg_avg_xx_ID,rrank_fg_edgV_xx_ID,rrank_fg_avg_yy_ID,rrank_fg_edgH_yy_ID,&
+  rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID)
 
   INTEGER,INTENT(IN):: outID
   LOGICAL,INTENT(IN):: Res_Calc
   INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
-  INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
+  INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out, fg_pod_out
   INTEGER,INTENT(IN):: E_out, F_out, D_out
   INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -369,6 +370,8 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   INTEGER,INTENT(OUT):: G_old_ID, Pold_L_ID, Pold_B_ID, Pold_R_ID, Pold_T_ID
   INTEGER,INTENT(OUT):: Gold_hat_ID, Rhat_old_ID, PL_ID, PB_ID, PR_ID, PT_ID
   INTEGER,INTENT(OUT):: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
+  INTEGER,INTENT(OUT):: rrank_BCg_ID, rrank_fg_avg_xx_ID, rrank_fg_edgV_xx_ID, rrank_fg_avg_yy_ID, rrank_fg_edgH_yy_ID
+  INTEGER,INTENT(OUT):: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID
 
   INTEGER:: Status
 
@@ -685,6 +688,16 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     CALL NF_DEF_VAR(dr_MR_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_MR','Real')
     CALL NF_DEF_VAR(dr_MB_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_MB','Real')
     CALL NF_DEF_VAR(dr_MT_ID,outID,(/GQD_Its_ID,MGQD_Its_ID,RT_Its_ID,N_t_ID/),'dr_MT','Real')
+  END IF
+
+  IF (fg_pod_out .EQ. 1) THEN
+      CALL NF_DEF_VAR(rrank_BCg_ID,outID,(/N_g_ID/),'rrank_BCg','Int')
+      CALL NF_DEF_VAR(rrank_fg_avg_xx_ID,outID,(/N_g_ID/),'rrank_fg_avg_xx','Int')
+      CALL NF_DEF_VAR(rrank_fg_edgV_xx_ID,outID,(/N_g_ID/),'rrank_fg_edgV_xx','Int')
+      CALL NF_DEF_VAR(rrank_fg_avg_yy_ID,outID,(/N_g_ID/),'rrank_fg_avg_yy','Int')
+      CALL NF_DEF_VAR(rrank_fg_edgH_yy_ID,outID,(/N_g_ID/),'rrank_fg_edgH_yy','Int')
+      CALL NF_DEF_VAR(rrank_fg_edgV_xy_ID,outID,(/N_g_ID/),'rrank_fg_edgV_xy','Int')
+      CALL NF_DEF_VAR(rrank_fg_edgH_xy_ID,outID,(/N_g_ID/),'rrank_fg_edgH_xy','Int')
   END IF
 
   !===========================================================================!

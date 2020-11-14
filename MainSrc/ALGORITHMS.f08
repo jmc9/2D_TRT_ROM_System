@@ -140,6 +140,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: G_old_ID, Pold_L_ID, Pold_B_ID, Pold_R_ID, Pold_T_ID
   INTEGER:: Gold_hat_ID, Rhat_old_ID, PL_ID, PB_ID, PR_ID, PT_ID
   INTEGER:: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
+  INTEGER:: rrank_BCg_ID, rrank_fg_avg_xx_ID, rrank_fg_edgV_xx_ID, rrank_fg_avg_yy_ID, rrank_fg_edgH_yy_ID
+  INTEGER:: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID
 
   !--------------------------------------------------!
   REAL*8,ALLOCATABLE:: C_BCg(:), S_BCg(:), U_BCg(:), V_BCg(:)
@@ -161,7 +163,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
   REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d
   REAL*8,ALLOCATABLE:: Delx_d(:), Dely_d(:), bcT_d(:), Delx2(:), Dely2(:)
-  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, o
+  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, o, fg_pod_out
   INTEGER,ALLOCATABLE:: BC_Type_d(:)
 
   REAL*8,ALLOCATABLE:: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
@@ -270,8 +272,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   !     INITIALIZING OUTPUT FILE                                              !
   !                                                                           !
   !===========================================================================!
+  fg_pod_out = 0
+  IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) fg_pod_out = 1
   CALL OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
-    MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,N_x_ID,N_y_ID,N_m_ID,N_g_ID,&
+    MGQD_F_out,QDfg_out,fg_pod_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,N_x_ID,N_y_ID,N_m_ID,N_g_ID,&
     N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
     Boundaries_ID,Temp_ID,E_avg_ID,E_edgV_ID,E_edgH_ID,MGQD_E_avg_ID,MGQD_E_edgV_ID,MGQD_E_edgH_ID,HO_E_avg_ID,HO_E_edgV_ID,&
     HO_E_edgH_ID,Fx_edgV_ID,Fy_edgH_ID,MGQD_Fx_edgV_ID,MGQD_Fy_edgH_ID,HO_Fx_edgV_ID,HO_Fy_edgH_ID,Eg_avg_ID,Eg_edgV_ID,&
@@ -284,7 +288,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     F_in_B_ID,F_in_R_ID,F_in_T_ID,fg_avg_xx_ID,fg_avg_yy_ID,fg_avg_xy_ID,fg_edgV_xx_ID,fg_edgV_xy_ID,fg_edgH_yy_ID,&
     fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,&
     Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,&
-    dr_MB_ID,dr_MR_ID,dr_MT_ID)
+    dr_MB_ID,dr_MR_ID,dr_MT_ID,rrank_BCg_ID,rrank_fg_avg_xx_ID,rrank_fg_edgV_xx_ID,rrank_fg_avg_yy_ID,rrank_fg_edgH_yy_ID,&
+    rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID)
 
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
@@ -295,6 +300,39 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   ELSE IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
     RT_start_Its = 1
     HO_Form = 1
+
+    IF (PODgsum .EQ. 1) THEN
+      Status = nf90_put_var(outID,rrank_BCg_ID,rrank_BCg,(/1/),(/1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_avg_xx_ID,rrank_fg_avg_xx,(/1/),(/1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgV_xx_ID,rrank_fg_EdgV_xx,(/1/),(/1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_avg_yy_ID,rrank_fg_avg_yy,(/1/),(/1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgH_yy_ID,rrank_fg_EdgH_yy,(/1/),(/1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgV_xy_ID,rrank_fg_EdgV_xy,(/1/),(/1/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgH_xy_ID,rrank_fg_EdgH_xy,(/1/),(/1/))
+      CALL HANDLE_ERR(Status)
+    ELSE
+      Status = nf90_put_var(outID,rrank_BCg_ID,rrank_BCg,(/1/),(/N_g/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_avg_xx_ID,rrank_fg_avg_xx,(/1/),(/N_g/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgV_xx_ID,rrank_fg_EdgV_xx,(/1/),(/N_g/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_avg_yy_ID,rrank_fg_avg_yy,(/1/),(/N_g/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgH_yy_ID,rrank_fg_EdgH_yy,(/1/),(/N_g/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgV_xy_ID,rrank_fg_EdgV_xy,(/1/),(/N_g/))
+      CALL HANDLE_ERR(Status)
+      Status = nf90_put_var(outID,rrank_fg_EdgH_xy_ID,rrank_fg_EdgH_xy,(/1/),(/N_g/))
+      CALL HANDLE_ERR(Status)
+    END IF
+
   ELSE
     WRITE(*,*)
     WRITE(*,*)' ERROR IN ALGORITHMS: Unknown run_type/POD_Type detected'
@@ -585,7 +623,14 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     END DO
 
     !writing finished time step to terminal
-    write(*,*) Time, RT_Its, TR_Tnorm, TR_Enorm
+    IF ( run_type .EQ. 'tr_no_qd' ) THEN
+      write(*,*) Time, RT_Its, TR_Tnorm, TR_Enorm
+    ELSE IF ( run_type .EQ. 'mlqd' ) THEN
+      write(*,*) Time, RT_Its, TR_Tnorm, TR_Enorm
+    ELSE IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
+      write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
+    ELSE
+    END IF
 
     !writing the count of outer/RTE iterations to output file
     IF (its_out .EQ. 1) THEN !checking if iteration counts are to be output

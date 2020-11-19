@@ -25,7 +25,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   N_t,Res_Calc,Use_Line_Search,Use_Safety_Search,run_type,kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,&
   N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
   Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
-  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen)
+  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen,&
+  Direc_Diff)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:)
@@ -35,7 +36,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr1, Conv_gr2
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
   REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low, POD_err
-  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, PODgsum
+  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, PODgsum, Direc_Diff
   INTEGER,INTENT(IN):: database_gen, use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
   LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search, kapE_dT_flag
   CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dset
@@ -114,7 +115,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: MGQD_E_avg_MGQDold(:,:), MGQD_E_avg_MGQDold2(:,:)
   REAL*8:: TR_Tnorm, TR_Enorm, TR_Trho, TR_Erho
   REAL*8:: MGQD_Tnorm, MGQD_Enorm, MGQD_Trho, MGQD_Erho
-  REAL*8:: Time
+  REAL*8:: Time, Fdt_Weight
   INTEGER:: MGQD_Its, EGP_Its, Status
   INTEGER:: RT_Its, RT_start_Its, t, HO_Form
   INTEGER,ALLOCATABLE:: MGQD_Kits(:), GQD_Kits(:)
@@ -294,12 +295,27 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
     HO_Form = 0
+    Fdt_Weight = 1d0
   ELSE IF ( run_type .EQ. 'mlqd' ) THEN
     RT_start_Its = 2
     HO_Form = 0
+    Fdt_Weight = 1d0
+  ELSE IF ( run_type .EQ. 'diff' ) THEN
+    RT_start_Its = 1
+    HO_Form = 2
+    Fdt_Weight = 0d0
+  ELSE IF ( run_type .EQ. 'p1' ) THEN
+    RT_start_Its = 1
+    HO_Form = 2
+    Fdt_Weight = 1d0
+  ELSE IF ( run_type .EQ. 'p1/3' ) THEN
+    RT_start_Its = 1
+    HO_Form = 2
+    Fdt_Weight = 1d0/3d0
   ELSE IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
     RT_start_Its = 1
     HO_Form = 1
+    Fdt_Weight = 1d0
 
     IF (PODgsum .EQ. 1) THEN
       Status = nf90_put_var(outID,rrank_BCg_ID,rrank_BCg,(/1/),(/1/))
@@ -446,6 +462,16 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
         CALL POD_RECONSTRUCT_BCg(Cg_L,Cg_B,Cg_R,Cg_T,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,&
           t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,GMap_xyBnds,VMap_xyBnds)
+
+        IF (Direc_Diff .EQ. 1) THEN
+          fg_edgV_xy = 0d0
+          fg_edgH_xy = 0d0
+        END IF
+
+      ELSE IF (HO_Form .EQ. 2) THEN
+
+        ! CONTINUE !do nothing
+        ! write(*,*) maxit_RTE
 
       END IF
 
@@ -628,6 +654,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     ELSE IF ( run_type .EQ. 'mlqd' ) THEN
       write(*,*) Time, RT_Its, TR_Tnorm, TR_Enorm
     ELSE IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
+      write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
+    ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p1/3')) THEN
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE
     END IF

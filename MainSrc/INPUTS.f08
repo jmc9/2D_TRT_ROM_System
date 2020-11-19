@@ -12,7 +12,8 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
-  quad_weight,tpoints,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset)
+  quad_weight,tpoints,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
+  Direc_Diff)
 
   IMPLICIT NONE
 
@@ -31,7 +32,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search, Res_Calc, kapE_dT_flag
 
   REAL*8,INTENT(OUT):: POD_err
-  INTEGER,INTENT(OUT):: PODgsum
+  INTEGER,INTENT(OUT):: PODgsum, Direc_Diff
   CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
@@ -73,11 +74,14 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   aR=4d0*sig_R/c
 
   IF (run_type .EQ. 'mg_pod') THEN
-    CALL INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
+    CALL INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
 
     IF (POD_Type .EQ. 'fg') THEN
       maxit_RTE = 1
     END IF
+
+  ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p1/3')) THEN
+    maxit_RTE = 1
   END IF
 
   CALL INPUT_PARAMETERS(inpunit,erg,xlen,ylen,N_x,N_y,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&
@@ -561,7 +565,7 @@ END SUBROUTINE INPUT_SOLVER_OPTS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
+SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
 
   IMPLICIT NONE
 
@@ -570,7 +574,7 @@ SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
 
   !OUTPUT VARIABLES
   REAL*8,INTENT(OUT):: POD_err
-  INTEGER,INTENT(OUT):: PODgsum
+  INTEGER,INTENT(OUT):: PODgsum,Direc_Diff
   CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
 
   !LOCAL VARIABLES
@@ -585,6 +589,7 @@ SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
   POD_err = 1d-5
   PODgsum = 1
   POD_Type = 'fg'
+  Direc_Diff = 0
 
   block = '[POD_OPTS]'
   CALL LOCATE_BLOCK(inpunit,block,block_found)
@@ -622,6 +627,10 @@ SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset)
       ELSE IF (trim(key) .EQ. 'POD_err') THEN
         READ(args(1),*) POD_err
         IF ((POD_err .LE. 0).OR.(POD_err .GT. 1)) STOP 'POD_err must be between 0 and 1'
+
+      ELSE IF (trim(key) .EQ. 'direc_diff') THEN
+        READ(args(1),*) Direc_Diff
+        IF (ALL(Direc_Diff .NE. (/0,1/))) STOP 'direc_diff must be 0 or 1'
 
       END IF
 

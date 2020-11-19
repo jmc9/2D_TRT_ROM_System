@@ -44,7 +44,7 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     fg_EdgH_yy_norm_dir = norm_dir+'/fg_EdgH_yy'; msc.dirset(fg_EdgH_yy_norm_dir)
     fg_EdgH_xy_norm_dir = norm_dir+'/fg_EdgH_xy'; msc.dirset(fg_EdgH_xy_norm_dir)
 
-    dsets = inp.input(infile) #reading input file, returning datasets to process
+    (dsets,tp_plt,plt_tfreq,Tbound,Ebound,fg_avg_xx_bnd) = inp.input(infile) #reading input file, returning datasets to process
     nsets = len(dsets) #finding the number of datasets
 
     #initializing arrays that will hold simulation data
@@ -70,10 +70,96 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     (xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = inp.domain_parms(dsets[0]) #getting problem domain parameters
     (A_EdgV, A_EdgH, Ag, Ag_EdgV, Ag_EdgH) = proc.A_calcs(A,N_g,N_y,N_x) #calculating areas/weights for different types of functions
 
+    pltbnds = [Tbound,Ebound,Ebound,Ebound]
+    bnd = []
+    for g in range(N_g):
+        boo = True
+        j = 0
+        for i in fg_avg_xx_bnd[::3]:
+            if g==(i-1):
+                boo = False
+                bnd.append([fg_avg_xx_bnd[j*3+1],fg_avg_xx_bnd[j*3+2]])
+                break
+            j = j + 1
+        if boo: bnd.append([0.,0.])
+    pltbnds.append(bnd)
+
     #finding the instants of time for which to visualize data
-    tp_plt=[0]; n_tplts=round(N_t/plt_tfreq)
-    for i in range(n_tplts): tp_plt.append((i+1)*plt_tfreq-1)
-    tp_plt=[1000]
+    n_tplts=round(N_t/plt_tfreq)
+    for i in range(n_tplts):
+        j = (i+1)*plt_tfreq-1
+        if not j in tp_plt: tp_plt.append((i+1)*plt_tfreq-1)
+
+    ###
+    ###
+
+    # rankfile = open('Ranks.txt','w')
+    # for i in range(nsets-1):
+    #
+    #     rankfile.write('Dataset: '+casename[i+1]+'\n')
+    #     rankfile.write('--------------------------------------------------\n')
+    #
+    #     set = dsets[i+1]
+    #     gsum = set.getncattr("PODgsum")
+    #     if (gsum == 1):
+    #         rrank_BCg = set['rrank_BCg'][0]
+    #         rrank_fg_avg_xx = set['rrank_fg_avg_xx'][0]
+    #         rrank_fg_edgV_xx = set['rrank_fg_edgV_xx'][0]
+    #         rrank_fg_avg_yy = set['rrank_fg_avg_yy'][0]
+    #         rrank_fg_edgH_yy = set['rrank_fg_edgH_yy'][0]
+    #         rrank_fg_edgV_xy = set['rrank_fg_edgV_xy'][0]
+    #         rrank_fg_edgH_xy = set['rrank_fg_edgH_xy'][0]
+    #
+    #         rankfile.write('BCg: {}\n'.format(rrank_BCg))
+    #         rankfile.write('fg_avg_xx: {}\n'.format(rrank_fg_avg_xx))
+    #         rankfile.write('fg_avg_yy: {}\n'.format(rrank_fg_avg_yy))
+    #         rankfile.write('fg_edgV_xx: {}\n'.format(rrank_fg_edgV_xx))
+    #         rankfile.write('fg_edgH_yy: {}\n'.format(rrank_fg_edgH_yy))
+    #         rankfile.write('fg_edgV_xy: {}\n'.format(rrank_fg_edgV_xy))
+    #         rankfile.write('fg_edgH_xy: {}\n'.format(rrank_fg_edgH_xy))
+    #     else:
+    #         rrank_BCg = set['rrank_BCg'][:]
+    #         rrank_fg_avg_xx = set['rrank_fg_avg_xx'][:]
+    #         rrank_fg_edgV_xx = set['rrank_fg_edgV_xx'][:]
+    #         rrank_fg_avg_yy = set['rrank_fg_avg_yy'][:]
+    #         rrank_fg_edgH_yy = set['rrank_fg_edgH_yy'][:]
+    #         rrank_fg_edgV_xy = set['rrank_fg_edgV_xy'][:]
+    #         rrank_fg_edgH_xy = set['rrank_fg_edgH_xy'][:]
+    #
+    #         rankfile.write('BCg:')
+    #         for g in range(N_g): rankfile.write('  {}'.format(rrank_BCg[g]))
+    #         rankfile.write('\n')
+    #
+    #         rankfile.write('fg_avg_yy:')
+    #         for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
+    #         rankfile.write('\n')
+    #
+    #         rankfile.write('fg_avg_yy:')
+    #         for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
+    #         rankfile.write('\n')
+    #
+    #         rankfile.write('fg_edgV_xx:')
+    #         for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xx[g]))
+    #         rankfile.write('\n')
+    #
+    #         rankfile.write('fg_edgH_yy:')
+    #         for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_yy[g]))
+    #         rankfile.write('\n')
+    #
+    #         rankfile.write('fg_edgV_xy:')
+    #         for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xy[g]))
+    #         rankfile.write('\n')
+    #
+    #         rankfile.write('fg_edgH_xy:')
+    #         for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_xy[g]))
+    #         rankfile.write('\n')
+    #
+    #     rankfile.write('\n')
+    # rankfile.close()
+    # os.system('mv Ranks.txt '+proc_dir)
+
+    ###
+    ###
 
     #initializing arrays of error norms
     Temp_Norms = np.zeros([6,nsets-1,N_t])
@@ -102,7 +188,7 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
             #plotting the results for case n for desired instants of time (contained in the array tp_plt)
             if (t in tp_plt):
                 pltr.plot_results(dsets[n],casedirs[n],xp,yp,tp[t],N_g,N_y,N_x,inp_flags[n],plotdirs[n],pd_names[n],Temp[m],fg_avg_xx[m],\
-                fg_avg_xy[m],fg_avg_yy[m],E_avg[m],E_avg_MGQD[m],E_avg_HO[m],Eg_avg[m],Eg_avg_HO[m])
+                fg_avg_xy[m],fg_avg_yy[m],E_avg[m],E_avg_MGQD[m],E_avg_HO[m],Eg_avg[m],Eg_avg_HO[m],pltbnds)
 
             #if looking at a non-reference dataset, calculate norms of error compared to reference dataset
             if n>0:
@@ -156,7 +242,7 @@ def defaults():
     infile = 'input.inp'
     proc_dir = 'processed_data'
     plotdir = 'plots'
-    plt_tfreq = 10
+    plt_tfreq = 1
 
     return (infile,proc_dir,plotdir,plt_tfreq)
 

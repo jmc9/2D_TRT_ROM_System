@@ -16,7 +16,11 @@
 def input(infile):
     file = open(infile,'r')
 
-    dsets=[]
+    dsets = []
+    tp_plt = []
+    Tbound = [0.,0.]
+    Ebound = [0.,0.]
+    fg_avg_xx_bnd = []
 
     for line in file:
         if (line.strip()):
@@ -24,6 +28,19 @@ def input(infile):
 
             if input[0] == 'ref_dataset': rset=input[1]
             elif input[0] == 'comp_datasets': dsets=input[1:]
+            elif input[0] == 'plt_times_init':
+                for inp in input[1:]: tp_plt.append(int(inp))
+            elif input[0] == 'plt_tfreq': plt_tfreq = int(input[1])
+            elif input[0] == 'Tbound':
+                Tbound[0] = float(input[1])
+                Tbound[1] = float(input[2])
+            elif input[0] == 'Ebound':
+                Ebound[0] = float(input[1])
+                Ebound[1] = float(input[2])
+            elif input[0] == 'fg_avg_xx_bnd':
+                fg_avg_xx_bnd.append(int(input[1]))
+                fg_avg_xx_bnd.append(float(input[2]))
+                fg_avg_xx_bnd.append(float(input[3]))
 
     if dsets:
         if dsets == ['none']: dsets = [rset]
@@ -32,7 +49,7 @@ def input(infile):
 
     file.close()
 
-    return (dsets)
+    return (dsets,tp_plt,plt_tfreq,Tbound,Ebound,fg_avg_xx_bnd)
 
 #==================================================================================================================================#
 #

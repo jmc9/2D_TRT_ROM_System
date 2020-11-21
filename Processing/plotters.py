@@ -11,6 +11,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+# import matplotlib.colors as mcolors
 
 #local tools
 import misc_tools as msc
@@ -18,13 +19,13 @@ import misc_tools as msc
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def plot_norms(name,norms,tp,casenames,drop):
-    lineplot(name+"_abs_inf_Norm",tp,norms[0],drop,casenames,yscale='log',ylabel='Error from Reference',xlabel='Time (ns)')
-    lineplot(name+"_abs_2_Norm",tp,norms[2],drop,casenames,yscale='log',ylabel='Error from Reference',xlabel='Time (ns)')
-    lineplot(name+"_abs_L2_Norm",tp,norms[4],drop,casenames,yscale='log',ylabel='Error from Reference',xlabel='Time (ns)')
-    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel='Error from Reference',xlabel='Time (ns)')
-    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel='Error from Reference',xlabel='Time (ns)')
-    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel='Error from Reference',xlabel='Time (ns)')
+def plot_norms(name,norms,tp,casenames,drop,ylabel,xlabel):
+    lineplot(name+"_abs_inf_Norm",tp,norms[0],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
+    lineplot(name+"_abs_2_Norm",tp,norms[2],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
+    lineplot(name+"_abs_L2_Norm",tp,norms[4],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
+    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
+    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
+    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
 
 #==================================================================================================================================#
 # function plot_results
@@ -39,27 +40,28 @@ def plot_results(dset,plotdir,xp,yp,time,N_g,N_y,N_x,inp_flags,plotdirs,pd_names
 E_avg_HO,Eg_avg,Eg_avg_HO,bnds):
 
     loc = msc.locate_pd('Temperature',pd_names); dir = plotdirs[loc]
-    plot_data(Temp,'Temperature',xp,yp,time,dir,N_y,N_x,'eV',bnds[0])
+    plot_data(Temp,'Temperature',xp,yp,time,dir,N_y,N_x,'inferno','eV',bnds[0])
 
     if inp_flags[2] == 1:
+
         loc = msc.locate_pd('fg_xx',pd_names); dir = plotdirs[loc]
-        plot_gdata(fg_avg_xx,'fg_avg_xx',xp,yp,time,dir,N_g,N_y,N_x,bnds=bnds[4])
+        plot_gdata(fg_avg_xx,'fg_avg_xx',xp,yp,time,dir,N_g,N_y,N_x,'inferno',bnds=bnds[4])
 
         loc = msc.locate_pd('fg_yy',pd_names); dir = plotdirs[loc]
-        plot_gdata(fg_avg_yy,'fg_avg_yy',xp,yp,time,dir,N_g,N_y,N_x)
+        plot_gdata(fg_avg_yy,'fg_avg_yy',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
 
         loc = msc.locate_pd('fg_xy',pd_names); dir = plotdirs[loc]
-        plot_gdata(fg_avg_xy,'fg_avg_xy',xp,yp,time,dir,N_g,N_y,N_x)
+        plot_gdata(fg_avg_xy,'fg_avg_xy',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
 
-    if inp_flags[12] == 1: loc = msc.locate_pd('E_avg_Grey',pd_names); dir = plotdirs[loc]; plot_data(E_avg,'E_avg_Grey',xp,yp,time,dir,N_y,N_x,'erg$\cdot 10^{13}$',bnds[1])
+    if inp_flags[12] == 1: loc = msc.locate_pd('E_avg_Grey',pd_names); dir = plotdirs[loc]; plot_data(E_avg,'E_avg_Grey',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[1])
 
-    if inp_flags[9] == 1: loc = msc.locate_pd('E_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_data(E_avg_MGQD,'E_avg_MGQD',xp,yp,time,dir,N_y,N_x,'erg$\cdot 10^{13}$',bnds[2])
+    if inp_flags[9] == 1: loc = msc.locate_pd('E_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_data(E_avg_MGQD,'E_avg_MGQD',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[2])
 
-    if inp_flags[8] == 1: loc = msc.locate_pd('Eg_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg,'Eg_avg_MGQD',xp,yp,time,dir,N_g,N_y,N_x)
+    if inp_flags[8] == 1: loc = msc.locate_pd('Eg_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg,'Eg_avg_MGQD',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
 
-    if inp_flags[5] == 1: loc = msc.locate_pd('E_avg_HO',pd_names); dir = plotdirs[loc]; plot_data(E_avg_HO,'E_avg_HO',xp,yp,time,dir,N_y,N_x,'erg$\cdot 10^{13}$',bnds[3])
+    if inp_flags[5] == 1: loc = msc.locate_pd('E_avg_HO',pd_names); dir = plotdirs[loc]; plot_data(E_avg_HO,'E_avg_HO',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[3])
 
-    if inp_flags[4] == 1: loc = msc.locate_pd('Eg_avg_HO',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg_HO,'Eg_avg_HO',xp,yp,time,dir,N_g,N_y,N_x)
+    if inp_flags[4] == 1: loc = msc.locate_pd('Eg_avg_HO',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg_HO,'Eg_avg_HO',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
 
 #==================================================================================================================================#
 # function plot_data / plot_gdata
@@ -79,26 +81,26 @@ E_avg_HO,Eg_avg,Eg_avg_HO,bnds):
 #   N_x - number of x grid points
 #
 #==================================================================================================================================#
-def plot_data(data,name,xp,yp,time,drop,N_y,N_x,units=[],bnds=[]):
+def plot_data(data,name,xp,yp,time,drop,N_y,N_x,c,units=[],bnds=[]):
     dat = np.reshape(data,(N_y,N_x)) #reforming vector of data to 2D array
-    heatmap2d(dat,name,xp,yp,time,drop,units,bnds) #plotting data over spatial grid
+    heatmap2d(dat,name,xp,yp,time,drop,units,bnds,c) #plotting data over spatial grid
 
-def plot_gdata(data,name,xp,yp,time,drop,N_g,N_y,N_x,units=[],bnds=[]):
+def plot_gdata(data,name,xp,yp,time,drop,N_g,N_y,N_x,c,units=[],bnds=[]):
     gdat = np.reshape(data,(N_g,N_y,N_x)) #reforming vector of data to N_g 2D arrays
     for g in range(N_g):
-        if bnds: heatmap2d(gdat[g],name+'_g'+str(g+1),xp,yp,time,drop,units,bnds[g]) #plotting each group data over spatial grid
-        else: heatmap2d(gdat[g],name+'_g'+str(g+1),xp,yp,time,drop,units)
+        if bnds: heatmap2d(gdat[g],name+'_g'+str(g+1),xp,yp,time,drop,units,bnds[g],c) #plotting each group data over spatial grid
+        else: heatmap2d(gdat[g],name+'_g'+str(g+1),xp,yp,time,drop,units,c=c)
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[]):
+def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno'):
     fig, ax = plt.subplots() #creating the figure
 
     if bnds and not bnds == [0.,0.]:
-        plt.pcolormesh(xp,yp,arr,cmap='inferno',vmin=bnds[0],vmax=bnds[1]) #plotting
+        plt.pcolormesh(xp,yp,arr,cmap=c,vmin=bnds[0],vmax=bnds[1]) #plotting
     else:
-        plt.pcolormesh(xp,yp,arr,cmap='inferno') #plotting
+        plt.pcolormesh(xp,yp,arr,cmap=c) #plotting
 
     clb = plt.colorbar() #creating color bar
     if units:

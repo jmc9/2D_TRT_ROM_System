@@ -21,22 +21,38 @@ def input(infile):
     Tbound = [0.,0.]
     Ebound = [0.,0.]
     fg_avg_xx_bnd = []
+    ntrend_tp = []
+    dsnames = []
+    trend_names = []
 
     for line in file:
         if (line.strip()):
             input = line.split()
 
             if input[0] == 'ref_dataset': rset=input[1]
+
             elif input[0] == 'comp_datasets': dsets=input[1:]
+
+            elif input[0] == 'dsnames': dsnames=input[1:]
+
             elif input[0] == 'plt_times_init':
                 for inp in input[1:]: tp_plt.append(int(inp))
+
+            elif input[0] == 'trend_names': trend_names=input[1:]
+
             elif input[0] == 'plt_tfreq': plt_tfreq = int(input[1])
+
+            elif input[0] == 'nrm_trend_times':
+                for i in range(len(input)-1): ntrend_tp.append(int(input[i+1]))
+
             elif input[0] == 'Tbound':
                 Tbound[0] = float(input[1])
                 Tbound[1] = float(input[2])
+
             elif input[0] == 'Ebound':
                 Ebound[0] = float(input[1])
                 Ebound[1] = float(input[2])
+
             elif input[0] == 'fg_avg_xx_bnd':
                 fg_avg_xx_bnd.append(int(input[1]))
                 fg_avg_xx_bnd.append(float(input[2]))
@@ -47,9 +63,25 @@ def input(infile):
         else: dsets.insert(0,rset)
     else: dsets = [rset]
 
+    if dsnames:
+        if len(dsnames)!=len(dsets)-1:
+            print('ERROR! not every comp_dataset has been asigned a "dsname" (or too many dsnames have been specified)')
+            quit()
+        else:
+            for i in range(len(dsnames)):
+                dsnames[i] = dsnames[i].replace('_',' ')
+
+    if trend_names:
+        if len(trend_names)!=len(dsets)-1:
+            print('ERROR! not every comp_dataset has been asigned a "trend_name" (or too many dsnames have been specified)')
+            quit()
+        else:
+            for i in range(len(trend_names)):
+                trend_names[i] = trend_names[i].replace('_',' ')
+
     file.close()
 
-    return (dsets,tp_plt,plt_tfreq,Tbound,Ebound,fg_avg_xx_bnd)
+    return (dsets,dsnames,trend_names,tp_plt,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd)
 
 #==================================================================================================================================#
 #

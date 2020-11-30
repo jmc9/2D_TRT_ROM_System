@@ -19,13 +19,13 @@ import misc_tools as msc
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def plot_norms(name,norms,tp,casenames,drop,ylabel,xlabel):
-    lineplot(name+"_abs_inf_Norm",tp,norms[0],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
-    lineplot(name+"_abs_2_Norm",tp,norms[2],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
-    lineplot(name+"_abs_L2_Norm",tp,norms[4],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
-    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
-    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
-    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel)
+def plot_norms(name,norms,tp,casenames,drop,ylabel,xlabel,marker=''):
+    lineplot(name+"_abs_inf_Norm",tp,norms[0],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    lineplot(name+"_abs_2_Norm",tp,norms[2],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    lineplot(name+"_abs_L2_Norm",tp,norms[4],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
 
 #==================================================================================================================================#
 # function plot_results
@@ -115,25 +115,48 @@ def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno')
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabel=''):
-    if hasattr(arr[0],'__len__'): sets = len(arr)
-    else: sets = 0
+def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right'):
+    if hasattr(arr[0],'__len__'):
+        sets = len(arr)
 
-    plt.rc('font', family='serif')
-    plt.rc('xtick', labelsize='small')
-    plt.rc('ytick', labelsize='small')
+        if isinstance(marker,str):
+            mrk = marker
+            marker = []
+            for i in range(sets): marker.append(mrk)
+
+        elif isinstance(marker,list):
+            if len(marker)!=sets:
+                print('Error in lineplot - marker is a list but does not have as many elements as there are datasets')
+                quit()
+
+        else:
+            print('Error in lineplot - marker not a list or a single string while multiple datasets exist')
+            quit()
+
+    else:
+        sets = 0
+
+        if not isinstance(marker,str):
+            print('Error in lineplot - marker not a string while only one dataset exists')
+            quit()
+
+    plt.rc('font', family='serif', size=10)
+    plt.rc('xtick', labelsize='medium')
+    plt.rc('ytick', labelsize='medium')
 
     fig, ax = plt.subplots(figsize=(7,5)) #creating the figure
+    # plt.subplots_adjust(left=0.15,bottom=0.15,right=.85,top=.95)
 
     if sets == 0:
-        ax.plot(tp,arr)
+        ax.plot(tp,arr,marker=marker)
     else:
         for i in range(sets):
             leg = legend[i]
-            ax.plot(tp,arr[i],label=leg,linewidth=.75)
+            ax.plot(tp,arr[i],label=leg,linewidth=.75,marker=marker[i])
 
     ax.legend()
-    plt.legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
+    plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
+    # plt.legend(bbox_to_anchor=(1.2, 1), loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)

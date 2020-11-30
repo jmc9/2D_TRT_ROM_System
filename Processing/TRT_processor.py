@@ -95,6 +95,16 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     ###
 
     rankfile = open('Ranks.txt','w')
+
+    ranks=[]
+    rrank_BCg = []
+    rrank_fg_avg_xx = []
+    rrank_fg_edgV_xx = []
+    rrank_fg_avg_yy = []
+    rrank_fg_edgH_yy = []
+    rrank_fg_edgV_xy = []
+    rrank_fg_edgH_xy = []
+
     for i in range(nsets-1):
 
         rankfile.write('Dataset: '+casename[i+1]+'\n')
@@ -103,21 +113,22 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
         set = dsets[i+1]
         gsum = set.getncattr("PODgsum")
         if (gsum == 1):
-            rrank_BCg = set['rrank_BCg'][0]
-            rrank_fg_avg_xx = set['rrank_fg_avg_xx'][0]
-            rrank_fg_edgV_xx = set['rrank_fg_edgV_xx'][0]
-            rrank_fg_avg_yy = set['rrank_fg_avg_yy'][0]
-            rrank_fg_edgH_yy = set['rrank_fg_edgH_yy'][0]
-            rrank_fg_edgV_xy = set['rrank_fg_edgV_xy'][0]
-            rrank_fg_edgH_xy = set['rrank_fg_edgH_xy'][0]
+            rrank_BCg.append(set['rrank_BCg'][0])
+            rrank_fg_avg_xx.append(set['rrank_fg_avg_xx'][0])
+            rrank_fg_edgV_xx.append(set['rrank_fg_edgV_xx'][0])
+            rrank_fg_avg_yy.append(set['rrank_fg_avg_yy'][0])
+            rrank_fg_edgH_yy.append(set['rrank_fg_edgH_yy'][0])
+            rrank_fg_edgV_xy.append(set['rrank_fg_edgV_xy'][0])
+            rrank_fg_edgH_xy.append(set['rrank_fg_edgH_xy'][0])
 
-            rankfile.write('BCg: {}\n'.format(rrank_BCg))
-            rankfile.write('fg_avg_xx: {}\n'.format(rrank_fg_avg_xx))
-            rankfile.write('fg_avg_yy: {}\n'.format(rrank_fg_avg_yy))
-            rankfile.write('fg_edgV_xx: {}\n'.format(rrank_fg_edgV_xx))
-            rankfile.write('fg_edgH_yy: {}\n'.format(rrank_fg_edgH_yy))
-            rankfile.write('fg_edgV_xy: {}\n'.format(rrank_fg_edgV_xy))
-            rankfile.write('fg_edgH_xy: {}\n'.format(rrank_fg_edgH_xy))
+            rankfile.write('BCg: {}\n'.format(rrank_BCg[i]))
+            rankfile.write('fg_avg_xx: {}\n'.format(rrank_fg_avg_xx[i]))
+            rankfile.write('fg_avg_yy: {}\n'.format(rrank_fg_avg_yy[i]))
+            rankfile.write('fg_edgV_xx: {}\n'.format(rrank_fg_edgV_xx[i]))
+            rankfile.write('fg_edgH_yy: {}\n'.format(rrank_fg_edgH_yy[i]))
+            rankfile.write('fg_edgV_xy: {}\n'.format(rrank_fg_edgV_xy[i]))
+            rankfile.write('fg_edgH_xy: {}\n'.format(rrank_fg_edgH_xy[i]))
+
         else:
             rrank_BCg = set['rrank_BCg'][:]
             rrank_fg_avg_xx = set['rrank_fg_avg_xx'][:]
@@ -158,6 +169,11 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
         rankfile.write('\n')
     rankfile.close()
     os.system('mv Ranks.txt '+proc_dir)
+
+    if (gsum == 1):
+        rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
+        ranks = [rrank_BCg,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy]
+        pltr.lineplot("Ranks",trend_names,ranks,proc_dir,rleg,yscale='linear',xlabel=r'POD error $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
 
     ###
     ###
@@ -226,8 +242,8 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
         pltr.plot_norms("fg_edgH_yy",fg_edgH_yy_Norms,tp,dsnames,fg_EdgH_yy_norm_dir,'Error from Reference','Time (ns)')
         pltr.plot_norms("fg_edgH_xy",fg_edgH_xy_Norms,tp,dsnames,fg_EdgH_xy_norm_dir,'Error from Reference','Time (ns)')
 
-        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,'Error from Reference',r'POD error $\varepsilon$')
-        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,'Error from Reference',r'POD error $\varepsilon$')
+        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,'Error from Reference',r'POD error $\varepsilon$',marker='D')
+        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,'Error from Reference',r'POD error $\varepsilon$',marker='D')
 
     for n in range(nsets): dsets[n].close() #closing dataset file
 

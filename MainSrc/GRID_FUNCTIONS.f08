@@ -641,4 +641,68 @@ SUBROUTINE EXTND_LR_BND(f_out,f_in,N_g,N_y,N_x)
 
 END SUBROUTINE EXTND_LR_BND
 
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delx,Dely,xlen_d,ylen_d,xlen,ylen,dN_x,dN_y,N_x,N_y,Sim_Grid_Avg,Sim_Grid_EdgV,&
+  Sim_Grid_EdgH,Sim_Grid_Bnds,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,Dat_Grid_Bnds,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,&
+  GMap_xyBnds,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,VMap_xyBnds)
+
+  REAL*8,INTENT(IN):: Delx_d(*), Dely_d(*), Delx(*), Dely(*)
+  REAL*8,INTENT(IN):: xlen_d, ylen_d, xlen, ylen
+  INTEGER,INTENT(IN):: dN_x, dN_y, N_x, N_y
+
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Dat_Grid_Avg(:), Dat_Grid_EdgV(:), Dat_Grid_EdgH(:), Dat_Grid_Bnds(:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:), GMap_xyBnds(:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
+
+  REAL*8,ALLOCATABLE:: Delx2(:), Dely2(:)
+
+  ALLOCATE(Delx2(dN_x+2),Dely2(dN_y+2))
+  Delx2(1) = 0d0
+  Delx2(2:dN_x+1) = Delx_d(1:dN_x)
+  Delx2(dN_x+2) = 0d0
+  Dely2(1) = 0d0
+  Dely2(2:dN_y+1) = Dely_d(1:dN_y)
+  Dely2(dN_y+2) = 0d0
+
+  ALLOCATE(Sim_Grid_Avg(2*N_x*N_y), Sim_Grid_EdgV(2*(N_x+1)*N_y), Sim_Grid_EdgH(2*N_x*(N_y+1)), Sim_Grid_Bnds(4*(N_x+N_y)))
+  CALL GRIDMAP_GEN_AVG(Sim_Grid_Avg,Delx,Dely,N_x,N_y)
+  CALL GRIDMAP_GEN_EDGV(Sim_Grid_EdgV,Delx,Dely,N_x+1,N_y)
+  CALL GRIDMAP_GEN_EDGH(Sim_Grid_EdgH,Delx,Dely,N_x,N_y+1)
+
+  CALL GRIDMAP_GEN_LR_BND(Sim_Grid_Bnds(1),0d0,Dely,N_y)
+  CALL GRIDMAP_GEN_BT_BND(Sim_Grid_Bnds(2*N_y+1),Delx,0d0,N_x)
+  CALL GRIDMAP_GEN_LR_BND(Sim_Grid_Bnds(2*(N_y+N_x)+1),ylen,Dely,N_y)
+  CALL GRIDMAP_GEN_BT_BND(Sim_Grid_Bnds(4*N_y+2*N_x+1),Delx,xlen,N_x)
+
+  ALLOCATE(Dat_Grid_Avg(2*((dN_x+2)*(dN_y+2))), Dat_Grid_EdgV(2*(dN_x+1)*(dN_y+2)), Dat_Grid_EdgH(2*(dN_x+2)*(dN_y+1)), &
+  Dat_Grid_Bnds(4*(dN_x+dN_y)+16))
+  CALL GRIDMAP_GEN_AVG(Dat_Grid_Avg,Delx2,Dely2,dN_x+2,dN_y+2)
+  CALL GRIDMAP_GEN_EDGV(Dat_Grid_EdgV,Delx_d,Dely2,dN_x+1,dN_y+2)
+  CALL GRIDMAP_GEN_EDGH(Dat_Grid_EdgH,Delx2,Dely_d,dN_x+2,dN_y+1)
+
+  CALL GRIDMAP_GEN_LR_BND(Dat_Grid_Bnds(1),0d0,Dely2,dN_y+2)
+  CALL GRIDMAP_GEN_BT_BND(Dat_Grid_Bnds(2*dN_y+5),Delx2,0d0,dN_x+2)
+  CALL GRIDMAP_GEN_LR_BND(Dat_Grid_Bnds(2*(dN_y+dN_x)+9),ylen_d,Dely2,dN_y+2)
+  CALL GRIDMAP_GEN_BT_BND(Dat_Grid_Bnds(4*dN_y+2*dN_x+13),Delx2,xlen_d,dN_x+2)
+
+  ALLOCATE(GMap_xyAvg(4*N_x*N_y), GMap_xyEdgV(4*(N_x+1)*N_y), GMap_xyEdgH(4*N_x*(N_y+1)), GMap_xyBnds(8*(N_x+N_y)))
+  ALLOCATE(VMap_xyAvg(4*N_x*N_y), VMap_xyEdgV(4*(N_x+1)*N_y), VMap_xyEdgH(4*N_x*(N_y+1)), VMap_xyBnds(8*(N_x+N_y)))
+  CALL MAP_GRIDS(GMap_xyAvg, Dat_Grid_Avg, Sim_Grid_Avg, 2*((dN_x+2)*(dN_y+2)), 2*N_x*N_y, 2*(dN_x+2), VMap_xyAvg)
+  CALL MAP_GRIDS(GMap_xyEdgV, Dat_Grid_EdgV, Sim_Grid_EdgV, 2*(dN_x+1)*(dN_y+2), 2*(N_x+1)*N_y, 2*(dN_x+1), VMap_xyEdgV)
+  CALL MAP_GRIDS(GMap_xyEdgH, Dat_Grid_EdgH, Sim_Grid_EdgH, 2*(dN_x+2)*(dN_y+1), 2*N_x*(N_y+1), 2*(dN_x+2), VMap_xyEdgH)
+
+  CALL MAP_GRIDS(GMap_xyBnds(1), Dat_Grid_Bnds(1), Sim_Grid_Bnds(1), 2*dN_y+2, 2*N_y, 2, VMap_xyBnds(1))
+  CALL MAP_GRIDS(GMap_xyBnds(4*N_y+1), Dat_Grid_Bnds(2*dN_y+5), Sim_Grid_Bnds(2*N_y+1), 2*dN_y+2, 2*N_y, 0, VMap_xyBnds(4*N_y+1))
+  CALL MAP_GRIDS(GMap_xyBnds(4*(N_y+N_x)+1), Dat_Grid_Bnds(2*(dN_y+dN_x)+9), Sim_Grid_Bnds(2*(N_y+N_x)+1), 2*dN_y+2, &
+  2*N_y, 2, VMap_xyBnds(4*(N_y+N_x)+1))
+  CALL MAP_GRIDS(GMap_xyBnds(8*N_y+4*N_x+1), Dat_Grid_Bnds(4*dN_y+2*dN_x+13), Sim_Grid_Bnds(4*N_y+2*N_x+1), 2*dN_y+2, &
+  2*N_y, 0, VMap_xyBnds(8*N_y+4*N_x+1))
+
+  DEALLOCATE(Delx2,Dely2)
+
+END SUBROUTINE GENERATE_GRIDS
+
 END MODULE GRID_FUNCTIONS

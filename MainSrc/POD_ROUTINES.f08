@@ -596,8 +596,7 @@ SUBROUTINE READ_POD_FULL(ncID,name,clen,N_t,eps,C,S,U,V,rrank)
   CALL NF_INQ_VAR_1D(ncID,name2,S,(/1/),(/rank/))
 
   !Normalizing singular values; calculating reduced rank
-  Sn = S/S(1)
-  CALL RRANK_CALC(Sn,eps,rank,rrank)
+  CALL RRANK_CALC(S,eps,rank,rrank)
 
   !Resizing vector of singular values to hold only the first 'rrank' values
   DEALLOCATE(Sn)
@@ -642,8 +641,7 @@ SUBROUTINE READ_POD_GPART(ncID,name,clen,N_t,N_g,g,eps,C,S,U,V,rrank)
   CALL NF_INQ_VAR_1D(ncID,name2,S2,(/1,g/),(/rank,1/))
 
   !Normalizing singular values; calculating reduced rank
-  Sn = S2/S2(1)
-  CALL RRANK_CALC(Sn,eps,rank,rrank)
+  CALL RRANK_CALC(S2,eps,rank,rrank)
 
   !Resizing vector of singular values to hold only the first 'rrank' values
   DEALLOCATE(Sn)
@@ -711,18 +709,24 @@ SUBROUTINE RRANK_CALC(sig,eps,len,rank)
   REAL*8,INTENT(IN):: sig(*), eps
   INTEGER,INTENT(IN):: len
   INTEGER,INTENT(OUT):: rank
-  REAL*8:: sum
+  REAL*8:: sum1, sum2, eps2
   INTEGER:: i, j
+
+  sum1 = 0d0
+  DO i=1,len
+    sum1 = sum1 + sig(i)**2
+  END DO
+  eps2 = eps*SQRT(sum1)
 
   rank = len
   DO i=1,len
-    sum = 0d0
+    sum2 = 0d0
     DO j=i+1,len
-      sum = sum + sig(j)**2
+      sum2 = sum2 + sig(j)**2
     END DO
-    sum = SQRT(sum)
+    sum2 = SQRT(sum2)
 
-    IF (sum .LE. eps) THEN
+    IF (sum2 .LE. eps2) THEN
       rank = i
       EXIT
     END IF

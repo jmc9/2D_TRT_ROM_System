@@ -644,20 +644,25 @@ END SUBROUTINE EXTND_LR_BND
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delx,Dely,xlen_d,ylen_d,xlen,ylen,dN_x,dN_y,N_x,N_y,Sim_Grid_Avg,Sim_Grid_EdgV,&
-  Sim_Grid_EdgH,Sim_Grid_Bnds,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,Dat_Grid_Bnds,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,&
-  GMap_xyBnds,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,VMap_xyBnds)
+SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Start_Time_d,xlen,ylen,Start_Time,dN_x,dN_y,&
+  dN_t,N_x,N_y,N_t,Sim_Grid_Avg,Sim_Grid_EdgV,Sim_Grid_EdgH,Sim_Grid_Bnds,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,&
+  Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,GMap_xyBnds,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,&
+  VMap_xyBnds,TMap)
 
-  REAL*8,INTENT(IN):: Delx_d(*), Dely_d(*), Delx(*), Dely(*)
-  REAL*8,INTENT(IN):: xlen_d, ylen_d, xlen, ylen
-  INTEGER,INTENT(IN):: dN_x, dN_y, N_x, N_y
+  REAL*8,INTENT(IN):: Delx_d(*), Dely_d(*), Delt_d, Delx(*), Dely(*), Delt
+  REAL*8,INTENT(IN):: xlen_d, ylen_d, Start_Time_d, xlen, ylen, Start_Time
+  INTEGER,INTENT(IN):: dN_x, dN_y, dN_t, N_x, N_y, N_t
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Dat_Grid_Avg(:), Dat_Grid_EdgV(:), Dat_Grid_EdgH(:), Dat_Grid_Bnds(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Sim_TGrid(:), Dat_TGrid(:)
   INTEGER,ALLOCATABLE,INTENT(OUT):: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:), GMap_xyBnds(:)
   INTEGER,ALLOCATABLE,INTENT(OUT):: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: TMap(:)
 
   REAL*8,ALLOCATABLE:: Delx2(:), Dely2(:)
+  REAL*8:: t1, t2
+  INTEGER:: i, j, k
 
   ALLOCATE(Delx2(dN_x+2),Dely2(dN_y+2))
   Delx2(1) = 0d0
@@ -703,6 +708,80 @@ SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delx,Dely,xlen_d,ylen_d,xlen,ylen,dN_x,d
 
   DEALLOCATE(Delx2,Dely2)
 
+!!!!!
+!!!!!
+
+  ALLOCATE(TMap(2*N_t),Dat_TGrid(dN_t),Sim_TGrid(N_t))
+
+  Dat_TGrid(1) = Start_Time_d + Delt_d
+  DO j=2,dN_t
+    Dat_TGrid(j) = Dat_TGrid(j-1) + Delt_d
+  END DO
+
+  Sim_TGrid(1) = Start_Time + Delt
+  DO j=2,N_t
+    Sim_TGrid(j) = Sim_TGrid(j-1) + Delt
+  END DO
+
+  k = 1
+  DO i=1,N_t
+
+    IF (Dat_TGrid(1) .GE. Sim_TGrid(i)) THEN
+      TMap(k) = 1
+      k = k + 1
+      TMap(k) = 1
+
+    ELSE IF (Dat_TGrid(dN_t) .LE. Sim_TGrid(i)) THEN
+      TMap(k) = dN_t
+      k = k + 1
+      TMap(k) = dN_t
+
+    ELSE
+
+      DO j=2,dN_t
+        IF (ABS(Dat_TGrid(j) - Sim_TGrid(i))/Dat_TGrid(j) .LE. 1d-14) THEN
+          TMap(k) = j
+          k = k + 1
+          TMap(k) = j
+          EXIT
+
+        ELSE IF (Dat_TGrid(j) .GT. Sim_TGrid(i)) THEN
+          TMap(k) = j
+          k = k + 1
+          TMap(k) = j - 1
+          EXIT
+
+        END IF
+      END DO
+
+    END IF
+
+    k = k + 1
+
+  END DO
+
 END SUBROUTINE GENERATE_GRIDS
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE LINEAR_INTERPOLATION(v1,v2,xm,x1,x2,len)
+  REAL*8,INTENT(INOUT):: v1(*)
+  REAL*8,INTENT(IN):: v2(*), xm, x1, x2
+  INTEGER,INTENT(IN):: len
+  INTEGER:: i
+
+  DO i=1,len
+    v1(i) = LINEAR_INTERPOLATE(xm,x1,v1(i),x2,v2(i))
+  END DO
+
+END SUBROUTINE LINEAR_INTERPOLATION
+
+FUNCTION LINEAR_INTERPOLATE(xm,x1,y1,x2,y2)
+  REAL*8:: LINEAR_INTERPOLATE
+  REAL*8,INTENT(IN):: xm, x1, y1, x2, y2
+
+  LINEAR_INTERPOLATE = y1 + (xm - x1)*(y2 - y1)/(x2 - x1)
+END FUNCTION LINEAR_INTERPOLATE
 
 END MODULE GRID_FUNCTIONS

@@ -162,15 +162,17 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: C_I_edgH(:), S_I_edgH(:), U_I_edgH(:), V_I_edgH(:)
   INTEGER,ALLOCATABLE:: rrank_I_avg(:), rrank_I_edgV(:), rrank_I_edgH(:)
 
-  REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d
+  REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d, Start_Time_d
   REAL*8,ALLOCATABLE:: Delx_d(:), Dely_d(:), bcT_d(:)
   INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, fg_pod_out
   INTEGER,ALLOCATABLE:: BC_Type_d(:)
 
   REAL*8,ALLOCATABLE:: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
   REAL*8,ALLOCATABLE:: Dat_Grid_Avg(:), Dat_Grid_EdgV(:), Dat_Grid_EdgH(:), Dat_Grid_Bnds(:)
+  REAL*8,ALLOCATABLE:: Sim_TGrid(:), Dat_TGrid(:)
   INTEGER,ALLOCATABLE:: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:), GMap_xyBnds(:)
   INTEGER,ALLOCATABLE:: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
+  INTEGER,ALLOCATABLE:: TMap(:)
 
   !===========================================================================!
   !                                                                           !
@@ -225,9 +227,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
         C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH)
     END IF
 
-    CALL GENERATE_GRIDS(Delx_d,Dely_d,Delx,Dely,xlen_d,ylen_d,xlen,ylen,dN_x,dN_y,N_x,N_y,Sim_Grid_Avg,Sim_Grid_EdgV,&
-      Sim_Grid_EdgH,Sim_Grid_Bnds,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,Dat_Grid_Bnds,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,&
-      GMap_xyBnds,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,VMap_xyBnds)
+    Start_Time_d = 0d0
+    CALL GENERATE_GRIDS(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Start_Time_d,xlen,ylen,Start_Time,dN_x,dN_y,&
+      dN_t,N_x,N_y,N_t,Sim_Grid_Avg,Sim_Grid_EdgV,Sim_Grid_EdgH,Sim_Grid_Bnds,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,&
+      Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,GMap_xyBnds,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,&
+      VMap_xyBnds,TMap)
   END IF
 
   !===========================================================================!
@@ -419,11 +423,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           U_fg_avg_yy,V_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,&
           V_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,&
           rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,t,PODgsum,Sim_Grid_Avg,&
-          Sim_Grid_EdgV,Sim_Grid_EdgH,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,VMap_xyAvg,&
-          VMap_xyEdgV,VMap_xyEdgH)
+          Sim_Grid_EdgV,Sim_Grid_EdgH,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,Sim_TGrid,Dat_TGrid,GMap_xyAvg,GMap_xyEdgV,&
+          GMap_xyEdgH,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,TMap)
 
         CALL POD_RECONSTRUCT_BCg(Cg_L,Cg_B,Cg_R,Cg_T,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,&
-          t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,GMap_xyBnds,VMap_xyBnds)
+          t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyBnds,VMap_xyBnds,TMap)
 
         IF (Direc_Diff .EQ. 1) THEN
           fg_edgV_xy = 0d0

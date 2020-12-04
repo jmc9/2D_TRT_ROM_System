@@ -107,12 +107,12 @@ END SUBROUTINE RT_BC_UPDATE
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Open_Threads)
+SUBROUTINE MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Open_Threads,Mat,Kappa_Mult)
   REAL*8,INTENT(OUT):: RT_Src(:,:,:,:), MGQD_Src(:,:,:)
   REAL*8,INTENT(OUT):: KapE(:,:,:), KapB(:,:,:), KapR(:,:,:), Bg(:,:,:)
 
-  REAL*8,INTENT(IN):: Temp(:,:), comp_unit, nu_g(:)
-  INTEGER,INTENT(IN):: Open_Threads
+  REAL*8,INTENT(IN):: Temp(:,:), comp_unit, nu_g(:), Kappa_Mult(:)
+  INTEGER,INTENT(IN):: Open_Threads, Mat(:,:)
 
   REAL*8,PARAMETER:: pi=4d0*ATAN(1d0)
   INTEGER:: N_y, N_x, N_m, N_g, Threads
@@ -131,7 +131,7 @@ SUBROUTINE MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g
     DO j=1,N_y
       DO i=1,N_x
         Bg(i,j,g) = Bg_planck_calc(Temp(i,j),nu_g(g),nu_g(g+1),comp_unit)
-        KapB(i,j,g) = kapB_calc(Temp(i,j),nu_g(g),nu_g(g+1))
+        KapB(i,j,g) = kapB_calc(Temp(i,j),nu_g(g),nu_g(g+1))*Kappa_Mult(Mat(i,j))
         KapE(i,j,g) = KapB(i,j,g)
         KapR(i,j,g) = KapB(i,j,g)
         MGQD_Src(i,j,g) = 4d0*pi*KapB(i,j,g)*Bg(i,j,g)

@@ -7,7 +7,7 @@ CONTAINS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,conv_ho,conv_lo,conv_gr1,&
+SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_ho,conv_lo,conv_gr1,&
   conv_gr2,comp_unit,line_src,E_Bound_Low,T_Bound_Low,Theta,maxit_RTE,maxit_MLOQD,maxit_GLOQD,conv_type,N_m,&
   threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
@@ -23,8 +23,10 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   !OUTPUT VARIABLES
   REAL*8,INTENT(INOUT):: comp_unit
 
-  INTEGER,INTENT(OUT):: database_gen, database_add, use_grey
-  CHARACTER(100),INTENT(OUT):: run_type, restart_infile
+  INTEGER,INTENT(OUT):: use_grey
+  CHARACTER(100),INTENT(OUT):: run_type, restart_infile, Test
+  INTEGER,ALLOCATABLE,INTENT(OUT):: Mat(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Kappa_Mult(:)
 
   REAL*8,INTENT(OUT):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, E_Bound_Low, T_Bound_Low, Theta
   INTEGER,INTENT(OUT):: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads
@@ -64,7 +66,7 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
       STOP
   END IF
 
-  CALL INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_infile,use_grey,Res_Calc)
+  CALL INPUT_RUN_STATE(inpunit,run_type,restart_infile,use_grey,Res_Calc,Test)
 
   CALL INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_unit,line_src,maxit_RTE,maxit_MLOQD,&
     maxit_GLOQD,conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,E_Bound_Low,T_Bound_Low,Use_Line_Search,&
@@ -93,6 +95,8 @@ SUBROUTINE INPUT(database_gen,database_add,run_type,restart_infile,use_grey,chi,
   Dely = ylen/REAL(N_y,8)
   tpoints = NINT(tlen/delt)
   Cv=0.5917d0*ar*(bcT_left)**3*((1.38d-16)**4*(11600d0**4)*erg**4)
+
+  CALL INPUT_TEST_TYPE(Test,N_x,N_y,Delx,Dely,xlen,ylen,Mat,Kappa_Mult)
 
   CALL INPUT_ENERGY(inpunit,enrgy_strc,N_g,nu_g)
 
@@ -160,7 +164,7 @@ END SUBROUTINE LOCATE_BLOCK
 !
 !==================================================================================================================================!
 
-SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_infile,use_grey,Res_Calc)
+SUBROUTINE INPUT_RUN_STATE(inpunit,run_type,restart_infile,use_grey,Res_Calc,Test)
 
   IMPLICIT NONE
 
@@ -168,8 +172,8 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_in
   INTEGER,INTENT(IN):: inpunit
 
   !OUTPUT VARIABLES
-  INTEGER,INTENT(OUT):: database_gen, database_add, use_grey
-  CHARACTER(100),INTENT(OUT):: run_type, restart_infile
+  INTEGER,INTENT(OUT):: use_grey
+  CHARACTER(100),INTENT(OUT):: run_type, restart_infile, Test
   LOGICAL,INTENT(OUT):: Res_Calc
 
   !LOCAL VARIABLES
@@ -183,9 +187,8 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_in
   run_type = 'mlqd'
   Res_Calc = .TRUE.
   restart_infile = ''
-  database_gen = 0
-  database_add = 0
   use_grey = 1
+  Test = 'FC'
 
   block = '[RUN_STATE]'
   CALL LOCATE_BLOCK(inpunit,block,block_found)
@@ -214,11 +217,8 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_in
           STOP 'unrecognized run_type (source - subroutine INPUT_RUN_STATE :: module INPUTS)'
         END IF
 
-      ELSE IF (trim(key) .EQ. 'database_gen') THEN
-        READ(args(1),*) database_gen
-
-      ELSE IF (trim(key) .EQ. 'database_add') THEN
-        READ(args(1),*) database_add
+      ELSE IF (trim(key) .EQ. 'Test') THEN
+        READ(args(1),*) Test
 
       ELSE IF (trim(key) .EQ. 'restart') THEN
         READ(args(1),*) restart_infile
@@ -239,14 +239,6 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,database_gen,database_add,run_type,restart_in
     END IF
 
   END DO
-
-  IF ((run_type .NE. 'mlqd').AND.(database_gen .EQ. 1)) THEN
-    WRITE(*,*) '*** WARNING ***'
-    WRITE(*,*) 'database_gen = 1 IN INPUT DECK WHILE run_type = ', trim(run_type)
-    WRITE(*,*) 'RESETTING database_gen = 0'
-    database_gen = 0
-    database_add = 0
-  END IF
 
   IF (ANY(run_type .EQ. (/'rte_no_qd'/)) ) THEN
     use_grey = 0
@@ -1345,5 +1337,64 @@ SUBROUTINE INPUT_QUAD(quadrature,N_m,Omega_x,Omega_y,quad_weight)
   quad_weight = 4d0*pi*quad_weight/SUM(quad_weight(:))
 
 END SUBROUTINE INPUT_QUAD
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+
+SUBROUTINE INPUT_TEST_TYPE(Test,N_x,N_y,Delx,Dely,xlen,ylen,Mat,Kappa_Mult)
+
+  IMPLICIT NONE
+  CHARACTER(*),INTENT(IN):: Test
+  INTEGER,INTENT(IN):: N_x, N_y
+  REAL*8,INTENT(IN):: Delx(*), Dely(*), xlen, ylen
+  INTEGER,ALLOCATABLE,INTENT(OUT):: Mat(:,:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Kappa_Mult(:)
+  INTEGER:: Nmat, xm, ym, i, j
+  REAL*8:: xsum, ysum
+
+  IF (ANY(TEST .EQ.(/ 'FC ', 'F-C', 'fc ', 'f-c' /))) THEN
+    Nmat = 1
+    ALLOCATE(Mat(N_x,N_y), Kappa_Mult(Nmat))
+    Mat = 1
+    Kappa_Mult = 1d0
+
+  ELSE IF (ANY(TEST .EQ.(/ 'BLOCK', 'BLK  ', 'block', 'blk  ' /))) THEN
+    Nmat = 2
+    ALLOCATE(Mat(N_x,N_y), Kappa_Mult(Nmat))
+    Kappa_Mult(1) = 1d0
+    Kappa_Mult(2) = 1d1
+
+    !block is 2.4 x 2.4 cm^2
+    ysum = 0d0
+   DO j=1,N_y
+     ysum = ysum + Dely(j)/2d0
+     xsum = 0d0
+      DO i=1,N_x
+        xsum = xsum + Delx(i)/2d0
+        IF ((xsum .LT. xlen/2d0 - 1.2d0).OR.(xsum .GT. xlen/2d0 + 1.2d0)) THEN
+          Mat(i,j) = 1
+
+        ELSE
+          IF ((ysum .LT. ylen/2d0 - 1.2d0).OR.(ysum .GT. ylen/2d0 + 1.2d0)) THEN
+            Mat(i,j) = 1
+
+          ELSE
+            Mat(i,j) = 2
+
+          END IF
+
+        END IF
+        xsum = xsum + Delx(i)/2d0
+      END DO
+      ysum = ysum + Dely(j)/2d0
+    END DO
+
+  ELSE
+    STOP 'Unrecognized Test type in INPUT_TEST_TYPE'
+
+  END IF
+
+END SUBROUTINE INPUT_TEST_TYPE
 
 END MODULE INPUTS

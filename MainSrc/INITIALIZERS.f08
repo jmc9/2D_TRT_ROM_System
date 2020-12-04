@@ -112,14 +112,14 @@ END SUBROUTINE RT_INIT
 !
 !==================================================================================================================================!
 SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,Tini,&
-  Comp_Unit,Nu_g,Temp_Old,Threads)
+  Comp_Unit,Nu_g,Temp_Old,Threads,Mat,Kappa_Mult)
   REAL*8,ALLOCATABLE,INTENT(INOUT):: Temp(:,:), Temp_Old(:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: RT_Src(:,:,:,:), MGQD_Src(:,:,:), MGQD_Src_old(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: KapE(:,:,:), KapB(:,:,:), KapR(:,:,:), Bg(:,:,:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: KapE_old(:,:,:), KapR_old(:,:,:)
 
-  REAL*8,INTENT(IN):: Tini, comp_unit, nu_g(:)
-  INTEGER,INTENT(IN):: N_y, N_x, N_m, N_g, Threads
+  REAL*8,INTENT(IN):: Tini, comp_unit, nu_g(:), Kappa_Mult(:)
+  INTEGER,INTENT(IN):: N_y, N_x, N_m, N_g, Threads, Mat(:,:)
 
   ALLOCATE(RT_Src(N_x*2,N_y*2,N_m,N_g))
   ALLOCATE(MGQD_Src(N_x,N_y,N_g))
@@ -134,7 +134,7 @@ SUBROUTINE TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,K
   ALLOCATE(Temp_Old(N_x,N_y))
 
   Temp = Tini
-  CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads)
+  CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads,Mat,Kappa_Mult)
 
 END SUBROUTINE TEMP_INIT
 

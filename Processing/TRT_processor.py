@@ -91,92 +91,16 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
         j = (i+1)*plt_tfreq-1
         if not j in tp_plt: tp_plt.append((i+1)*plt_tfreq-1)
 
-    ###
-    ###
-
-    rankfile = open('Ranks.txt','w')
-
-    ranks=[]
-    rrank_BCg = []
-    rrank_fg_avg_xx = []
-    rrank_fg_edgV_xx = []
-    rrank_fg_avg_yy = []
-    rrank_fg_edgH_yy = []
-    rrank_fg_edgV_xy = []
-    rrank_fg_edgH_xy = []
-
-    for i in range(nsets-1):
-
-        rankfile.write('Dataset: '+casename[i+1]+'\n')
-        rankfile.write('--------------------------------------------------\n')
-
-        set = dsets[i+1]
-        gsum = set.getncattr("PODgsum")
+    #if any comp_datasets have been specified, collecting the ranks of their expansions and plotting them
+    #currently only working for gsum=1
+    if (nsets>1):
+        (ranks,gsum) = proc.rank_collect(dsets,nsets,casename,N_g,proc_dir)
         if (gsum == 1):
-            rrank_BCg.append(set['rrank_BCg'][0])
-            rrank_fg_avg_xx.append(set['rrank_fg_avg_xx'][0])
-            rrank_fg_edgV_xx.append(set['rrank_fg_edgV_xx'][0])
-            rrank_fg_avg_yy.append(set['rrank_fg_avg_yy'][0])
-            rrank_fg_edgH_yy.append(set['rrank_fg_edgH_yy'][0])
-            rrank_fg_edgV_xy.append(set['rrank_fg_edgV_xy'][0])
-            rrank_fg_edgH_xy.append(set['rrank_fg_edgH_xy'][0])
-
-            rankfile.write('BCg: {}\n'.format(rrank_BCg[i]))
-            rankfile.write('fg_avg_xx: {}\n'.format(rrank_fg_avg_xx[i]))
-            rankfile.write('fg_avg_yy: {}\n'.format(rrank_fg_avg_yy[i]))
-            rankfile.write('fg_edgV_xx: {}\n'.format(rrank_fg_edgV_xx[i]))
-            rankfile.write('fg_edgH_yy: {}\n'.format(rrank_fg_edgH_yy[i]))
-            rankfile.write('fg_edgV_xy: {}\n'.format(rrank_fg_edgV_xy[i]))
-            rankfile.write('fg_edgH_xy: {}\n'.format(rrank_fg_edgH_xy[i]))
-
+            rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
+            pltr.lineplot("Ranks",trend_names,ranks,proc_dir,rleg,yscale='linear',xlabel=r'POD error $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
         else:
-            rrank_BCg = set['rrank_BCg'][:]
-            rrank_fg_avg_xx = set['rrank_fg_avg_xx'][:]
-            rrank_fg_edgV_xx = set['rrank_fg_edgV_xx'][:]
-            rrank_fg_avg_yy = set['rrank_fg_avg_yy'][:]
-            rrank_fg_edgH_yy = set['rrank_fg_edgH_yy'][:]
-            rrank_fg_edgV_xy = set['rrank_fg_edgV_xy'][:]
-            rrank_fg_edgH_xy = set['rrank_fg_edgH_xy'][:]
-
-            rankfile.write('BCg:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_BCg[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_avg_yy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_avg_yy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgV_xx:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xx[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgH_yy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_yy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgV_xy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgH_xy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_xy[g]))
-            rankfile.write('\n')
-
-        rankfile.write('\n')
-    rankfile.close()
-    os.system('mv Ranks.txt '+proc_dir)
-
-    if (gsum == 1):
-        rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
-        ranks = [rrank_BCg,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy]
-        pltr.lineplot("Ranks",trend_names,ranks,proc_dir,rleg,yscale='linear',xlabel=r'POD error $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
-
-    ###
-    ###
+            print('cannot use gsum=0 at the moment')
+            quit()
 
     #initializing arrays of error norms
     Temp_Norms = np.zeros([6,nsets-1,N_t])

@@ -9,6 +9,7 @@
 #==================================================================================================================================#
 import numpy as np
 import math_tools as mt
+import os
 
 #==================================================================================================================================#
 #
@@ -245,3 +246,91 @@ def A_calcs(A,N_g,N_y,N_x):
             p2 = p2 + 1
 
     return (A_EdgV, A_EdgH, Ag, Ag_EdgV, Ag_EdgH)
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def rank_collect(dsets,nsets,casename,N_g,proc_dir):
+
+    rankfile = open('Ranks.txt','w')
+
+    ranks=[]
+    rrank_BCg = []
+    rrank_fg_avg_xx = []
+    rrank_fg_edgV_xx = []
+    rrank_fg_avg_yy = []
+    rrank_fg_edgH_yy = []
+    rrank_fg_edgV_xy = []
+    rrank_fg_edgH_xy = []
+
+    for i in range(nsets-1):
+
+        rankfile.write('Dataset: '+casename[i+1]+'\n')
+        rankfile.write('--------------------------------------------------\n')
+
+        set = dsets[i+1]
+        gsum = set.getncattr("PODgsum")
+        if (gsum == 1):
+            rrank_BCg.append(set['rrank_BCg'][0])
+            rrank_fg_avg_xx.append(set['rrank_fg_avg_xx'][0])
+            rrank_fg_edgV_xx.append(set['rrank_fg_edgV_xx'][0])
+            rrank_fg_avg_yy.append(set['rrank_fg_avg_yy'][0])
+            rrank_fg_edgH_yy.append(set['rrank_fg_edgH_yy'][0])
+            rrank_fg_edgV_xy.append(set['rrank_fg_edgV_xy'][0])
+            rrank_fg_edgH_xy.append(set['rrank_fg_edgH_xy'][0])
+
+            rankfile.write('BCg: {}\n'.format(rrank_BCg[i]))
+            rankfile.write('fg_avg_xx: {}\n'.format(rrank_fg_avg_xx[i]))
+            rankfile.write('fg_avg_yy: {}\n'.format(rrank_fg_avg_yy[i]))
+            rankfile.write('fg_edgV_xx: {}\n'.format(rrank_fg_edgV_xx[i]))
+            rankfile.write('fg_edgH_yy: {}\n'.format(rrank_fg_edgH_yy[i]))
+            rankfile.write('fg_edgV_xy: {}\n'.format(rrank_fg_edgV_xy[i]))
+            rankfile.write('fg_edgH_xy: {}\n'.format(rrank_fg_edgH_xy[i]))
+
+        else:
+            rrank_BCg = set['rrank_BCg'][:]
+            rrank_fg_avg_xx = set['rrank_fg_avg_xx'][:]
+            rrank_fg_edgV_xx = set['rrank_fg_edgV_xx'][:]
+            rrank_fg_avg_yy = set['rrank_fg_avg_yy'][:]
+            rrank_fg_edgH_yy = set['rrank_fg_edgH_yy'][:]
+            rrank_fg_edgV_xy = set['rrank_fg_edgV_xy'][:]
+            rrank_fg_edgH_xy = set['rrank_fg_edgH_xy'][:]
+
+            rankfile.write('BCg:')
+            for g in range(N_g): rankfile.write('  {}'.format(rrank_BCg[g]))
+            rankfile.write('\n')
+
+            rankfile.write('fg_avg_yy:')
+            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
+            rankfile.write('\n')
+
+            rankfile.write('fg_avg_yy:')
+            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
+            rankfile.write('\n')
+
+            rankfile.write('fg_edgV_xx:')
+            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xx[g]))
+            rankfile.write('\n')
+
+            rankfile.write('fg_edgH_yy:')
+            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_yy[g]))
+            rankfile.write('\n')
+
+            rankfile.write('fg_edgV_xy:')
+            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xy[g]))
+            rankfile.write('\n')
+
+            rankfile.write('fg_edgH_xy:')
+            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_xy[g]))
+            rankfile.write('\n')
+
+        rankfile.write('\n')
+    rankfile.close()
+    os.system('mv Ranks.txt '+proc_dir)
+
+    if (gsum == 1):
+        # rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
+        ranks = [rrank_BCg,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy]
+        # pltr.lineplot("Ranks",trend_names,ranks,proc_dir,rleg,yscale='linear',xlabel=r'POD error $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
+
+    return (ranks,gsum)

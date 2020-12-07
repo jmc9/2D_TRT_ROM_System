@@ -64,20 +64,28 @@ def input(infile):
     else: dsets = [rset]
 
     if dsnames:
-        if len(dsnames)!=len(dsets)-1:
+        if len(dsets)!=1 and len(dsnames)!=len(dsets)-1:
             print('ERROR! not every comp_dataset has been asigned a "dsname" (or too many dsnames have been specified)')
             quit()
         else:
             for i in range(len(dsnames)):
                 dsnames[i] = dsnames[i].replace('_',' ')
+    else:
+        if len(dsets)!=1:
+            print('ERROR! "dsnames" not specified in input')
+            quit()
 
     if trend_names:
-        if len(trend_names)!=len(dsets)-1:
+        if len(dsets)!=1 and len(trend_names)!=len(dsets)-1:
             print('ERROR! not every comp_dataset has been asigned a "trend_name" (or too many dsnames have been specified)')
             quit()
         else:
             for i in range(len(trend_names)):
                 trend_names[i] = trend_names[i].replace('_',' ')
+    else:
+        if len(dsets)!=1:
+            print('ERROR! "trend_names" not specified in input')
+            quit()
 
     file.close()
 

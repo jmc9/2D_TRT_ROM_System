@@ -39,10 +39,11 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, cons
   int **fg_edgV_xy_IDs, int **fg_edgH_xy_IDs, int **Ig_avg_IDs, int **Ig_edgV_IDs, int **Ig_edgH_IDs);
 
 // int Def_Pod_Vars(const int ncid, const char *vname, const int rank_ID, const int clen_ID, const int N_t_ID, int *DCMP_IDs);
-int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int dcmp_data, const int gsum, const size_t N_t,
-  const size_t N_g, const size_t N_m, const size_t N_x, const size_t N_y, const int *BCg_IDs, const int *fg_avg_xx_IDs, const int *fg_edgV_xx_IDs,
-  const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs,const int *fg_edgV_xy_IDs, const int *fg_edgH_xy_IDs, const int *Ig_avg_IDs,
-  const int *Ig_edgV_IDs, const int *Ig_edgH_IDs);
+int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int dcmp_data, const int gsum,
+  const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_x, const size_t N_y, const size_t rank_BC,
+  const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const int *BCg_IDs, const int *fg_avg_xx_IDs,
+  const int *fg_edgV_xx_IDs, const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs,const int *fg_edgV_xy_IDs,
+  const int *fg_edgH_xy_IDs, const int *Ig_avg_IDs,const int *Ig_edgV_IDs, const int *Ig_edgH_IDs);
 
 /* ----- LOCAL DEFINITIONS ----- */
 #define min(a,b) \
@@ -68,7 +69,7 @@ int main()
   double tlen, Delt, xlen, ylen, *Delx, *Dely, bcT[4], Tini;
   int BC_Type[4];
   size_t N_t, N_g, N_m, N_y, N_x;
-  size_t mscale, gscale;
+  size_t mscale, gscale, tscale;
   size_t rank_BC, rank_avg, rank_edgV, rank_edgH, BClen, clen_avg, clen_edgV, clen_edgH;
   int N_t_ID, N_g_ID, N_m_ID, N_y_ID, N_x_ID;
   int rank_BC_ID, rank_avg_ID, rank_edgV_ID, rank_edgH_ID, BClen_ID, clen_avg_ID, clen_edgV_ID, clen_edgH_ID;
@@ -112,14 +113,19 @@ int main()
   //calculating ranks and vector lengths of data
   if (gsum == 1){ gscale = N_g; } //if decomposing data over all groups, must include length of groups
   else{ gscale = 1; }
+
   if ((dcmp_data == 1) || (dcmp_data == 2)){ mscale = N_m; } //if decomposing intensities, must include length of angular discretization
   else{ mscale = 1; }
+
+  if (dcmp_type == 0){ tscale = N_t; } //the POD uses all time steps during decomposition
+  else if (dcmp_type == 1){ tscale = N_t-1; } //the DMD uses data matrices with N_t-1 columns
+
   clen_avg = N_x*N_y*mscale*gscale; clen_edgV = (N_x+1)*N_y*mscale*gscale; clen_edgH = N_x*(N_y+1)*mscale*gscale; //clen='column length'
-  rank_avg = min(clen_avg,N_t); rank_edgV = min(clen_edgV,N_t); rank_edgH = min(clen_edgH,N_t); //rank of each datatype
+  rank_avg = min(clen_avg,tscale); rank_edgV = min(clen_edgV,tscale); rank_edgH = min(clen_edgH,tscale); //rank of each datatype
 
   if(dcmp_data == 0){ //if decomposing QD factors, must also include decomposition of boundary factors
     BClen = 2*(N_x+N_y)*N_g;
-    rank_BC = min(BClen,N_t);
+    rank_BC = min(BClen,tscale);
   }
   else{
     BClen = 0;
@@ -152,8 +158,8 @@ int main()
   /                          PERFORMING DECOMPOSITION                           /
   /                                                                            */
   /*===========================================================================*/
-  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,dcmp_data,gsum,N_t,N_g,N_m,N_x,N_y,BCg_IDs,fg_avg_xx_IDs,fg_edgV_xx_IDs,
-    fg_avg_yy_IDs,fg_edgH_yy_IDs,fg_edgV_xy_IDs,fg_edgH_xy_IDs,Ig_avg_IDs,Ig_edgV_IDs,Ig_edgH_IDs);
+  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,dcmp_data,gsum,N_t,N_g,N_m,N_x,N_y,rank_BC,rank_avg,rank_edgV,rank_edgH,BCg_IDs,
+    fg_avg_xx_IDs,fg_edgV_xx_IDs,fg_avg_yy_IDs,fg_edgH_yy_IDs,fg_edgV_xy_IDs,fg_edgH_xy_IDs,Ig_avg_IDs,Ig_edgV_IDs,Ig_edgH_IDs);
 
   /*===========================================================================*/
   /*                                                                            /

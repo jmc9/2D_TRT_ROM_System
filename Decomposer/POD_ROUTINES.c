@@ -32,6 +32,12 @@ int SVD_Calc_Cntr(double *dat, const size_t N_t, const size_t clen, double *cent
 
 int gdat_reform(const size_t N_t, const size_t N_g, const size_t clen, const size_t g, const double *gdat, double *vec);
 
+/* ----- LOCAL DEFINITIONS ----- */
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
@@ -114,7 +120,7 @@ int POD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 /**/
 /*================================================================================================================================*/
 int Generate_POD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  size_t rank, const int *DCMP_IDs)
+  const size_t rank, const int *DCMP_IDs)
 {
   int err;
   char loc[13] = "GENERATE_POD";
@@ -123,6 +129,8 @@ int Generate_POD(const double *data, const int ncid_out, const char *dname, cons
 
   size_t startp[3], countp[3];
   ptrdiff_t stridep[3];
+
+  // rank = min(clen,N_t);
 
   //creating directory to put plots
   err = Make_Dir(dname); //setting up directory

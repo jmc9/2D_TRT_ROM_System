@@ -1,27 +1,38 @@
+/*================================================================================================================================*/
+/*
+  GNUPLOT_ROUTINES.c
+  Author: Joseph M. Coale
+  jmcoale@ncsu.edu - josephcoale912@gmail.com
+*/
+/*================================================================================================================================*/
+/* Importing Packages */
+/*================================================================================================================================*/
 #include <stdlib.h>
 #include <stdio.h>
 
-//================================================================================================================================//
-// function: gnuplot_1d
-//
-// this function opens a pipe to gnuplot and graphs a 1D vector as a line or scatter plot
-//
-// returns an integer error code:
-//   0 = successful
-//   1 = gnuplot failed to open
-//   2 = gnuplot failed to close
-//   3 = incorrect input to function detected
-//
-// inputs:
-//   char *title  = title of the plot
-//   double *data = vector of data to be plotted (y coordinates)
-//   double *crd  = vector of coordinates of each data point (x coordinates)
-//   int dim      = dimension/length of data and crd vectors
-//   char *plttyp = character array containing the desired plot type ("p","l","lp")
-//   int logscale = base of the log to generate a semilog y-axis with (if logscale = 1, linear y axis is used)
-//   int pt       = gnuplot point type
-//   char *lc     = character array containing gnuplot line color
-//================================================================================================================================//
+/*================================================================================================================================*/
+/*
+  function: gnuplot_1d
+
+  this function opens a pipe to gnuplot and graphs a 1D vector as a line or scatter plot
+
+  returns an integer error code:
+    0 = successful
+    1 = gnuplot failed to open
+    2 = gnuplot failed to close
+    3 = incorrect input to function detected
+
+  inputs:
+  char *title  = title of the plot
+    double *data = vector of data to be plotted (y coordinates)
+    double *crd  = vector of coordinates of each data point (x coordinates)
+    int dim      = dimension/length of data and crd vectors
+    char *plttyp = character array containing the desired plot type ("p","l","lp")
+    int logscale = base of the log to generate a semilog y-axis with (if logscale = 1, linear y axis is used)
+    int pt       = gnuplot point type
+    char *lc     = character array containing gnuplot line color
+*/
+/*================================================================================================================================*/
 int gnuplot_1d(const char *title, const double *data, const double *crd, const int dim, const char *plttyp, const int logscale,
   const int pt, const char *lc, const char *saveas)
 {
@@ -77,10 +88,10 @@ int gnuplot_1d(const char *title, const double *data, const double *crd, const i
   return 0; //function completed successfully
 }
 
-//================================================================================================================================//
-//
-//================================================================================================================================//
-void GNUP_ERR(const int err)
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+void GNUp_Err(const int err)
 {
   if(err != 0){
     if(err == 1){ printf("Failed to open gnuplot_Pipe"); exit(2); }

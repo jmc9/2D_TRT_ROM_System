@@ -30,14 +30,40 @@
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-int SVD_Calc(const double *dat, const size_t N_t, const size_t clen, double *center, double *umat, double *sig, double *vtmat)
+int SVD_Calc(double *dat, const size_t N_t, const size_t clen, double *umat, double *sig, double *vtmat)
 {
-  int p, err;
-  double nt, *work, *temp;
+  int err;
+  double *work;
   char jobu[2], jobvt[2];
   size_t Lwork;
 
-  temp = (double *)malloc(sizeof(double)*clen*N_t);
+  //allocating workspace for dgesvd
+  Lwork = max(3*min(clen,N_t)+max(clen,N_t),5*min(clen,N_t));
+  Lwork = max((size_t)1,Lwork);
+  work = (double *)malloc(sizeof(double)*Lwork);
+
+  //options for dgesvd
+  strcpy(jobu,"S"); strcpy(jobvt,"S");
+
+  //finding the SVD of the data matrix (dat) with the LAPACKE package
+  err = LAPACKE_dgesvd(LAPACK_COL_MAJOR,*jobu,*jobvt,(int)clen,(int)N_t,dat,(int)clen,sig,umat,(int)clen,vtmat,(int)N_t,work);
+  if (err!=0){printf("SVD failed!");}
+
+  //deallocating local arrays
+  free(work);
+
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int SVD_Calc_Cntr(double *dat, const size_t N_t, const size_t clen, double *center, double *umat, double *sig, double *vtmat)
+{
+  int p, err;
+  double nt;
+
+  // temp = (double *)malloc(sizeof(double)*clen*N_t);
 
   //filling in centering vector with zeros
   for(size_t i=0; i<clen; i++){
@@ -49,8 +75,8 @@ int SVD_Calc(const double *dat, const size_t N_t, const size_t clen, double *cen
   for(size_t t=0; t<N_t; t++){
     for(size_t i=0; i<clen; i++){
       center[i] = center[i] + dat[p];
-      temp[p] = dat[p];
-      p = p + 1;
+      // temp[p] = dat[p];
+      p++;
     }
   }
 
@@ -64,25 +90,26 @@ int SVD_Calc(const double *dat, const size_t N_t, const size_t clen, double *cen
   p = 0;
   for(size_t t=0; t<N_t; t++){
     for(size_t i=0; i<clen; i++){
-      temp[p] = temp[p] - center[i];
-      p = p + 1;
+      dat[p] = dat[p] - center[i];
+      p++;
     }
   }
 
-  //allocating workspace for dgesvd
-  Lwork = max(3*min(clen,N_t)+max(clen,N_t),5*min(clen,N_t));
-  Lwork = max((size_t)1,Lwork);
-  work = (double *)malloc(sizeof(double)*Lwork);
-
-  //options for dgesvd
-  strcpy(jobu,"S"); strcpy(jobvt,"S");
-
-  //finding the SVD of the data matrix (dat) with the LAPACKE package
-  err = LAPACKE_dgesvd(LAPACK_COL_MAJOR,*jobu,*jobvt,(int)clen,(int)N_t,temp,(int)clen,sig,umat,(int)clen,vtmat,(int)N_t,work);
-  if (err!=0){printf("SVD failed!");}
-
-  //deallocating local arrays
-  free(work); free(temp);
+  err = SVD_Calc(dat,N_t,clen,umat,sig,vtmat);
+  // //allocating workspace for dgesvd
+  // Lwork = max(3*min(clen,N_t)+max(clen,N_t),5*min(clen,N_t));
+  // Lwork = max((size_t)1,Lwork);
+  // work = (double *)malloc(sizeof(double)*Lwork);
+  //
+  // //options for dgesvd
+  // strcpy(jobu,"S"); strcpy(jobvt,"S");
+  //
+  // //finding the SVD of the data matrix (dat) with the LAPACKE package
+  // err = LAPACKE_dgesvd(LAPACK_COL_MAJOR,*jobu,*jobvt,(int)clen,(int)N_t,temp,(int)clen,sig,umat,(int)clen,vtmat,(int)N_t,work);
+  // if (err!=0){printf("SVD failed!");}
+  //
+  // //deallocating local arrays
+  // free(work); free(temp);
 
   return err;
 }
@@ -104,5 +131,23 @@ int gdat_reform(const size_t n_t, const size_t n_g, const size_t clen, const siz
   }
 
   return 0;
+
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Transpose_Double(double *a, double *b, const size_t a_rows, const size_t a_cols)
+{
+  size_t pa = 0;
+  size_t pb = 0;
+  for(size_t j=0; j<a_rows; j++){
+    pa = j;
+    for(size_t i=0; i<a_cols; i++){
+      b[pb] = a[pa];
+      pb++;
+      pa = pa + a_rows;
+    }
+  }
 
 }

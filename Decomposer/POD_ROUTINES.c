@@ -28,7 +28,7 @@ void GNUp_Err(const int err);
 int Make_Dir(const char *dir);
 
 /* ----- FROM LA_ROUTINES.c ----- */
-int SVD_Calc(const double *dat, const size_t N_t, const size_t clen, double *center, double *umat, double *sig, double *vtmat);
+int SVD_Calc_Cntr(double *dat, const size_t N_t, const size_t clen, double *center, double *umat, double *sig, double *vtmat);
 
 int gdat_reform(const size_t N_t, const size_t N_g, const size_t clen, const size_t g, const double *gdat, double *vec);
 
@@ -87,14 +87,24 @@ int POD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     err = gdat_reform(N_t,N_g,clen,g,data,temp);
 
     //calculating the SVD of the datamatrix
-    err = SVD_Calc(temp,N_t,clen,*center,*umat,*sig,*vtmat);
+    err = SVD_Calc_Cntr(temp,N_t,clen,*center,*umat,*sig,*vtmat);
 
     //deallocating arrays
     free(temp);
   }
   else{ //if the datamatrix is not multigroup, can immediately procede with finding the SVD
+    //copying datamatrix
+    temp = (double *)malloc(sizeof(double)*N_t*clen);
+    size_t p = 0;
+    for(size_t t=0; t<N_t; t++){
+      for(size_t i=0; i<clen; i++){
+        temp[p] = data[p];
+        p++;
+      }
+    }
+
     //calculating the SVD of the datamatrix
-    err = SVD_Calc(data,N_t,clen,*center,*umat,*sig,*vtmat);
+    err = SVD_Calc_Cntr(temp,N_t,clen,*center,*umat,*sig,*vtmat);
   }
 
   return err;

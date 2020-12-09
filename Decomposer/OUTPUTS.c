@@ -25,7 +25,7 @@ int Generate_POD(const double *data, const int ncid_out, const char *dname, cons
   const size_t rank, const int *DCMP_IDs);
 
 int Generate_DMD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const int *DCMP_IDs);
+  const size_t rank, const double svd_eps, const int *DCMP_IDs);
 
 /* ----- LOCAL DEFINITIONS ----- */
 #define min(a,b) \
@@ -301,7 +301,7 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, cons
 /**/
 /*================================================================================================================================*/
 int Generate_DCMP(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const int *DCMP_IDs, const int dcmp_type)
+  const size_t rank, const double svd_eps, const int *DCMP_IDs, const int dcmp_type)
 {
   int err;
 
@@ -309,7 +309,7 @@ int Generate_DCMP(const double *data, const int ncid_out, const char *dname, con
     err = Generate_POD(data,ncid_out,dname,N_t,N_g,clen,rank,DCMP_IDs);
   }
   else if (dcmp_type == 1){ //decompose with the DMD
-    err = Generate_DMD(data,ncid_out,dname,N_t,N_g,clen,rank,DCMP_IDs);
+    err = Generate_DMD(data,ncid_out,dname,N_t,N_g,clen,rank,svd_eps,DCMP_IDs);
   }
 
   return err;
@@ -319,7 +319,7 @@ int Generate_DCMP(const double *data, const int ncid_out, const char *dname, con
 /**/
 /*================================================================================================================================*/
 int Output_BC_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_y, const size_t N_x,
-  const size_t rank_BC, const int gsum, const int *BCg_IDs, const int dcmp_type)
+  const size_t rank_BC, const double svd_eps, const int gsum, const int *BCg_IDs, const int dcmp_type)
 {
   int err;
   char dname[25];
@@ -415,7 +415,7 @@ int Output_BC_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, cons
   /     all boundary factors                                    /
   /------------------------------------------------------------*/
   memset(dname,0,25); strcpy(dname,"Cg");
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_BC,BCg_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_BC,svd_eps,BCg_IDs,dcmp_type);
   free(data);
 
   return err;
@@ -425,8 +425,9 @@ int Output_BC_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, cons
 /**/
 /*================================================================================================================================*/
 int Output_QDf_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_y, const size_t N_x,
-  const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const int gsum, const int *fg_avg_xx_IDs, const int *fg_edgV_xx_IDs, const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs,
-  const int *fg_edgV_xy_IDs, const int *fg_edgH_xy_IDs, const int dcmp_type)
+  const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const double svd_eps, const int gsum,
+  const int *fg_avg_xx_IDs, const int *fg_edgV_xx_IDs, const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs, const int *fg_edgV_xy_IDs,
+  const int *fg_edgH_xy_IDs, const int dcmp_type)
 {
   int err;
   char dname[25];
@@ -443,37 +444,37 @@ int Output_QDf_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, con
   printf("... fg_avg_xx start\n");
   memset(dname,0,25); strcpy(dname,"fg_avg_xx"); clen = gscale*N_y*N_x;
   len = N_t*N_g*N_y*N_x; Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,fg_avg_xx_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,svd_eps,fg_avg_xx_IDs,dcmp_type);
   free(data);
 
   printf("... fg_edgV_xx start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgV_xx"); clen = gscale*N_y*(N_x+1);
   len = N_t*N_g*N_y*(N_x+1); Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,fg_edgV_xx_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,svd_eps,fg_edgV_xx_IDs,dcmp_type);
   free(data);
 
   printf("... fg_avg_yy start\n");
   memset(dname,0,25); strcpy(dname,"fg_avg_yy"); clen = gscale*N_y*N_x;
   len = N_t*N_g*N_y*N_x; Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,fg_avg_yy_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,svd_eps,fg_avg_yy_IDs,dcmp_type);
   free(data);
 
   printf("... fg_edgH_yy start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgH_yy"); clen = gscale*(N_y+1)*N_x;
   len = N_t*N_g*(N_y+1)*N_x; Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,fg_edgH_yy_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,svd_eps,fg_edgH_yy_IDs,dcmp_type);
   free(data);
 
   printf("... fg_edgV_xy start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgV_xy"); clen = gscale*N_y*(N_x+1);
   len = N_t*N_g*N_y*(N_x+1); Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,fg_edgV_xy_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,svd_eps,fg_edgV_xy_IDs,dcmp_type);
   free(data);
 
   printf("... fg_edgH_xy start\n");
   memset(dname,0,25); strcpy(dname,"fg_edgH_xy"); clen = gscale*(N_y+1)*N_x;
   len = N_t*N_g*(N_y+1)*N_x; Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,fg_edgH_xy_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,svd_eps,fg_edgH_xy_IDs,dcmp_type);
   free(data);
 
   return err;
@@ -483,7 +484,8 @@ int Output_QDf_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, con
 /**/
 /*================================================================================================================================*/
 int Output_I_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
-  const size_t N_x, const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const int gsum, const int *Ig_avg_IDs, const int *Ig_edgV_IDs, const int *Ig_edgH_IDs, const int dcmp_type)
+  const size_t N_x, const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const double svd_eps, const int gsum,
+  const int *Ig_avg_IDs, const int *Ig_edgV_IDs, const int *Ig_edgH_IDs, const int dcmp_type)
 {
   int err;
   char dname[25];
@@ -500,19 +502,19 @@ int Output_I_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, const
   printf("... I_avg start\n");
   memset(dname,0,25); strcpy(dname,"I_avg"); clen = gscale*N_m*N_y*N_x;
   len = N_t*N_g*N_m*N_y*N_x; Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,Ig_avg_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,svd_eps,Ig_avg_IDs,dcmp_type);
   free(data);
 
   printf("... I_edgV start\n");
   memset(dname,0,25); strcpy(dname,"I_edgV"); clen = gscale*N_m*N_y*(N_x+1);
   len = N_t*N_g*N_m*N_y*(N_x+1); Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,Ig_edgV_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,svd_eps,Ig_edgV_IDs,dcmp_type);
   free(data);
 
   printf("... I_edgH start\n");
   memset(dname,0,25); strcpy(dname,"I_edgH"); clen = gscale*N_m*(N_y+1)*N_x;
   len = N_t*N_g*N_m*(N_y+1)*N_x; Get_Var_Double(ncid_in,dname,&data,len);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,Ig_edgH_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,svd_eps,Ig_edgH_IDs,dcmp_type);
   free(data);
 
   return err;
@@ -522,7 +524,8 @@ int Output_I_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, const
 /**/
 /*================================================================================================================================*/
 int Output_meanI_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
-  const size_t N_x, const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const int gsum, const int *Ig_avg_IDs, const int *Ig_edgV_IDs, const int *Ig_edgH_IDs, const int dcmp_type)
+  const size_t N_x, const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const double svd_eps, const int gsum,
+  const int *Ig_avg_IDs, const int *Ig_edgV_IDs, const int *Ig_edgH_IDs, const int dcmp_type)
 {
   int err;
   char dname[25];
@@ -566,7 +569,7 @@ int Output_meanI_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, c
   free(data2);
 
   memset(dname,0,25); strcpy(dname,"Mean_I_avg"); clen = gscale*N_m*N_y*N_x;
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,Ig_avg_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_avg,svd_eps,Ig_avg_IDs,dcmp_type);
   free(data);
 
 
@@ -598,7 +601,7 @@ int Output_meanI_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, c
   free(data2);
 
   memset(dname,0,25); strcpy(dname,"Mean_I_edgV"); clen = gscale*N_m*N_y*(N_x+1);
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,Ig_edgV_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgV,svd_eps,Ig_edgV_IDs,dcmp_type);
   free(data);
 
   /*------------------------------------------------------------/
@@ -629,7 +632,7 @@ int Output_meanI_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, c
   free(data2);
 
   memset(dname,0,25); strcpy(dname,"Mean_I_edgH"); clen = gscale*N_m*(N_y+1)*N_x;
-  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,Ig_edgH_IDs,dcmp_type);
+  err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_edgH,svd_eps,Ig_edgH_IDs,dcmp_type);
   free(data);
 
   return err;
@@ -640,29 +643,29 @@ int Output_meanI_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, c
 /*================================================================================================================================*/
 int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int dcmp_data, const int gsum,
   const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_x, const size_t N_y, const size_t rank_BC,
-  const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const int *BCg_IDs, const int *fg_avg_xx_IDs,
-  const int *fg_edgV_xx_IDs, const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs,const int *fg_edgV_xy_IDs,
-  const int *fg_edgH_xy_IDs, const int *Ig_avg_IDs,const int *Ig_edgV_IDs, const int *Ig_edgH_IDs)
+  const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const double svd_eps, const int *BCg_IDs,
+  const int *fg_avg_xx_IDs, const int *fg_edgV_xx_IDs, const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs,
+  const int *fg_edgV_xy_IDs, const int *fg_edgH_xy_IDs, const int *Ig_avg_IDs,const int *Ig_edgV_IDs, const int *Ig_edgH_IDs)
 {
   int err;
 
   if (dcmp_data == 0){ //decompose QD factors (and boundary factors)
 
-    err = Output_BC_DCMP(ncid_in,ncid_out,N_t,N_g,N_y,N_x,rank_BC,gsum,BCg_IDs,dcmp_type);
+    err = Output_BC_DCMP(ncid_in,ncid_out,N_t,N_g,N_y,N_x,rank_BC,svd_eps,gsum,BCg_IDs,dcmp_type);
 
-    err = Output_QDf_DCMP(ncid_in,ncid_out,N_t,N_g,N_y,N_x,rank_avg,rank_edgV,rank_edgH,gsum,fg_avg_xx_IDs,
+    err = Output_QDf_DCMP(ncid_in,ncid_out,N_t,N_g,N_y,N_x,rank_avg,rank_edgV,rank_edgH,svd_eps,gsum,fg_avg_xx_IDs,
        fg_edgV_xx_IDs,fg_avg_yy_IDs,fg_edgH_yy_IDs,fg_edgV_xy_IDs,fg_edgH_xy_IDs,dcmp_type);
 
   }
   else if (dcmp_data == 1){ //decompose Intensities
 
-    err = Output_I_DCMP(ncid_in,ncid_out,N_t,N_g,N_m,N_y,N_x,rank_avg,rank_edgV,rank_edgH,gsum,Ig_avg_IDs,
+    err = Output_I_DCMP(ncid_in,ncid_out,N_t,N_g,N_m,N_y,N_x,rank_avg,rank_edgV,rank_edgH,svd_eps,gsum,Ig_avg_IDs,
       Ig_edgV_IDs,Ig_edgH_IDs,dcmp_type);
 
   }
   else if (dcmp_data == 2){ //decompose mean Intensities
 
-    err = Output_meanI_DCMP(ncid_in,ncid_out,N_t,N_g,N_m,N_y,N_x,rank_avg,rank_edgV,rank_edgH,gsum,Ig_avg_IDs,
+    err = Output_meanI_DCMP(ncid_in,ncid_out,N_t,N_g,N_m,N_y,N_x,rank_avg,rank_edgV,rank_edgH,svd_eps,gsum,Ig_avg_IDs,
       Ig_edgV_IDs,Ig_edgH_IDs,dcmp_type);
 
   }

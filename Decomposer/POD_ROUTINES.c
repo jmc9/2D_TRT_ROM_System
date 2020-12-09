@@ -21,7 +21,7 @@ void Get_Var_Double(const int ncid, const char *name, double **var, size_t size)
 
 /* ----- FROM GNUPLOT_ROUTINES.c ----- */
 int gnuplot_1d(const char *title, const double *data, const double *crd, const int dim, const char *plttyp, const int logscale,
-  const int pt, const char *lc, const char *saveas);
+  const int pt, const char *lc, const char *saveas, const double *xbnd);
 void GNUp_Err(const int err);
 
 /* ----- FROM MISC_PROCS.c ----- */
@@ -60,7 +60,8 @@ int Sig_Plot(const char *pname, const double *sig, const double *sigp, const int
     i++;
   }
 
-  err = gnuplot_1d(title,sig,sigp,rank,plttyp,10,7,lc,saveas); GNUp_Err(err);
+  double xbnd[2]={0,301};
+  err = gnuplot_1d(title,sig,sigp,rank,plttyp,10,7,lc,saveas,xbnd); GNUp_Err(err);
 
   return err;
 }

@@ -85,7 +85,7 @@ void Get_Dims(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y
   dcmp_type - type of decomposition to use
   dcmp_data - type of data to decompose */
 /*================================================================================================================================*/
-int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *dcmp_data, int *gsum)
+int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *dcmp_data, int *gsum, double *svd_eps)
 {
   FILE *inpf;
   char line[256];
@@ -114,6 +114,7 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   strcpy(dcmp_type_in,"POD");
   strcpy(dcmp_data_in,"QDf");
   *gsum = 1;
+  *svd_eps = -1.;
 
   //moving line by line through file to grab inputs
   while ( fgets(line, 255, inpf) != NULL ){ //placing current line of input file into 'line' character array
@@ -144,6 +145,9 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
       memset(dcmp_data_in,0,10);
       strcpy(dcmp_data_in,inps[1]);
     }
+    else if (strcmp(inps[0],"svd_eps") == 0){
+      sscanf(inps[1], "%le", svd_eps);
+    }
 
   }
 
@@ -167,6 +171,10 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   }
   else if (strcmp(dcmp_type_in,"DMD") == 0){
     *dcmp_type = 1;
+  }
+  else if (strcmp(dcmp_type_in,"DMDg") == 0){
+    *dcmp_type = 1;
+    *gsum = 0;
   }
   else{
     printf("Error! [location INPUTS.c/Input]\n");

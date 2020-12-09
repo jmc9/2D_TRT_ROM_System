@@ -20,7 +20,7 @@
 void Handle_Err(const int Status, const char *Location);
 
 /* ----- FROM INPUTS.c ----- */
-int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *dcmp_data, int *gsum);
+int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *dcmp_data, int *gsum, double *svd_eps);
 
 void Get_Dims(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x, double *tlen, double *Delt,
   double *xlen, double *ylen, double **Delx, double **Dely, int *BC_Type, double *bcT, double *Tini);
@@ -41,9 +41,9 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, cons
 // int Def_Pod_Vars(const int ncid, const char *vname, const int rank_ID, const int clen_ID, const int N_t_ID, int *DCMP_IDs);
 int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int dcmp_data, const int gsum,
   const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_x, const size_t N_y, const size_t rank_BC,
-  const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const int *BCg_IDs, const int *fg_avg_xx_IDs,
-  const int *fg_edgV_xx_IDs, const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs,const int *fg_edgV_xy_IDs,
-  const int *fg_edgH_xy_IDs, const int *Ig_avg_IDs,const int *Ig_edgV_IDs, const int *Ig_edgH_IDs);
+  const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const double svd_eps, const int *BCg_IDs,
+  const int *fg_avg_xx_IDs, const int *fg_edgV_xx_IDs, const int *fg_avg_yy_IDs, const int *fg_edgH_yy_IDs,
+  const int *fg_edgV_xy_IDs, const int *fg_edgH_xy_IDs, const int *Ig_avg_IDs,const int *Ig_edgV_IDs, const int *Ig_edgH_IDs);
 
 /* ----- LOCAL DEFINITIONS ----- */
 #define min(a,b) \
@@ -64,6 +64,7 @@ int main()
   int dcmp_data, dcmp_type, gsum;
   int ncid_in, ncid_out;
   char infile[25], outfile[25], dsfile[100];
+  double svd_eps;
 
   //problem parameters
   double tlen, Delt, xlen, ylen, *Delx, *Dely, bcT[4], Tini;
@@ -99,7 +100,7 @@ int main()
   strcpy(infile,"input.inp"); //setting input file name (default)
 
   //opening, reading input file
-  err = Input(infile,dsfile,outfile,&dcmp_type,&dcmp_data,&gsum);
+  err = Input(infile,dsfile,outfile,&dcmp_type,&dcmp_data,&gsum,&svd_eps);
   if (err != 0){
     printf("Error detected upon user input, aborting program\n");
     exit(1);
@@ -124,7 +125,7 @@ int main()
   rank_avg = min(clen_avg,tscale); rank_edgV = min(clen_edgV,tscale); rank_edgH = min(clen_edgH,tscale); //rank of each datatype
 
   if(dcmp_data == 0){ //if decomposing QD factors, must also include decomposition of boundary factors
-    BClen = 2*(N_x+N_y)*N_g;
+    BClen = 2*(N_x+N_y)*gscale;
     rank_BC = min(BClen,tscale);
   }
   else{
@@ -158,7 +159,7 @@ int main()
   /                          PERFORMING DECOMPOSITION                           /
   /                                                                            */
   /*===========================================================================*/
-  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,dcmp_data,gsum,N_t,N_g,N_m,N_x,N_y,rank_BC,rank_avg,rank_edgV,rank_edgH,BCg_IDs,
+  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,dcmp_data,gsum,N_t,N_g,N_m,N_x,N_y,rank_BC,rank_avg,rank_edgV,rank_edgH,svd_eps,BCg_IDs,
     fg_avg_xx_IDs,fg_edgV_xx_IDs,fg_avg_yy_IDs,fg_edgH_yy_IDs,fg_edgV_xy_IDs,fg_edgH_xy_IDs,Ig_avg_IDs,Ig_edgV_IDs,Ig_edgH_IDs);
 
   /*===========================================================================*/

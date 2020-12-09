@@ -13,6 +13,7 @@
 #include <lapacke.h>
 #include <cblas.h>
 #include <complex.h>
+#include <math.h>
 
 /*================================================================================================================================*/
 /* Importing Functions */
@@ -36,7 +37,7 @@ int SVD_Calc(double *dat, const size_t N_t, const size_t clen, double *umat, dou
   int err;
   double *work;
   char jobu[2], jobvt[2];
-  size_t Lwork;
+  size_t Lwork, pv, pa;
 
   //allocating workspace for dgesvd
   Lwork = max(3*min(clen,N_t)+max(clen,N_t),5*min(clen,N_t));
@@ -44,11 +45,22 @@ int SVD_Calc(double *dat, const size_t N_t, const size_t clen, double *umat, dou
   work = (double *)malloc(sizeof(double)*Lwork);
 
   //options for dgesvd
-  strcpy(jobu,"S"); strcpy(jobvt,"S");
+  strcpy(jobu,"S"); strcpy(jobvt,"O");
 
   //finding the SVD of the data matrix (dat) with the LAPACKE package
   err = LAPACKE_dgesvd(LAPACK_COL_MAJOR,*jobu,*jobvt,(int)clen,(int)N_t,dat,(int)clen,sig,umat,(int)clen,vtmat,(int)N_t,work);
   if (err!=0){printf("SVD failed!");}
+
+  //copying V^t onto vtmat
+  pv = 0;
+  for (size_t j=0; j<N_t; j++){
+    pa = j*clen;
+    for (size_t i=0; i<min(N_t,clen); i++){
+      vtmat[pv] = dat[pa];
+      pv++;
+      pa++;
+    }
+  }
 
   //deallocating local arrays
   free(work);
@@ -99,6 +111,42 @@ int SVD_Calc_Cntr(double *dat, const size_t N_t, const size_t clen, double *cent
   err = SVD_Calc(dat,N_t,clen,umat,sig,vtmat);
 
   return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+size_t SVD_Rank_Calc(const size_t frank, const double svd_eps, const int opt, const double *s)
+{
+  size_t rrank;
+  double sum, fsum;
+
+  rrank = frank; //defaulting rrank to frank
+
+  if (opt == 0){
+    fsum = 1.;
+  }
+  else if (opt == 1){
+    fsum=0.;
+    for (size_t i=1; i<frank; i++){
+      fsum = fsum + pow(s[i],2);
+    }
+    fsum=sqrt(fsum);
+  }
+
+  for (size_t i=0; i<frank; i++){
+    sum=0.;
+    for (size_t j=i; j<frank; j++){
+      sum = sum + pow(s[j],2);
+    }
+    sum=sqrt(sum)/fsum;
+    if (sum <= svd_eps){
+      rrank = i;
+      break;
+    }
+  }
+
+  return rrank;
 }
 
 /*================================================================================================================================*/

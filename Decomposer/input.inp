@@ -1,4 +1,5 @@
 dataset fom.h5
 outfile outf.h5
 dcmp_data QDf
-dcmp_type POD
+dcmp_type DMD
+svd_eps -1e-10

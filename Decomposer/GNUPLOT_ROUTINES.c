@@ -34,7 +34,7 @@
 */
 /*================================================================================================================================*/
 int gnuplot_1d(const char *title, const double *data, const double *crd, const int dim, const char *plttyp, const int logscale,
-  const int pt, const char *lc, const char *saveas)
+  const int pt, const char *lc, const char *saveas, const double *xbnd)
 {
   FILE *gnuplot_Pipe;
   int err, i;
@@ -59,7 +59,7 @@ int gnuplot_1d(const char *title, const double *data, const double *crd, const i
     return 3;
   }
 
-  fprintf(gnuplot_Pipe, "set xrange [0:%d]\n",dim+1); //moving x-axis bounds to just outside data domain
+  fprintf(gnuplot_Pipe, "set xrange [%le:%le]\n",xbnd[0],xbnd[1]); //moving x-axis bounds to just outside data domain
 
   fprintf(gnuplot_Pipe, "set grid y\n"); //turning on y-grid
 
@@ -74,7 +74,7 @@ int gnuplot_1d(const char *title, const double *data, const double *crd, const i
 
   //looping through data points
   for(i=0;i<(int)dim;i++){
-    fprintf(gnuplot_Pipe, "%lf %e\n", crd[i], data[i]);
+    fprintf(gnuplot_Pipe, "%le %le\n", crd[i], data[i]);
   }
 
   fprintf(gnuplot_Pipe, "e"); //finishing plot, outputting

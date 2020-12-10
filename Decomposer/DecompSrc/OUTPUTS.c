@@ -190,6 +190,15 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, cons
 
   int err;
 
+  if (dcmp_type == 0 && gsum == 1){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_type",4,"POD"); }
+  else if (dcmp_type == 0 && gsum == 0){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_type",5,"PODg"); }
+  else if (dcmp_type == 1 && gsum == 1){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_type",4,"DMD"); }
+  else if (dcmp_type == 1 && gsum == 0){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_type",5,"DMDg"); }
+
+  if (dcmp_data == 0){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_data",4,"QDf"); }
+  else if (dcmp_data == 1){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_data",2,"I"); }
+  else if (dcmp_data == 2){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_data",6,"meanI"); }
+
   /*------------------------------------------------------------/
   /                             POD                             /
   /------------------------------------------------------------*/

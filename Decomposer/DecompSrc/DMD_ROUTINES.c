@@ -255,6 +255,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   const size_t rank, const double svd_eps, const int *DCMP_IDs)
 {
   int err;
+  int *N_modes;
   char loc[13] = "Generate_DMD";
   char buf[25], pname[25], drop[25];
   double complex *wmat, *lambda;
@@ -270,6 +271,8 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   //checking type of dataset to perform POD on
   if(N_g > 0){ //if N_g>0, then a multigroup dataset has been detected
     printf("    -- groupwise decomposition detected\n");
+
+    N_modes = (int *)malloc(sizeof(int)*N_g);
 
     //loop over energy groups
     for(size_t g=0; g<N_g; g++){
@@ -323,7 +326,13 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       //deallocating arrays
       free(wmat); free(lambda); free(temp); free(temp2);
 
+      N_modes[g] = (int)xr;
+
     } //end g loop
+
+    memset(pname,0,25); strcpy(pname,"N_modes_"); strcat(pname,dname);
+    err = nc_put_att_int(ncid_out,NC_GLOBAL,pname,NC_INT,N_g,N_modes); Handle_Err(err,loc);
+    free(N_modes);
 
   }
   else{
@@ -374,6 +383,11 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
 
     //deallocating arrays
     free(wmat); free(lambda); free(temp); free(temp2);
+
+    N_modes = (int *)malloc(sizeof(int)*1);
+    N_modes[0] = (int)xr;
+    memset(pname,0,25); strcpy(pname,"N_modes_"); strcat(pname,dname);
+    err = nc_put_att_int(ncid_out,NC_GLOBAL,pname,NC_INT,1,N_modes); Handle_Err(err,loc);
 
   }
 

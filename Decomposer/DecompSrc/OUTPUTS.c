@@ -423,7 +423,7 @@ int Output_BC_DCMP(const int ncid_in, const int ncid_out, const size_t N_t, cons
   /     Now perform Decomposition on the vector containing      /
   /     all boundary factors                                    /
   /------------------------------------------------------------*/
-  memset(dname,0,25); strcpy(dname,"Cg");
+  memset(dname,0,25); strcpy(dname,"BCg");
   err = Generate_DCMP(data,ncid_out,dname,N_t,n_g,clen,rank_BC,svd_eps,BCg_IDs,dcmp_type);
   free(data);
 

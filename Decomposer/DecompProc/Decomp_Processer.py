@@ -19,14 +19,15 @@ from netCDF4 import Dataset as ncds
 #local tools
 import ToolBox as tb
 import Input_Routines as inp
-import DMD_Routines as DMD
+import DMD_Routines as dmdr
+import Process_Routines as pr
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
 def Dcmp_Proc(infile,proc_dir,plotdir):
 
-    tb.BigTitle()
+    tb.BigTitle() #output code title to command line
 
     (proc_dir,plotdir,dset) = inp.Input(infile,proc_dir,plotdir)
     tb.dirset(proc_dir)
@@ -35,7 +36,12 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
 
     dset = ncds(dset,'r') #opening specified dataset
 
-    (dcmp_type,dcmp_data,xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = inp.Dcmp_Parms(dset)
+    (dcmp_type,dcmp_data,xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x,
+    BClen,clen_avg,clen_edgV,clen_edgH,rank_BC,rank_avg,rank_edgV,rank_edgH) = inp.Dcmp_Parms(dset)
+
+    names = inp.Name_Gen(dcmp_data)
+
+    pr.Process_DMD(dset,plotdir,clen_avg,clen_edgV,clen_edgH,BClen,rank_avg,rank_edgV,rank_edgH,rank_BC,N_g,N_y,N_x,xp,yp)
 
     dset.close() #closing dataset file
     print('success!')

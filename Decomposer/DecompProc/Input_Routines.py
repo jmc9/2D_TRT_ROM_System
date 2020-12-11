@@ -66,7 +66,23 @@ def Dcmp_Parms(dset):
 
     (xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = Domain_Parms(dset)
 
-    return (dcmp_type,dcmp_data,xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x)
+    if dcmp_data == 'QDf':
+        BClen = dset.dimensions['BClen'].size
+        rank_BC = dset.dimensions['rank_BC'].size
+    else:
+        BClen = 0.
+        rank_BC = 0.
+
+    clen_avg = dset.dimensions['clen_avg'].size
+    clen_edgV = dset.dimensions['clen_edgV'].size
+    clen_edgH = dset.dimensions['clen_edgH'].size
+
+    rank_avg = dset.dimensions['rank_avg'].size
+    rank_edgV = dset.dimensions['rank_edgV'].size
+    rank_edgH = dset.dimensions['rank_edgH'].size
+
+    return (dcmp_type,dcmp_data,xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x,
+    BClen,clen_avg,clen_edgV,clen_edgH,rank_BC,rank_avg,rank_edgV,rank_edgH)
 
 #==================================================================================================================================#
 #
@@ -88,7 +104,7 @@ def Domain_Parms(dset):
 
     Delt = 2e-2
 
-    (xp,yp) = Cell_Coords(Delx,Dely)
+    (xp,yp) = tb.Cell_Coords(Delx,Dely)
     tp = []
     for i in range(N_t): tp.append((i+1)*Delt)
 
@@ -97,10 +113,8 @@ def Domain_Parms(dset):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Cell_Coords(Delx,Dely):
-    xp = [0.]
-    for i in range(len(Delx)): xp.append(sum(Delx[:i]) + Delx[i])
-    yp = [0.]
-    for i in range(len(Dely)): yp.append(sum(Dely[:i]) + Dely[i])
+def Name_Gen(dcmp_data):
+    if dcmp_data == 'QDf':
+        names = ['BCg','fg_avg_xx','fg_edgV_xx','fg_avg_yy','fg_edgH_yy','fg_edgV_xy','fg_edgH_xy']
 
-    return (xp,yp)
+    return names

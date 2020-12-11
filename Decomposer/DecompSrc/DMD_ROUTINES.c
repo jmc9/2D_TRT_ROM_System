@@ -95,12 +95,6 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   *lambda = (double complex *)malloc(sizeof(double complex)*rank);
   w = (double complex *)malloc(sizeof(double complex)*rank*rank);
 
-  //forming array of singular value indices
-  // *lamp = (double *)malloc(sizeof(double)*rank);
-  // for(size_t i=0; i<rank; i++){
-  //   (*lamp)[i] = (double)(i+1);
-  // }
-
   //checking whether a multigroup data-matrix is being used or not
   if(N_g>0){ //if the datamatrix is multigroup, must either isolate one group or form a large multigroup matrix
     //reforming the datamatrix to isolate a single group

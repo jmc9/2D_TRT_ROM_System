@@ -7,10 +7,13 @@
 /*================================================================================================================================*/
 /* Importing Packages */
 /*================================================================================================================================*/
+/* ----- EXTERNAL ----- */
 #include <stdlib.h>
 #include <stdio.h>
-#include <netcdf.h>
 #include <string.h>
+
+/* ----- LOCAL ----- */
+#include "Data_Handling.h"
 
 /*================================================================================================================================*/
 /* Importing Functions */
@@ -36,12 +39,12 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y, const size_t N_x,
-  const size_t rank_BC, const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH, const size_t BClen,
-  const size_t clen_avg, const size_t clen_edgV, const size_t clen_edgH, const double tlen, const double Delt, const double xlen,
-  const double ylen, double *Delx, double *Dely, int *BC_Type, double *bcT, const double Tini, int *N_t_ID, int *N_g_ID,
-  int *N_m_ID, int *N_y_ID, int *N_x_ID, int *rank_BC_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *BClen_ID,
-  int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID)
+int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
+  const size_t N_x, const size_t rank_BC, const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH,
+  const size_t BClen, const size_t clen_avg, const size_t clen_edgV, const size_t clen_edgH, const double Delt,
+  double *Delx, double *Dely, int *BC_Type, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID,int *N_x_ID,
+  int *rank_BC_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *BClen_ID, int *clen_avg_ID,
+  int *clen_edgV_ID, int *clen_edgH_ID, Spec *Prb_specs, const size_t N_specs)
 {
   int err, id, Bnds_ID, dims[1];
   char loc[9] = "OUT_DIMS";
@@ -67,17 +70,8 @@ int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_
   err = nc_def_dim(ncid_out,"clen_edgV",clen_edgV,clen_edgV_ID); Handle_Err(err,loc);
   err = nc_def_dim(ncid_out,"clen_edgH",clen_edgH,clen_edgH_ID); Handle_Err(err,loc);
 
-  err = nc_def_var(ncid_out,"tlen",NC_DOUBLE,0,0,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,&tlen); Handle_Err(err,loc);
-
   err = nc_def_var(ncid_out,"Delt",NC_DOUBLE,0,0,&id); Handle_Err(err,loc);
   err = nc_put_var_double(ncid_out,id,&Delt); Handle_Err(err,loc);
-
-  err = nc_def_var(ncid_out,"xlen",NC_DOUBLE,0,0,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,&xlen); Handle_Err(err,loc);
-
-  err = nc_def_var(ncid_out,"ylen",NC_DOUBLE,0,0,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,&ylen); Handle_Err(err,loc);
 
   dims[0] = (*N_x_ID);
   err = nc_def_var(ncid_out,"Delx",NC_DOUBLE,1,dims,&id); Handle_Err(err,loc);
@@ -91,12 +85,16 @@ int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_
   err = nc_def_var(ncid_out,"BC_Type",NC_DOUBLE,1,dims,&id); Handle_Err(err,loc);
   err = nc_put_var_int(ncid_out,id,BC_Type); Handle_Err(err,loc);
 
-  dims[0] = Bnds_ID;
-  err = nc_def_var(ncid_out,"bcT",NC_DOUBLE,1,dims,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,bcT); Handle_Err(err,loc);
+  for (size_t i=0; i<N_specs; i++){
+    err = nc_def_var(ncid_out,Prb_specs[i].name,Prb_specs[i].type,0,0,&id); Handle_Err(err,loc);
+    if (Prb_specs[i].type == sp_dbl){
+      err = nc_put_var_double(ncid_out,id,(double*)Prb_specs[i].data); Handle_Err(err,loc);
+    }
+    else if (Prb_specs[i].type == sp_dbl){
+      err = nc_put_var_int(ncid_out,id,(int*)Prb_specs[i].data); Handle_Err(err,loc);
+    }
 
-  err = nc_def_var(ncid_out,"Tini",NC_DOUBLE,0,0,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,&Tini); Handle_Err(err,loc);
+  }
 
   return err;
 }

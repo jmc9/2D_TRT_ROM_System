@@ -44,7 +44,7 @@ int Delimit(const char *line, const char del, char **parts, const int nparts)
   int i, j, n;
 
   i=0; j=0; n=0;
-  while (line[i] != '\0' && line[i] != '\n' && line[i] != (char)13){
+  while ((line[i] != '\0') && (line[i] != '\n') && (line[i] != (char)13)){
 
     if (line[i] != del){
       parts[n][j] = line[i];

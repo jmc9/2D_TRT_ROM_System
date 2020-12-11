@@ -7,11 +7,14 @@
 /*================================================================================================================================*/
 /* Importing Packages */
 /*================================================================================================================================*/
+/* ----- EXTERNAL ----- */
 #include <stdlib.h>
 #include <stdio.h>
-#include <netcdf.h>
 #include <string.h>
 #include <math.h>
+
+/* ----- LOCAL ----- */
+#include "Data_Handling.h"
 
 /*================================================================================================================================*/
 /* Importing Functions */
@@ -20,25 +23,24 @@
 void Handle_Err(const int Status, const char *Location);
 
 /* ----- FROM INPUTS.c ----- */
-int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *dcmp_data, int *gsum, double *svd_eps);
+int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *dcmp_data, int *gsum, double *svd_eps, char ***spec_names, size_t *N_specs);
 
-void Get_Dims(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x, double *tlen, double *Delt,
-  double *xlen, double *ylen, double **Delx, double **Dely, int *BC_Type, double *bcT, double *Tini);
+void Get_Dims(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x, double *Delt,
+  double **Delx, double **Dely, int *BC_Type, Spec *Prb_specs, const size_t N_specs);
 
 /* ----- FROM OUTPUTS.c ----- */
-int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y, const size_t N_x,
-  const size_t rank_BC, const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH, const size_t BClen,
-  const size_t clen_avg, const size_t clen_edgV, const size_t clen_edgH, const double tlen, const double Delt, const double xlen,
-  const double ylen, double *Delx, double *Dely, int *BC_Type, double *bcT, const double Tini, int *N_t_ID, int *N_g_ID,
-  int *N_m_ID, int *N_y_ID, int *N_x_ID, int *rank_BC_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *BClen_ID,
-  int *clen_avg_ID, int *clen_edgV_ID, int *clen_edgH_ID);
+int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
+  const size_t N_x, const size_t rank_BC, const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH,
+  const size_t BClen, const size_t clen_avg, const size_t clen_edgV, const size_t clen_edgH, const double Delt,
+  double *Delx, double *Dely, int *BC_Type, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID,int *N_x_ID,
+  int *rank_BC_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *BClen_ID, int *clen_avg_ID,
+  int *clen_edgV_ID, int *clen_edgH_ID, Spec *Prb_specs, const size_t N_specs);
 
 int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, const int gsum, const int N_g_ID, const int rank_BC_ID,
   const int rank_avg_ID,const int rank_edgV_ID, const int rank_edgH_ID, const int BClen_ID, const int clen_avg_ID, const int clen_edgV_ID,
   const int clen_edgH_ID, const int N_t_ID, int **BCg_IDs, int **fg_avg_xx_IDs, int **fg_edgV_xx_IDs, int **fg_avg_yy_IDs, int **fg_edgH_yy_IDs,
   int **fg_edgV_xy_IDs, int **fg_edgH_xy_IDs, int **Ig_avg_IDs, int **Ig_edgV_IDs, int **Ig_edgH_IDs);
 
-// int Def_Pod_Vars(const int ncid, const char *vname, const int rank_ID, const int clen_ID, const int N_t_ID, int *DCMP_IDs);
 int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int dcmp_data, const int gsum,
   const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_x, const size_t N_y, const size_t rank_BC,
   const size_t rank_avg, const size_t rank_edgV, const size_t rank_edgH, const double svd_eps, const int *BCg_IDs,
@@ -67,7 +69,7 @@ int main()
   double svd_eps;
 
   //problem parameters
-  double tlen, Delt, xlen, ylen, *Delx, *Dely, bcT[4], Tini;
+  double Delt, *Delx, *Dely;
   int BC_Type[4];
   size_t N_t, N_g, N_m, N_y, N_x;
   size_t mscale, gscale, tscale;
@@ -80,6 +82,11 @@ int main()
 
   //I decomposition IDs
   int *Ig_avg_IDs, *Ig_edgV_IDs, *Ig_edgH_IDs;
+
+  //
+  char **spec_names;
+  size_t N_specs;
+  Spec *Prb_specs;
 
 
   //big text header output to terminal on program execution
@@ -100,16 +107,21 @@ int main()
   strcpy(infile,"input.inp"); //setting input file name (default)
 
   //opening, reading input file
-  err = Input(infile,dsfile,outfile,&dcmp_type,&dcmp_data,&gsum,&svd_eps);
+  err = Input(infile,dsfile,outfile,&dcmp_type,&dcmp_data,&gsum,&svd_eps,&spec_names,&N_specs);
   if (err != 0){
     printf("Error detected upon user input, aborting program\n");
     exit(1);
   }
 
+  Prb_specs = (Spec *)malloc(sizeof(Spec)*N_specs);
+  for(size_t i=0; i<N_specs; i++){
+    strcpy(Prb_specs[i].name,spec_names[i]);
+  }
+
   //opening, parsing datafile
   printf("Reading datafile\n");
   err = nc_open(dsfile,NC_NOWRITE,&ncid_in); Handle_Err(err,loc); //opening NetCDF dataset
-  Get_Dims(ncid_in,&N_t,&N_g,&N_m,&N_y,&N_x,&tlen,&Delt,&xlen,&ylen,&Delx,&Dely,BC_Type,bcT,&Tini); //finding dimensions of problem domain
+  Get_Dims(ncid_in,&N_t,&N_g,&N_m,&N_y,&N_x,&Delt,&Delx,&Dely,BC_Type,Prb_specs,N_specs); //finding dimensions of problem domain
 
   //calculating ranks and vector lengths of data
   if (gsum == 1){ gscale = N_g; } //if decomposing data over all groups, must include length of groups
@@ -141,9 +153,9 @@ int main()
   printf("Initializing output file\n");
   err = nc_create(outfile,NC_NETCDF4,&ncid_out); Handle_Err(err,loc); //opening NetCDF dataset
 
-  err = Def_Dims(ncid_out,N_t,N_g,N_m,N_y,N_x,rank_BC,rank_avg,rank_edgV,rank_edgH,BClen,clen_avg,clen_edgV,clen_edgH,tlen,Delt,
-    xlen,ylen,Delx,Dely,BC_Type,bcT,Tini,&N_t_ID,&N_g_ID,&N_m_ID,&N_y_ID,&N_x_ID,&rank_BC_ID,&rank_avg_ID,&rank_edgV_ID,
-    &rank_edgH_ID,&BClen_ID,&clen_avg_ID,&clen_edgV_ID,&clen_edgH_ID);
+  err = Def_Dims(ncid_out,N_t,N_g,N_m,N_y,N_x,rank_BC,rank_avg,rank_edgV,rank_edgH,BClen,clen_avg,clen_edgV,clen_edgH,Delt,
+    Delx,Dely,BC_Type,&N_t_ID,&N_g_ID,&N_m_ID,&N_y_ID,&N_x_ID,&rank_BC_ID,&rank_avg_ID,&rank_edgV_ID,
+    &rank_edgH_ID,&BClen_ID,&clen_avg_ID,&clen_edgV_ID,&clen_edgH_ID,Prb_specs,N_specs);
   if (err != 0){ printf("Error occured while defining dimensions in %s\n",outfile); exit(1); }
 
   err = Def_DCMP_Vars(ncid_out,dcmp_type,dcmp_data,gsum,N_g_ID,rank_BC_ID,rank_avg_ID,rank_edgV_ID,rank_edgH_ID,BClen_ID,clen_avg_ID,

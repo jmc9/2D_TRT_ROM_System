@@ -1,6 +1,6 @@
 dataset fom.h5
 outfile outf.h5
-dcmp_data QDf
+dcmp_data 1 QDf
 dcmp_type DMD
 svd_eps -1e-5
-Prb_spec 1 TRT 
+Prb_spec 1 TRT

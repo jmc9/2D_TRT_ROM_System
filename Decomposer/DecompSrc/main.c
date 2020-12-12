@@ -23,10 +23,11 @@
 void Handle_Err(const int Status, const char *Location);
 
 /* ----- FROM INPUTS.c ----- */
-int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *dcmp_data, int *gsum, double *svd_eps, char ***spec_names, size_t *N_specs);
+int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *gsum, double *svd_eps, char ***spec_names, size_t *N_specs,
+  Data **Dcmp_data, size_t *N_data);
 
 void Get_Dims(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x, double *Delt,
-  double **Delx, double **Dely, int *BC_Type, Spec *Prb_specs, const size_t N_specs);
+  double **Delx, double **Dely, int *BC_Type, Spec *Prb_specs, const size_t N_specs, Data *Dcmp_data, const size_t N_data);
 
 /* ----- FROM OUTPUTS.c ----- */
 int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
@@ -84,9 +85,11 @@ int main()
   int *Ig_avg_IDs, *Ig_edgV_IDs, *Ig_edgH_IDs;
 
   //
-  char **spec_names;
-  size_t N_specs;
+  char **spec_names, **data_names;
+  size_t N_specs, N_data;
   Spec *Prb_specs;
+  Data *Dcmp_data;
+  ncdim *dims;
 
 
   //big text header output to terminal on program execution
@@ -107,7 +110,7 @@ int main()
   strcpy(infile,"input.inp"); //setting input file name (default)
 
   //opening, reading input file
-  err = Input(infile,dsfile,outfile,&dcmp_type,&dcmp_data,&gsum,&svd_eps,&spec_names,&N_specs);
+  err = Input(infile,dsfile,outfile,&dcmp_type,&gsum,&svd_eps,&spec_names,&N_specs,&Dcmp_data,&N_data);
   if (err != 0){
     printf("Error detected upon user input, aborting program\n");
     exit(1);
@@ -116,12 +119,17 @@ int main()
   Prb_specs = (Spec *)malloc(sizeof(Spec)*N_specs);
   for(size_t i=0; i<N_specs; i++){
     strcpy(Prb_specs[i].name,spec_names[i]);
+    free(spec_names[i]);
   }
+  free(spec_names);
+
+  // dims = (ncdim *)malloc(sizeof(ncdim)*)
 
   //opening, parsing datafile
   printf("Reading datafile\n");
   err = nc_open(dsfile,NC_NOWRITE,&ncid_in); Handle_Err(err,loc); //opening NetCDF dataset
-  Get_Dims(ncid_in,&N_t,&N_g,&N_m,&N_y,&N_x,&Delt,&Delx,&Dely,BC_Type,Prb_specs,N_specs); //finding dimensions of problem domain
+  Get_Dims(ncid_in,&N_t,&N_g,&N_m,&N_y,&N_x,&Delt,&Delx,&Dely,BC_Type,Prb_specs,N_specs,Dcmp_data,N_data); //finding dimensions of problem domain
+  exit(0);
 
   //calculating ranks and vector lengths of data
   if (gsum == 1){ gscale = N_g; } //if decomposing data over all groups, must include length of groups

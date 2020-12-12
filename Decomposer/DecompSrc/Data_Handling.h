@@ -32,5 +32,14 @@ typedef struct ncdim
   int id;
 } ncdim;
 
+typedef struct Data
+{
+  char name[50];
+  size_t ndims;
+  int *dimids;
+  int opt[3];
+  char cdat[50];
+} Data;
+
 #define sp_int NC_INT
 #define sp_dbl NC_DOUBLE

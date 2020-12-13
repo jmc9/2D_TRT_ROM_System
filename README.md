@@ -1,2 +1,2 @@
-# 2D_TRT_PhD_Code
-2D TRT Code system for my doctoral dissertation
+# 2D_TRT_ROM_System
+Code system designed to simulate 2D TRT problems with full-order and reduced-order models

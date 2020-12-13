@@ -4,3 +4,4 @@ dcmp_data 1 QDf
 dcmp_type DMD
 svd_eps -1e-5
 Prb_spec 1 TRT
+Disc_wts 1 default

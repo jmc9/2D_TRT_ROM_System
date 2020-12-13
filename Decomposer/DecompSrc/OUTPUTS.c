@@ -30,6 +30,9 @@ int Generate_POD(const double *data, const int ncid_out, const char *dname, cons
 int Generate_DMD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
   const size_t rank, const double svd_eps, const int *DCMP_IDs);
 
+/* ----- FROM MISC_PROCS.c ----- */
+void Sort_Uniq_sizet(size_t *list, const size_t len, size_t *ulen);
+
 /* ----- LOCAL DEFINITIONS ----- */
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -39,60 +42,133 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-int Def_Dims(const int ncid_out, const size_t N_t, const size_t N_g, const size_t N_m, const size_t N_y,
-  const size_t N_x, const size_t rank_BC, const size_t rank_avg, const size_t rank_edgV,const size_t rank_edgH,
-  const size_t BClen, const size_t clen_avg, const size_t clen_edgV, const size_t clen_edgH, const double Delt,
-  double *Delx, double *Dely, int *BC_Type, int *N_t_ID, int *N_g_ID, int *N_m_ID, int *N_y_ID,int *N_x_ID,
-  int *rank_BC_ID, int *rank_avg_ID, int *rank_edgV_ID, int *rank_edgH_ID, int *BClen_ID, int *clen_avg_ID,
-  int *clen_edgV_ID, int *clen_edgH_ID, Spec *Prb_specs, const size_t N_specs)
+int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, const size_t N_dims, ncdim **clen, ncdim **rank, const int gsum)
 {
-  int err, id, Bnds_ID, dims[1];
-  char loc[9] = "OUT_DIMS";
+  int err;
+  char loc[9] = "Def_Dims";
 
-  err = nc_def_dim(ncid_out,"N_x",N_x,N_x_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"N_y",N_y,N_y_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"N_m",N_m,N_m_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"N_g",N_g,N_g_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"N_t",N_t,N_t_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"Boundaries",4,&Bnds_ID); Handle_Err(err,loc);
+  size_t *clen_ = malloc(sizeof(size_t)*N_data); //array holding clen of each variable
 
-  if (rank_BC != 0){
-    err = nc_def_dim(ncid_out,"rank_BC",rank_BC,rank_BC_ID); Handle_Err(err,loc);
-  }
-  err = nc_def_dim(ncid_out,"rank_avg",rank_avg,rank_avg_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"rank_edgV",rank_edgV,rank_edgV_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"rank_edgH",rank_edgH,rank_edgH_ID); Handle_Err(err,loc);
+  //calculating clen of each variable
+  size_t k;
+  for (size_t i=0; i<N_data; i++){
 
-  if (BClen != 0){
-    err = nc_def_dim(ncid_out,"BClen",BClen,BClen_ID); Handle_Err(err,loc);
-  }
-  err = nc_def_dim(ncid_out,"clen_avg",clen_avg,clen_avg_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"clen_edgV",clen_edgV,clen_edgV_ID); Handle_Err(err,loc);
-  err = nc_def_dim(ncid_out,"clen_edgH",clen_edgH,clen_edgH_ID); Handle_Err(err,loc);
+    if (Dcmp_data[i].opt[0] == 0){ //if decomposing the data as is, clen is simply the product of its dimensions (excluding time)
+      if (gsum == 1){ k = 1; } //full phase-space decomposition: all dimensions except time go into clen
+      else{ k = 2; } //groupwise decomposition: all dimensions except time and leading dimension go into clen
+      clen_[i] = 1.; //initializing clen_ to 1
 
-  err = nc_def_var(ncid_out,"Delt",NC_DOUBLE,0,0,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,&Delt); Handle_Err(err,loc);
+      for (size_t j=k; j<Dcmp_data[i].ndims; j++){ //taking product of dimension lengths
+        clen_[i] = clen_[i]*dims[Dcmp_data[i].dimids[j]].len;
+      }
 
-  dims[0] = (*N_x_ID);
-  err = nc_def_var(ncid_out,"Delx",NC_DOUBLE,1,dims,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,Delx); Handle_Err(err,loc);
-
-  dims[0] = (*N_y_ID);
-  err = nc_def_var(ncid_out,"Dely",NC_DOUBLE,1,dims,&id); Handle_Err(err,loc);
-  err = nc_put_var_double(ncid_out,id,Dely); Handle_Err(err,loc);
-
-  dims[0] = Bnds_ID;
-  err = nc_def_var(ncid_out,"BC_Type",NC_DOUBLE,1,dims,&id); Handle_Err(err,loc);
-  err = nc_put_var_int(ncid_out,id,BC_Type); Handle_Err(err,loc);
-
-  for (size_t i=0; i<N_specs; i++){
-    err = nc_def_var(ncid_out,Prb_specs[i].name,Prb_specs[i].type,0,0,&id); Handle_Err(err,loc);
-    if (Prb_specs[i].type == sp_dbl){
-      err = nc_put_var_double(ncid_out,id,(double*)Prb_specs[i].data); Handle_Err(err,loc);
     }
-    else if (Prb_specs[i].type == sp_dbl){
-      err = nc_put_var_int(ncid_out,id,(int*)Prb_specs[i].data); Handle_Err(err,loc);
+    else if (Dcmp_data[i].opt[0] == 1){ //if decomposing stacked data, clen depends on the summation of their dimensions
+      clen_[i] = 0.; //initializing clen_ to 0
+      for (size_t j=2; j<Dcmp_data[i].ndims; j++){ //summing the dimensions of stacked data (excluding time and leading dimensions)
+        clen_[i] = clen_[i] + dims[Dcmp_data[i].dimids[j]].len;
+      }
+
+      if (gsum == 1){ //for full phase space decomposition, multiply stacked length with that of the leading dimension
+        clen_[i] = clen_[i]*dims[Dcmp_data[i].dimids[1]].len;
+      }
+
     }
+
+    //prepping to replace variable dimensions with clen/rank
+    free(Dcmp_data[i].dimids); //freeing previously malloc'd dimid arrays
+    if (gsum == 1){
+      Dcmp_data[i].ndims = 2; //only 2 dimensions per dataset: clen, rank
+      Dcmp_data[i].dimids = (int*)malloc(sizeof(int)*2);
+      Dcmp_data[i].dimids[0] = (int)clen_[i];
+    }
+    else{
+      Dcmp_data[i].ndims = 3; //3 dimensions per dataset: group, clen, rank
+      Dcmp_data[i].dimids = (int*)malloc(sizeof(int)*3);
+      Dcmp_data[i].dimids[0] = (int)clen_[i];
+    }
+  }
+
+  size_t N_clen; //N_clen = number of unique 'clen' dimensions
+  Sort_Uniq_sizet(clen_,N_data,&N_clen); //sort clen_ to have unique values as the first N_clen elements
+
+  //allocating memory for clen, rank dimension lists
+  *clen = (ncdim*)malloc(sizeof(ncdim)*N_clen);
+  *rank = (ncdim*)malloc(sizeof(ncdim)*N_clen);
+
+  //filling clen, rank dimension descriptions
+  for (size_t i=0; i<N_clen; i++){
+    (*clen)[i].len = clen_[i];
+    (*rank)[i].len = min((*clen)[i].len,dims[0].len);
+
+    char buf[10];
+    memset(buf,0,10);
+    sprintf(buf,"clen%ld",i);
+    strcpy((*clen)[i].name,buf);
+
+    memset(buf,0,10);
+    sprintf(buf,"rank%ld",i);
+    strcpy((*rank)[i].name,buf);
+
+  }
+  free(clen_);
+
+  //mapping each dataset to its respective clen, rank dimensions
+  for (size_t i=0; i<N_data; i++){
+    for (size_t j=0; j<N_clen; j++){
+      if (Dcmp_data[j].dimids[0] == (int)(*clen)[i].len){
+        if (gsum == 1){
+          Dcmp_data[i].dimids[0] = (int)j;
+          Dcmp_data[i].dimids[1] = (int)j;
+        }
+        else{
+          Dcmp_data[i].dimids[0] = 1;
+          Dcmp_data[i].dimids[1] = (int)j;
+          Dcmp_data[i].dimids[2] = (int)j;
+        }
+        break;
+      }
+    }
+  }
+
+  //writing original dimensions (from input datafile) to the output ncdf file and replacing id's from input file
+  for (size_t i=0; i<N_dims; i++){
+    err = nc_def_dim(ncid,dims[i].name,dims[i].len,&dims[i].id); Handle_Err(err,loc);
+  }
+
+  //writing clen, rank dimensions
+  for (size_t i=0; i<N_clen; i++){
+    err = nc_def_dim(ncid,(*clen)[i].name,(*clen)[i].len,&(*clen)[i].id); Handle_Err(err,loc);
+    err = nc_def_dim(ncid,(*rank)[i].name,(*rank)[i].len,&(*rank)[i].id); Handle_Err(err,loc);
+  }
+
+  //termination
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Def_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims)
+{
+  int err;
+  char loc[9] = "Def_Disc";
+
+  for (size_t i=0; i<N_wts; i++){
+
+    if (Disc_Wts[i].ndims == 0){
+      err = nc_def_var(ncid,Disc_Wts[i].name,NC_DOUBLE,0,0,&Disc_Wts[i].id); Handle_Err(err,loc);
+    }
+    else{
+      int *d = malloc(sizeof(int)*Disc_Wts[i].ndims);
+      for (size_t j=0; j<Disc_Wts[i].ndims; j++){
+        d[j] = dims[Disc_Wts[i].dimids[j]].id;
+      }
+      err = nc_def_var(ncid,Disc_Wts[i].name,NC_DOUBLE,(int)Disc_Wts[i].ndims,d,&Disc_Wts[i].id); Handle_Err(err,loc);
+      free(d);
+    }
+
+    err = nc_put_var_double(ncid,Disc_Wts[i].id,Disc_Wts[i].dat); Handle_Err(err,loc);
 
   }
 

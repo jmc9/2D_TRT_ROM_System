@@ -9,15 +9,6 @@
 /*================================================================================================================================*/
 #include <netcdf.h>
 
-typedef struct Dataset
-{
-  char name[20];
-  int ncID;
-  int *dimIDs;
-  size_t *dims;
-  double *data;
-} Dataset;
-
 typedef struct Spec
 {
   char name[20];
@@ -39,6 +30,8 @@ typedef struct Data
   int *dimids;
   int opt[3];
   char cdat[50];
+  double *dat;
+  int id;
 } Data;
 
 #define sp_int NC_INT

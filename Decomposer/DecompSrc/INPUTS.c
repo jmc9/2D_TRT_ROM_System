@@ -26,6 +26,8 @@ int Get_Spec(const int ncid, Spec *spec);
 /* ----- FROM MISC_PROCS.c ----- */
 int Delimit(const char *Line, const char Del, char **Parts, const int Nparts);
 
+void Sort_Uniq_int(int *list, const size_t len, size_t *ulen);
+
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
@@ -200,96 +202,235 @@ int Load_Data(char **data_names, size_t *N_data, Data **Dcmp_data)
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-void Get_Dims(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y, size_t *N_x, double *Delt,
-  double **Delx, double **Dely, int *BC_Type, Spec *Prb_specs, const size_t N_specs, Data *Dcmp_data, const size_t N_data, ncdim *dims)
+int Load_Wts(char **wt_names, size_t *N_wts, Data **Disc_Wts)
 {
-  int err, id;
-  int N_t_ID, N_g_ID, N_m_ID, N_y_ID, N_x_ID, Delt_ID, Delx_ID, Dely_ID;
-  char loc[8] = "Get_Dims";
+  int err = 0;
 
-  size_t N_dims = 0;
+  //holding input number of specs, resetting N_data
+  size_t ns = *N_wts;
+  *N_wts = 0;
 
-  for (size_t i=0; i<N_data; i++){
-    printf("%s\n",Dcmp_data[i].name);
-
-    if (Dcmp_data[i].opt[0] == 0){
-      err = nc_inq_varid(ncid, Dcmp_data[i].name, &id); Handle_Err(err,loc);
-      err = nc_inq_varndims(ncid, id, (int*)&Dcmp_data[i].ndims); Handle_Err(err,loc);
-      Dcmp_data[i].dimids = malloc(sizeof(int)*(size_t)Dcmp_data[i].ndims);
-      err = nc_inq_vardimid(ncid, id, Dcmp_data[i].dimids); Handle_Err(err,loc);
-
+  //finding updated number of specs if any default flags encountered
+  for (size_t n=0; n<ns; n++){
+    if (strcmp(wt_names[n],"default") == 0){ //default = preset flag for TRT problem
+      *N_wts = *N_wts + 3;
     }
-    else if (Dcmp_data[i].opt[0] == 1){
-      size_t ndat = (size_t)Dcmp_data[i].opt[1];
-      char **dats = (char**)malloc(sizeof(char*)*ndat);
-      for (size_t j=0; j<ndat; j++){
-        dats[j] = (char*)malloc(sizeof(char)*50);
-        memset(dats[j],0,50);
-      }
-
-      char del=',';
-      err = Delimit(Dcmp_data[i].cdat,del,dats,(int)ndat);
-
-      int *nd = malloc(sizeof(int)*ndat);
-      int **ds = malloc(sizeof(int*)*ndat);
-      for (size_t j=0; j<ndat; j++){
-        err = nc_inq_varid(ncid, dats[j], &id); Handle_Err(err,loc);
-        err = nc_inq_varndims(ncid, id, &nd[j]); Handle_Err(err,loc);
-        ds[j] = (int*)malloc(sizeof(int)*(size_t)nd[j]);
-        err = nc_inq_vardimid(ncid, id, ds[j]); Handle_Err(err,loc);
-      }
-
-      for (size_t j=1; j<ndat; j++){
-        if (nd[j] != nd[j-1]){
-          printf("Dimension counts of data to be stacked are not the same!");
-          exit(1);
-        }
-      }
-
-      Dcmp_data[i].ndims = nd[0] + ndat - 1; printf("%ld\n",Dcmp_data[i].ndims);
-      Dcmp_data[i].dimids = malloc(sizeof(int)*Dcmp_data[i].ndims);
-      for (size_t j=0; j<Dcmp_data[i].ndims-ndat; j++){
-        Dcmp_data[i].dimids[j] = ds[0][j];
-      }
-      size_t p = 0;
-      for (size_t j=Dcmp_data[i].ndims-ndat; j<Dcmp_data[i].ndims; j++){
-        Dcmp_data[i].dimids[j] = ds[p][nd[p]-1]; p++;
-      }
-
+    else{
+      *N_wts = *N_wts + 1;
     }
   }
-  // exit(0);
 
-  //reading in dimension ID's
-  err = nc_inq_dimid(ncid,"N_t",&N_t_ID); Handle_Err(err,loc);
-  err = nc_inq_dimid(ncid,"N_g",&N_g_ID); Handle_Err(err,loc);
-  err = nc_inq_dimid(ncid,"N_m",&N_m_ID); Handle_Err(err,loc);
-  err = nc_inq_dimid(ncid,"N_y",&N_y_ID); Handle_Err(err,loc);
-  err = nc_inq_dimid(ncid,"N_x",&N_x_ID); Handle_Err(err,loc);
+  *Disc_Wts = (Data *)malloc(sizeof(Data)*(*N_wts));
 
+  //loading in all data_names
+  size_t p=0;
+  for (size_t n=0; n<ns; n++){
+    if (strcmp(wt_names[n],"default") == 0){ //TRT flag detected, loading default specs
+      strcpy((*Disc_Wts)[p].name,"Delt"); (*Disc_Wts)[p].opt[0] = 0; p++;
+      strcpy((*Disc_Wts)[p].name,"Delx"); (*Disc_Wts)[p].opt[0] = 0; p++;
+      strcpy((*Disc_Wts)[p].name,"Dely"); (*Disc_Wts)[p].opt[0] = 0; p++;
+    }
+    else{
+      strcpy((*Disc_Wts)[p].name,wt_names[n]); p++;
+    }
+  }
+
+  //freeing temporary array
+  for (size_t n=0; n<ns; n++){
+    free(wt_names[n]);
+  }
+  free(wt_names);
+
+  //termination
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Read_Data_Dims(const int ncid, Data *data)
+{
+  int err, id;
+  char loc[15] = "Read_Data_Dims";
+
+  if (data->opt[0] == 0){ //opt = 0 --> decomposing the data as is
+    err = nc_inq_varid(ncid, data->name, &data->id); Handle_Err(err,loc); //find data ID
+    err = nc_inq_varndims(ncid, data->id, (int*)&data->ndims); Handle_Err(err,loc); //find number of dimensions
+    data->dimids = malloc(sizeof(int)*(size_t)data->ndims); //allocate dimids as ndims
+    err = nc_inq_vardimid(ncid, data->id, data->dimids); Handle_Err(err,loc); //read in dimension id's for each dimension
+
+  }
+  else if (data->opt[0] == 1){ //opt = 1 --> stack data into new constructed datamatrix to decompose
+    size_t ndat = (size_t)data->opt[1]; //opt[1] holds the number of data matrices to to stack
+
+    //allocating dats to hold names of construction data matrices
+    char **dats = (char**)malloc(sizeof(char*)*ndat);
+    for (size_t j=0; j<ndat; j++){
+      dats[j] = (char*)malloc(sizeof(char)*50);
+      memset(dats[j],0,50);
+    }
+
+    char del=',';
+    err = Delimit(data->cdat,del,dats,(int)ndat); //finding names of construction data, assumed to be comma delimited
+
+    int *nd = malloc(sizeof(int)*ndat); //nd holds the number of dimensions for each construction data
+    int **ds = malloc(sizeof(int*)*ndat); //ds holds the dimensions of each construction data
+    for (size_t j=0; j<ndat; j++){
+      err = nc_inq_varid(ncid, dats[j], &id); Handle_Err(err,loc); //find data ID
+      err = nc_inq_varndims(ncid, id, &nd[j]); Handle_Err(err,loc); //find number of dimensions
+      ds[j] = (int*)malloc(sizeof(int)*(size_t)nd[j]); //allocate dimids as ndims
+      err = nc_inq_vardimid(ncid, id, ds[j]); Handle_Err(err,loc); //read in dimension id's for each dimension
+
+    }
+
+    //making sure each construction data has the same dimensionality
+    for (size_t j=1; j<ndat; j++){
+      if (nd[j] != nd[j-1]){
+        printf("Dimension counts of data to be stacked are not the same!");
+        exit(1);
+      }
+    }
+
+    //storing collective dimension id's for all construction matrices into data.dimids
+    data->ndims = (size_t)nd[0] + ndat - 1;
+    data->dimids = malloc(sizeof(int)*data->ndims);
+    for (size_t j=0; j<data->ndims-ndat; j++){
+      data->dimids[j] = ds[0][j];
+    }
+    size_t p = 0;
+    for (size_t j=data->ndims-ndat; j<data->ndims; j++){
+      data->dimids[j] = ds[p][nd[p]-1]; p++;
+    }
+
+    //freeing all allocated memory
+    for (size_t j=0; j<ndat; j++){
+      free(ds[j]);
+    }
+    free(ds);
+    free(nd);
+
+  }
+
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+void Get_Dims(const int ncid, int *BC_Type, Spec *Prb_specs, const size_t N_specs,
+  Data *Dcmp_data, const size_t N_data, ncdim **dims, size_t *N_dims, Data *Disc_Wts, const size_t N_wts)
+{
+  int err;
+  int Delt_ID, Delx_ID, Dely_ID;
+  char loc[9] = "Get_Dims";
+
+  *N_dims = 0;
+
+  //collecting dimensions of each decomp data
+  for (size_t i=0; i<N_data; i++){
+
+    err = Read_Data_Dims(ncid,&Dcmp_data[i]);
+    *N_dims = *N_dims + Dcmp_data[i].ndims;
+
+  }
+  //collecting dimensions of each discretization weight
+  for (size_t i=0; i<N_wts; i++){
+
+    err = Read_Data_Dims(ncid,&Disc_Wts[i]);
+    *N_dims = *N_dims + Disc_Wts[i].ndims;
+
+  }
+
+  int *dimlist = malloc(sizeof(int)*(*N_dims)); //allocating array to hold each dimension ID
+  size_t p = 0; //counting variable
+
+  //putting the dimensions of each Dcmp_data into dimlist
+  for (size_t i=0; i<N_data; i++){
+    for (size_t j=0; j<Dcmp_data[i].ndims; j++){
+      dimlist[p] = Dcmp_data[i].dimids[j];
+      p++;
+    }
+  }
+
+  //putting the dimensions of each Disc_Wt into dimlist
+  for (size_t i=0; i<N_wts; i++){
+    for (size_t j=0; j<Disc_Wts[i].ndims; j++){
+      dimlist[p] = Disc_Wts[i].dimids[j];
+      p++;
+    }
+  }
+
+  //sorting dimlist to have all unique dimensions in the first indexes
+  //counting number of unique dimensions
+  size_t N_dims_uniq; //number of unique dimensions
+  Sort_Uniq_int(dimlist,*N_dims,&N_dims_uniq);
+
+  //allocating dims as number of unique dimensions, collecting names and lengths
+  *N_dims = N_dims_uniq;
+  *dims = (ncdim*)malloc(sizeof(ncdim)*(*N_dims));
+  for (size_t i=0; i<*N_dims; i++){
+    (*dims)[i].id = dimlist[i];
+    err = nc_inq_dimname(ncid,(*dims)[i].id,(*dims)[i].name); Handle_Err(err,loc);
+    err = nc_inq_dimlen(ncid,(*dims)[i].id,&(*dims)[i].len); Handle_Err(err,loc);
+
+  }
+  free(dimlist);
+
+  //replacing Dcmp_data.dimids with the location in the dims array corresponding to each dimid
+  for (size_t j=0; j<N_data; j++){
+    for (size_t k=0; k<Dcmp_data[j].ndims; k++){
+      for (size_t i=0; i<*N_dims; i++){
+        if (Dcmp_data[j].dimids[k] == (*dims)[i].id){
+          Dcmp_data[j].dimids[k] = (int)i;
+          break;
+        }
+      }
+    }
+  }
+
+  //replacing Disc_Wts.dimids with the location in the dims array corresponding to each dimid
+  for (size_t j=0; j<N_wts; j++){
+    for (size_t k=0; k<Disc_Wts[j].ndims; k++){
+      for (size_t i=0; i<*N_dims; i++){
+        if (Disc_Wts[j].dimids[k] == (*dims)[i].id){
+          Disc_Wts[j].dimids[k] = (int)i;
+          break;
+        }
+      }
+    }
+  }
+
+  //reading in problem specs
   for (size_t i=0; i<N_specs; i++){
     err = Get_Spec(ncid,&Prb_specs[i]);
   }
 
-  err = nc_inq_varid(ncid,"Delt",&Delt_ID); Handle_Err(err,loc);
-  err = nc_inq_varid(ncid,"Delx",&Delx_ID); Handle_Err(err,loc);
-  err = nc_inq_varid(ncid,"Dely",&Dely_ID); Handle_Err(err,loc);
-
-  //reading in dimension values
-  err = nc_inq_dimlen(ncid,N_t_ID,N_t); Handle_Err(err,loc);
-  err = nc_inq_dimlen(ncid,N_g_ID,N_g); Handle_Err(err,loc);
-  err = nc_inq_dimlen(ncid,N_m_ID,N_m); Handle_Err(err,loc);
-  err = nc_inq_dimlen(ncid,N_y_ID,N_y); Handle_Err(err,loc);
-  err = nc_inq_dimlen(ncid,N_x_ID,N_x); Handle_Err(err,loc);
-
-  *Delx = (double *)malloc(sizeof(double)*(*N_x));
-  *Dely = (double *)malloc(sizeof(double)*(*N_y));
-  err = nc_get_var_double(ncid,Delx_ID,Delx[0]); Handle_Err(err,loc);
-  err = nc_get_var_double(ncid,Dely_ID,Dely[0]); Handle_Err(err,loc);
-  err = nc_get_var_double(ncid,Delt_ID,Delt); Handle_Err(err,loc);
-
   err = nc_get_att_int(ncid,NC_GLOBAL,"BC_type",BC_Type); Handle_Err(err,loc);
 
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Get_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims)
+{
+  int err;
+  char loc[9] = "Get_Disc";
+  for (size_t i=0; i<N_wts; i++){
+    if (Disc_Wts[i].ndims == 0){
+      Disc_Wts[i].dat = (double*)malloc(sizeof(double));
+      err = nc_get_var_double(ncid,Disc_Wts[i].id,Disc_Wts[i].dat); Handle_Err(err,loc);
+    }
+    else{
+      size_t dsum = 0.;
+      for (size_t j=0; j<Disc_Wts[i].ndims; j++){
+        dsum = dsum + dims[Disc_Wts[i].dimids[j]].len;
+      }
+      Disc_Wts[i].dat = (double*)malloc(sizeof(double)*dsum);
+      err = nc_get_var_double(ncid,Disc_Wts[i].id,Disc_Wts[i].dat); Handle_Err(err,loc);
+    }
+  }
+  return err;
 }
 
 /*================================================================================================================================*/
@@ -301,12 +442,12 @@ void Get_Dims(const int ncid, size_t *N_t, size_t *N_g, size_t *N_m, size_t *N_y
   dcmp_data - type of data to decompose */
 /*================================================================================================================================*/
 int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *gsum, double *svd_eps, char ***spec_names, size_t *N_specs,
-  Data **Dcmp_data, size_t *N_data)
+  Data **Dcmp_data, size_t *N_data, Data **Disc_Wts, size_t *N_wts)
 {
   FILE *inpf;
   char line[256];
   char **inps, delim = ' ';
-  char dcmp_type_in[10], **data_names;
+  char dcmp_type_in[10], **data_names, **wt_names;
   int err;
   size_t nargs = 2;
   size_t inp_size = 25;
@@ -332,6 +473,9 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   *gsum = 1;
   *svd_eps = -1.;
   *N_specs = 0;
+  *N_data = 0;
+  *N_wts = 0;
+
 
   //moving line by line through file to grab inputs
   while ( fgets(line, 255, inpf) != NULL ){ //placing current line of input file into 'line' character array
@@ -358,6 +502,9 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
       memset(dcmp_type_in,0,10);
       strcpy(dcmp_type_in,inps[1]);
     }
+    else if (strcmp(inps[0],"svd_eps") == 0){
+      sscanf(inps[1], "%le", svd_eps);
+    }
     else if (strcmp(inps[0],"dcmp_data") == 0){
 
       //finding number of problem specs to read in
@@ -371,9 +518,6 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
       err = Read_List(line,&data_names,*N_data,2);
 
     }
-    else if (strcmp(inps[0],"svd_eps") == 0){
-      sscanf(inps[1], "%le", svd_eps);
-    }
     else if (strcmp(inps[0],"Prb_spec") == 0){
 
       //finding number of problem specs to read in
@@ -385,6 +529,19 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
 
       //reading in list of spec_names
       err = Read_List(line,spec_names,*N_specs,2);
+
+    }
+    else if (strcmp(inps[0],"Disc_wts") == 0){
+
+      //finding number of problem specs to read in
+      sscanf(inps[1], "%ld", N_wts);
+      if (*N_wts <= 0){ //checking for valid N_specs
+        printf("Invalid Disc_wts = %ld! must be > 0\n",*N_wts);
+        return 1;
+      }
+
+      //reading in list of wt_names
+      err = Read_List(line,&wt_names,*N_wts,2);
 
     }
 
@@ -438,11 +595,27 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   //   printf("Valid dcmp_data include: QDf, I, Mean_I\n");
   //   return 1;
   // }
+  if (*N_data == 0){
+    *N_data = 1;
+    data_names = (char **)malloc(sizeof(char *));
+    data_names[0] = (char *)malloc(sizeof(char)*20);
+    memset(data_names[0],0,20);
+    strcpy(data_names[0],"QDf");
+  }
+  if (*N_wts == 0){
+    *N_wts = 1;
+    wt_names = (char **)malloc(sizeof(char *));
+    wt_names[0] = (char *)malloc(sizeof(char)*20);
+    memset(wt_names[0],0,20);
+    strcpy(wt_names[0],"default");
+  }
 
   //loading spec_names (checking for flags to 'default' sets of spec_names)
   err = Load_Specs(spec_names,N_specs);
 
   err = Load_Data(data_names,N_data,Dcmp_data);
+
+  err = Load_Wts(wt_names,N_wts,Disc_Wts);
 
   //successfull termination
   return 0;

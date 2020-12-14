@@ -71,6 +71,7 @@ int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, 
     }
     else if (Dcmp_data[i].opt[0] == 1){ //if decomposing stacked data, clen depends on the summation of their dimensions
       clen_[i] = 0.; //initializing clen_ to 0
+      //taking summation of stacking dimensions
       for (size_t j=0; j<(size_t)Dcmp_data[i].opt[1]; j++){
         clen_[i] = clen_[i] + dims[Dcmp_data[i].dimids[Dcmp_data[i].ndims-(size_t)Dcmp_data[i].opt[1]+j]].len;
       }
@@ -525,47 +526,56 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
       printf("... Performing decomposition of stacked data\n");
 
       size_t dlen = 0.; //initializing dlen to 0
+      //adding 'stacking' dimensions together
       for (size_t j=0; j<(size_t)Dcmp_data[i].opt[1]; j++){
         dlen = dlen + dims[Dcmp_data[i].dimids[Dcmp_data[i].ndims-(size_t)Dcmp_data[i].opt[1]+j]].len;
       }
+      //multiplying stacked dimension by leading dimensions
       for (size_t j=0; j<(Dcmp_data[i].ndims-(size_t)Dcmp_data[i].opt[1]); j++){
         dlen = dlen*dims[Dcmp_data[i].dimids[j]].len;
       }
 
-      Dcmp_data[i].dat = (double*)malloc(sizeof(double)*dlen);
+      Dcmp_data[i].dat = (double*)malloc(sizeof(double)*dlen); //allocating space for data matrix
 
+      //allocating 2D character array to hold names of variables to stack together
       char **stk_names = (char**)malloc(sizeof(char*)*(size_t)Dcmp_data[i].opt[1]);
       for (size_t j=0; j<(size_t)Dcmp_data[i].opt[1]; j++){
         stk_names[j] = (char*)malloc(sizeof(char)*50);
       }
 
-      err = Delimit(Dcmp_data[i].cdat,',',stk_names,Dcmp_data[i].opt[1]);
+      err = Delimit(Dcmp_data[i].cdat,',',stk_names,Dcmp_data[i].opt[1]); //finding names of stacking variables from comma delimited list
 
+      //calculating length of leading dimensions (product)
       size_t lead_len = 1.;
       for (size_t j=0; j<(Dcmp_data[i].ndims-(size_t)Dcmp_data[i].opt[1]); j++){
         lead_len = lead_len*dims[Dcmp_data[i].dimids[j]].len;
       }
 
+      //loop over number of stacking variables
       for (size_t j=0; j<(size_t)Dcmp_data[i].opt[1]; j++){
 
+        //stk_len is the length of the current stacking dimension
         size_t stk_len = dims[Dcmp_data[i].dimids[Dcmp_data[i].ndims-(size_t)Dcmp_data[i].opt[1]+j]].len;
-        dlen = stk_len*lead_len;
+        dlen = stk_len*lead_len; //dlen = total dimensional length of stacking variable
 
-        double *data_ = malloc(sizeof(double)*dlen);
+        double *data_ = malloc(sizeof(double)*dlen); //allocating space to hold stacking data
         int id;
-        err = nc_inq_varid(ncid_in,stk_names[j],&id); Handle_Err(err,loc);
-        err = nc_get_var_double(ncid_in,id,&data_[0]); Handle_Err(err,loc);
+        err = nc_inq_varid(ncid_in,stk_names[j],&id); Handle_Err(err,loc); //finding variable
+        err = nc_get_var_double(ncid_in,id,&data_[0]); Handle_Err(err,loc); //reading in data
 
+        //calculating len_t = 'top length' (length of stacking dimensions for variables stacked above current variable)
         size_t len_t = 0.;
         for (size_t k=0; k<j; k++){
           len_t = len_t + dims[Dcmp_data[i].dimids[Dcmp_data[i].ndims-(size_t)Dcmp_data[i].opt[1]+k]].len;
         }
 
+        //calculating len_b = 'bottom length' (length of stacking dimensions for variables stacked below current variable)
         size_t len_b = 0.;
         for (size_t k=j+1; k<(size_t)Dcmp_data[i].opt[1]; k++){
           len_b = len_b + dims[Dcmp_data[i].dimids[Dcmp_data[i].ndims-(size_t)Dcmp_data[i].opt[1]+k]].len;
         }
 
+        //putting data into stacked data matrix
         size_t p1 = 0;
         size_t p2 = 0;
         for(size_t k=0; k<lead_len; k++){
@@ -579,11 +589,13 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
         }
         free(data_);
 
-      }
+      }//end loop over number of stacking variables
 
+      //decomposing stacked data matrix
       err = Generate_DCMP(Dcmp_data[i].dat, ncid_out, Dcmp_data[i].name, dims[0].len, n_g, clen[dcdims[i][0]].len,
         rank[dcdims[i][1]].len, svd_eps, &Decomp[p],dcmp_type);
 
+      //freeing all allocated space
       free(Dcmp_data[i].dat);
       for (size_t j=0; j<(size_t)Dcmp_data[i].opt[1]; j++){
         free(stk_names[j]);

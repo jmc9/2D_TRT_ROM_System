@@ -168,7 +168,7 @@ int Load_Data(char **data_names, size_t *N_data, Data **Dcmp_data)
       strcpy((*Dcmp_data)[p].name,"I_edgH"); (*Dcmp_data)[p].opt[0] = 0; p++;
     }
     else{
-      strcpy((*Dcmp_data)[p].name,data_names[n]); p++;
+      strcpy((*Dcmp_data)[p].name,data_names[n]); (*Dcmp_data)[p].opt[0] = 0; p++;
     }
   }
 
@@ -387,7 +387,7 @@ void Get_Dims(const int ncid, int *BC_Type, Spec *Prb_specs, const size_t N_spec
     err = Get_Spec(ncid,&Prb_specs[i]);
   }
 
-  err = nc_get_att_int(ncid,NC_GLOBAL,"BC_type",BC_Type); Handle_Err(err,loc);
+  // err = nc_get_att_int(ncid,NC_GLOBAL,"BC_type",BC_Type); Handle_Err(err,loc);
 
 }
 
@@ -451,12 +451,13 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   strcpy(dsfile,"output.h5");
   strcpy(outfile,"DCMPout.h5");
   strcpy(dcmp_type_in,"POD");
-  // strcpy(dcmp_data_in,"QDf");
   *gsum = 1;
   *svd_eps = -1.;
   *N_specs = 0;
-  *N_data = 0;
-  *N_wts = 0;
+  // *N_data = 0;
+  // *N_wts = 0;
+  int data_check = 0;
+  int wts_check = 0;
 
 
   //moving line by line through file to grab inputs
@@ -490,40 +491,58 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
     else if (strcmp(inps[0],"dcmp_data") == 0){
 
       //finding number of problem specs to read in
-      sscanf(inps[1], "%ld", N_data);
-      if (*N_data <= 0){ //checking for valid N_data
+      int n_data;
+      sscanf(inps[1], "%d", &n_data);
+      if (n_data <= 0){ //checking for valid N_data
         printf("Invalid N_data = %ld! must be > 0\n",*N_data);
         return 1;
       }
+      *N_data = (size_t)n_data;
 
       //reading in list of data_names
-      err = Read_List(line,&data_names,*N_data,2);
+      if (*N_data > 0){
+        err = Read_List(line,&data_names,*N_data,2);
+      }
+
+      //setting flag that data was found on input
+      data_check = 1;
 
     }
     else if (strcmp(inps[0],"Prb_spec") == 0){
 
       //finding number of problem specs to read in
-      sscanf(inps[1], "%ld", N_specs);
-      if (*N_specs <= 0){ //checking for valid N_specs
-        printf("Invalid Prb_spec = %ld! must be > 0\n",*N_specs);
+      int n_specs;
+      sscanf(inps[1], "%d", &n_specs);
+      if (n_specs < 0){ //checking for valid N_specs
+        printf("Invalid Prb_spec = %ld! must be >= 0\n",*N_specs);
         return 1;
       }
+      *N_specs = (size_t)n_specs;
 
       //reading in list of spec_names
-      err = Read_List(line,&spec_names,*N_specs,2);
+      if (*N_specs > 0){
+        err = Read_List(line,&spec_names,*N_specs,2);
+      }
 
     }
     else if (strcmp(inps[0],"Disc_wts") == 0){
 
       //finding number of problem specs to read in
-      sscanf(inps[1], "%ld", N_wts);
-      if (*N_wts <= 0){ //checking for valid N_specs
-        printf("Invalid Disc_wts = %ld! must be > 0\n",*N_wts);
+      int n_wts;
+      sscanf(inps[1], "%d", &n_wts);
+      if (n_wts < 0){ //checking for valid N_specs
+        printf("Invalid Disc_wts = %ld! must be >= 0\n",*N_wts);
         return 1;
       }
+      *N_wts = (size_t)n_wts;
 
       //reading in list of wt_names
-      err = Read_List(line,&wt_names,*N_wts,2);
+      if (*N_wts > 0){
+        err = Read_List(line,&wt_names,*N_wts,2);
+      }
+
+      //setting flag that Disc_wts was found on input
+      wts_check = 1;
 
     }
 
@@ -561,14 +580,14 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
     return 1;
   }
 
-  if (*N_data == 0){
+  if (data_check == 0){
     *N_data = 1;
     data_names = (char **)malloc(sizeof(char *));
     data_names[0] = (char *)malloc(sizeof(char)*20);
     memset(data_names[0],0,20);
     strcpy(data_names[0],"QDf");
   }
-  if (*N_wts == 0){
+  if (wts_check == 0){
     *N_wts = 1;
     wt_names = (char **)malloc(sizeof(char *));
     wt_names[0] = (char *)malloc(sizeof(char)*20);
@@ -577,13 +596,19 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   }
 
   //loading Prb_specs (checking for flags to 'default' sets of spec_names)
-  err = Load_Specs(spec_names,N_specs,Prb_specs);
+  if (*N_specs > 0){
+    err = Load_Specs(spec_names,N_specs,Prb_specs);
+  }
 
   //loading Dcmp_data
-  err = Load_Data(data_names,N_data,Dcmp_data);
+  if (*N_data > 0){
+    err = Load_Data(data_names,N_data,Dcmp_data);
+  }
 
   //loading Disc_Wts
-  err = Load_Wts(wt_names,N_wts,Disc_Wts);
+  if (*N_wts > 0){
+    err = Load_Wts(wt_names,N_wts,Disc_Wts);
+  }
 
   //successfull termination
   return 0;

@@ -14,6 +14,7 @@ typedef struct Spec
   char name[20];
   int type;
   void *data;
+  int id;
 } Spec;
 
 typedef struct ncdim

@@ -23,6 +23,8 @@ void Handle_Err(const int Status, const char *Location);
 
 void Get_Var_Double(const int ncid, const char *name, double **var, const size_t size);
 
+int Write_Spec(const int ncid, Spec *spec);
+
 /* ----- FROM CPOD_ROUTINES.c ----- */
 int Generate_POD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
   const size_t rank, const int *DCMP_IDs);
@@ -77,16 +79,9 @@ int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, 
 
     //prepping to replace variable dimensions with clen/rank
     free(Dcmp_data[i].dimids); //freeing previously malloc'd dimid arrays
-    if (gsum == 1){
-      Dcmp_data[i].ndims = 2; //only 2 dimensions per dataset: clen, rank
-      Dcmp_data[i].dimids = (int*)malloc(sizeof(int)*2);
-      Dcmp_data[i].dimids[0] = (int)clen_[i];
-    }
-    else{
-      Dcmp_data[i].ndims = 3; //3 dimensions per dataset: group, clen, rank
-      Dcmp_data[i].dimids = (int*)malloc(sizeof(int)*3);
-      Dcmp_data[i].dimids[0] = (int)clen_[i];
-    }
+    Dcmp_data[i].ndims = 2; //only 2 dimensions per dataset: clen, rank
+    Dcmp_data[i].dimids = (int*)malloc(sizeof(int)*2);
+    Dcmp_data[i].dimids[0] = (int)clen_[i];
   }
 
   size_t N_clen; //N_clen = number of unique 'clen' dimensions
@@ -116,16 +111,10 @@ int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, 
   //mapping each dataset to its respective clen, rank dimensions
   for (size_t i=0; i<N_data; i++){
     for (size_t j=0; j<N_clen; j++){
-      if (Dcmp_data[j].dimids[0] == (int)(*clen)[i].len){
-        if (gsum == 1){
-          Dcmp_data[i].dimids[0] = (int)j;
-          Dcmp_data[i].dimids[1] = (int)j;
-        }
-        else{
-          Dcmp_data[i].dimids[0] = 1;
-          Dcmp_data[i].dimids[1] = (int)j;
-          Dcmp_data[i].dimids[2] = (int)j;
-        }
+      if (Dcmp_data[i].dimids[0] == (int)(*clen)[j].len){
+        Dcmp_data[i].dimids[0] = (int)j;
+        Dcmp_data[i].dimids[1] = (int)j;
+        
         break;
       }
     }
@@ -178,14 +167,27 @@ int Def_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims)
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-int Def_POD_Vars(const int ncid, const char *vname, const int rank_ID, const int clen_ID, const int N_t_ID, const int N_g_ID,
-  const int gsum, int *DCMP_IDs)
+int Def_Specs(const int ncid, Spec *Prb_specs, const size_t N_specs)
+{
+  int err;
+
+  for (size_t i=0; i<N_specs; i++){
+    err = Write_Spec(ncid,&Prb_specs[i]);
+  }
+
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Def_POD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_ID, const int N_t_ID, const int N_g_ID,
+  const int gsum, Data *Decomp)
 {
   int err;
   char loc[13] = "Def_POD_Vars";
-  size_t ndims = 2;
+  size_t ndims;
   int *dimids, p1, p2;
-  char name[128];
 
   if (gsum == 1){ ndims = 2; p1 = 0; p2 = 1;}
   else{ ndims = 3; p1 = 1; p2 = 2;}
@@ -194,20 +196,28 @@ int Def_POD_Vars(const int ncid, const char *vname, const int rank_ID, const int
   dimids[0] = N_g_ID;
 
   dimids[p1] = clen_ID;
-  memset(name,0,128); strcpy(name,"C_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims-1,dimids,&DCMP_IDs[0]); Handle_Err(err,loc);
+  memset(Decomp[0].name,0,50);
+  strcpy(Decomp[0].name,"C_");
+  strcat(Decomp[0].name,dname);
+  err = nc_def_var(ncid,Decomp[0].name,NC_DOUBLE,(int)ndims-1,dimids,&Decomp[0].id); Handle_Err(err,loc);
 
   dimids[p1] = rank_ID;
-  memset(name,0,128); strcpy(name,"S_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims-1,dimids,&DCMP_IDs[1]); Handle_Err(err,loc);
+  memset(Decomp[1].name,0,50);
+  strcpy(Decomp[1].name,"S_");
+  strcat(Decomp[1].name,dname);
+  err = nc_def_var(ncid,Decomp[1].name,NC_DOUBLE,(int)ndims-1,dimids,&Decomp[1].id); Handle_Err(err,loc);
 
   dimids[p1] = rank_ID; dimids[p2] = clen_ID;
-  memset(name,0,128); strcpy(name,"U_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims,dimids,&DCMP_IDs[2]); Handle_Err(err,loc);
+  memset(Decomp[2].name,0,50);
+  strcpy(Decomp[2].name,"U_");
+  strcat(Decomp[2].name,dname);
+  err = nc_def_var(ncid,Decomp[2].name,NC_DOUBLE,(int)ndims,dimids,&Decomp[2].id); Handle_Err(err,loc);
 
   dimids[p1] = N_t_ID; dimids[p2] = rank_ID;
-  memset(name,0,128); strcpy(name,"Vt_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims,dimids,&DCMP_IDs[3]); Handle_Err(err,loc);
+  memset(Decomp[3].name,0,50);
+  strcpy(Decomp[3].name,"Vt_");
+  strcat(Decomp[3].name,dname);
+  err = nc_def_var(ncid,Decomp[3].name,NC_DOUBLE,(int)ndims,dimids,&Decomp[3].id); Handle_Err(err,loc);
 
   free(dimids);
 
@@ -218,14 +228,13 @@ int Def_POD_Vars(const int ncid, const char *vname, const int rank_ID, const int
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-int Def_DMD_Vars(const int ncid, const char *vname, const int rank_ID, const int clen_ID, const int N_t_ID, const int N_g_ID,
-  const int gsum, int *DCMP_IDs)
+int Def_DMD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_ID, const int N_t_ID, const int N_g_ID,
+  const int gsum, Data *Decomp)
 {
   int err;
   char loc[13] = "Def_DMD_Vars";
   size_t ndims = 2;
   int *dimids, p1, p2;
-  char name[128];
 
   if (gsum == 1){ ndims = 2; p1 = 0; p2 = 1;}
   else{ ndims = 3; p1 = 1; p2 = 2;}
@@ -234,18 +243,26 @@ int Def_DMD_Vars(const int ncid, const char *vname, const int rank_ID, const int
   dimids[0] = N_g_ID;
 
   dimids[p1] = rank_ID;
-  memset(name,0,128); strcpy(name,"L_real_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims-1,dimids,&DCMP_IDs[0]); Handle_Err(err,loc);
+  memset(Decomp[0].name,0,50);
+  strcpy(Decomp[0].name,"L_real_");
+  strcat(Decomp[0].name,dname);
+  err = nc_def_var(ncid,Decomp[0].name,NC_DOUBLE,(int)ndims-1,dimids,&Decomp[0].id); Handle_Err(err,loc);
 
-  memset(name,0,128); strcpy(name,"L_imag_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims-1,dimids,&DCMP_IDs[1]); Handle_Err(err,loc);
+  memset(Decomp[1].name,0,50);
+  strcpy(Decomp[1].name,"L_imag_");
+  strcat(Decomp[1].name,dname);
+  err = nc_def_var(ncid,Decomp[1].name,NC_DOUBLE,(int)ndims-1,dimids,&Decomp[1].id); Handle_Err(err,loc);
 
   dimids[p1] = rank_ID; dimids[p2] = clen_ID;
-  memset(name,0,128); strcpy(name,"W_real_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims,dimids,&DCMP_IDs[2]); Handle_Err(err,loc);
+  memset(Decomp[2].name,0,50);
+  strcpy(Decomp[2].name,"W_real_");
+  strcat(Decomp[2].name,dname);
+  err = nc_def_var(ncid,Decomp[2].name,NC_DOUBLE,(int)ndims,dimids,&Decomp[2].id); Handle_Err(err,loc);
 
-  memset(name,0,128); strcpy(name,"W_imag_"); strcat(name,vname);
-  err = nc_def_var(ncid,name,NC_DOUBLE,(int)ndims,dimids,&DCMP_IDs[3]); Handle_Err(err,loc);
+  memset(Decomp[3].name,0,50);
+  strcpy(Decomp[3].name,"W_imag_");
+  strcat(Decomp[3].name,dname);
+  err = nc_def_var(ncid,Decomp[3].name,NC_DOUBLE,(int)ndims,dimids,&Decomp[3].id); Handle_Err(err,loc);
 
   free(dimids);
 
@@ -256,10 +273,8 @@ int Def_DMD_Vars(const int ncid, const char *vname, const int rank_ID, const int
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, const int gsum, const int N_g_ID, const int rank_BC_ID,
-  const int rank_avg_ID,const int rank_edgV_ID, const int rank_edgH_ID, const int BClen_ID, const int clen_avg_ID, const int clen_edgV_ID,
-  const int clen_edgH_ID, const int N_t_ID, int **BCg_IDs, int **fg_avg_xx_IDs, int **fg_edgV_xx_IDs, int **fg_avg_yy_IDs, int **fg_edgH_yy_IDs,
-  int **fg_edgV_xy_IDs, int **fg_edgH_xy_IDs, int **Ig_avg_IDs, int **Ig_edgV_IDs, int **Ig_edgH_IDs)
+int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcmp_data, const size_t N_data, ncdim *clen,
+  ncdim *rank, ncdim *dims, Data **Decomp)
 {
 
   int err;
@@ -268,10 +283,6 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, cons
   else if (dcmp_type == 0 && gsum == 0){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_type",5,"PODg"); }
   else if (dcmp_type == 1 && gsum == 1){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_type",4,"DMD"); }
   else if (dcmp_type == 1 && gsum == 0){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_type",5,"DMDg"); }
-
-  if (dcmp_data == 0){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_data",4,"QDf"); }
-  else if (dcmp_data == 1){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_data",2,"I"); }
-  else if (dcmp_data == 2){ err = nc_put_att_text(ncid,NC_GLOBAL,"dcmp_data",6,"meanI"); }
 
   /*------------------------------------------------------------/
   /                             POD                             /
@@ -282,45 +293,13 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, cons
                           ID[3] = Vt (right singular vectors)
   */
   if (dcmp_type == 0){ //decompose with the POD
-    if (dcmp_data == 0){ //decompose QD factors (and boundary factors)
 
-      *BCg_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_avg_xx_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgV_xx_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_avg_yy_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgH_yy_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgV_xy_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgH_xy_IDs = (int *)malloc(sizeof(int)*4);
-
-      err = Def_POD_Vars(ncid,"BCg",rank_BC_ID,BClen_ID,N_t_ID,N_g_ID,gsum,*BCg_IDs);
-      err = Def_POD_Vars(ncid,"fg_avg_xx",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*fg_avg_xx_IDs);
-      err = Def_POD_Vars(ncid,"fg_edgV_xx",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*fg_edgV_xx_IDs);
-      err = Def_POD_Vars(ncid,"fg_avg_yy",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*fg_avg_yy_IDs);
-      err = Def_POD_Vars(ncid,"fg_edgH_yy",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*fg_edgH_yy_IDs);
-      err = Def_POD_Vars(ncid,"fg_edgV_xy",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*fg_edgV_xy_IDs);
-      err = Def_POD_Vars(ncid,"fg_edgH_xy",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*fg_edgH_xy_IDs);
-
-    }
-    else if (dcmp_data == 1){ //decompose Intensities
-
-      *Ig_avg_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgV_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgH_IDs = (int *)malloc(sizeof(int)*4);
-
-      err = Def_POD_Vars(ncid,"Ig_avg",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*Ig_avg_IDs);
-      err = Def_POD_Vars(ncid,"Ig_edgV",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*Ig_edgV_IDs);
-      err = Def_POD_Vars(ncid,"Ig_edgH",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*Ig_edgH_IDs);
-
-    }
-    else if (dcmp_data == 2){ //decompose mean Intensities
-
-      *Ig_avg_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgV_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgH_IDs = (int *)malloc(sizeof(int)*4);
-
-      err = Def_POD_Vars(ncid,"Mean_Ig_avg",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*Ig_avg_IDs);
-      err = Def_POD_Vars(ncid,"Mean_Ig_edgV",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*Ig_edgV_IDs);
-      err = Def_POD_Vars(ncid,"Mean_Ig_edgH",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*Ig_edgH_IDs);
+    *Decomp = (Data*)malloc(sizeof(Data)*N_data*4);
+    size_t p = 0;
+    for (size_t i=0; i<N_data; i++){
+      err = Def_POD_Vars(ncid, Dcmp_data[i].name, rank[Dcmp_data[i].dimids[1]].id, clen[Dcmp_data[i].dimids[0]].id,
+        dims[0].id, dims[1].id, gsum, &(*Decomp)[p]);
+      p = p + 4;
 
     }
   }
@@ -333,47 +312,16 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int dcmp_data, cons
                           ID[3] = W_imag (DMD modes/ eigenvectors, imaginary component)
   */
   else if (dcmp_type == 1){ //decompose with the DMD
-    if (dcmp_data == 0){ //decompose QD factors (and boundary factors)
 
-      *BCg_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_avg_xx_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgV_xx_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_avg_yy_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgH_yy_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgV_xy_IDs = (int *)malloc(sizeof(int)*4);
-      *fg_edgH_xy_IDs = (int *)malloc(sizeof(int)*4);
-
-      err = Def_DMD_Vars(ncid,"BCg",rank_BC_ID,BClen_ID,N_t_ID,N_g_ID,gsum,*BCg_IDs);
-      err = Def_DMD_Vars(ncid,"fg_avg_xx",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*fg_avg_xx_IDs);
-      err = Def_DMD_Vars(ncid,"fg_edgV_xx",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*fg_edgV_xx_IDs);
-      err = Def_DMD_Vars(ncid,"fg_avg_yy",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*fg_avg_yy_IDs);
-      err = Def_DMD_Vars(ncid,"fg_edgH_yy",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*fg_edgH_yy_IDs);
-      err = Def_DMD_Vars(ncid,"fg_edgV_xy",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*fg_edgV_xy_IDs);
-      err = Def_DMD_Vars(ncid,"fg_edgH_xy",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*fg_edgH_xy_IDs);
+    *Decomp = (Data*)malloc(sizeof(Data)*N_data*4);
+    size_t p = 0;
+    for (size_t i=0; i<N_data; i++){
+      err = Def_DMD_Vars(ncid, Dcmp_data[i].name, rank[Dcmp_data[i].dimids[1]].id, clen[Dcmp_data[i].dimids[0]].id,
+        dims[0].id, dims[1].id, gsum, &(*Decomp)[p]);
+      p = p + 4;
 
     }
-    else if (dcmp_data == 1){ //decompose Intensities
 
-      *Ig_avg_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgV_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgH_IDs = (int *)malloc(sizeof(int)*4);
-
-      err = Def_DMD_Vars(ncid,"Ig_avg",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*Ig_avg_IDs);
-      err = Def_DMD_Vars(ncid,"Ig_edgV",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*Ig_edgV_IDs);
-      err = Def_DMD_Vars(ncid,"Ig_edgH",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*Ig_edgH_IDs);
-
-    }
-    else if (dcmp_data == 2){ //decompose mean Intensities
-
-      *Ig_avg_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgV_IDs = (int *)malloc(sizeof(int)*4);
-      *Ig_edgH_IDs = (int *)malloc(sizeof(int)*4);
-
-      err = Def_DMD_Vars(ncid,"Mean_Ig_avg",rank_avg_ID,clen_avg_ID,N_t_ID,N_g_ID,gsum,*Ig_avg_IDs);
-      err = Def_DMD_Vars(ncid,"Mean_Ig_edgV",rank_edgV_ID,clen_edgV_ID,N_t_ID,N_g_ID,gsum,*Ig_edgV_IDs);
-      err = Def_DMD_Vars(ncid,"Mean_Ig_edgH",rank_edgH_ID,clen_edgH_ID,N_t_ID,N_g_ID,gsum,*Ig_edgH_IDs);
-
-    }
   }
 
   return err;

@@ -68,21 +68,9 @@ int Read_List(char *line, char ***list_out, const size_t llen, const size_t lstr
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
-int Load_Specs(char ***spec_names, size_t *N_specs)
+int Load_Specs(char **spec_names, size_t *N_specs, Spec **Prb_specs)
 {
   int err = 0;
-
-  char **temp; //temporary array
-  temp = (char **)malloc(sizeof(char*)*(*N_specs));
-
-  //copying spec_names array to temporary array and freeing spec_names
-  for (size_t i=0; i<(*N_specs); i++){
-    temp[i] = (char *)malloc(sizeof(char)*20); //allocate string
-    memset(temp[i],0,20); //scrub memory
-    strcpy(temp[i],(*spec_names)[i]); //copy data
-    free((*spec_names)[i]); //free string
-  }
-  free(*spec_names); //free pointer array
 
   //holding input number of specs, resetting N_specs
   size_t ns = *N_specs;
@@ -90,7 +78,7 @@ int Load_Specs(char ***spec_names, size_t *N_specs)
 
   //finding updated number of specs if any default flags encountered
   for (size_t n=0; n<ns; n++){
-    if (strcmp(temp[n],"TRT") == 0){ //TRT = preset flags for TRT problem
+    if (strcmp(spec_names[n],"TRT") == 0){ //TRT = preset flags for TRT problem
       *N_specs = *N_specs + 8;
     }
     else{
@@ -98,36 +86,31 @@ int Load_Specs(char ***spec_names, size_t *N_specs)
     }
   }
 
-  //re-allocating spec_names array according to updated N_specs
-  *spec_names = (char **)malloc(sizeof(char*)*(*N_specs));
-  for (size_t i=0; i<(*N_specs); i++){
-    (*spec_names)[i] = (char *)malloc(sizeof(char)*20);
-    memset((*spec_names)[i],0,20);
-  }
+  *Prb_specs = (Spec *)malloc(sizeof(Spec)*(*N_specs));
 
   //loading in all spec_names
   size_t p=0;
   for (size_t n=0; n<ns; n++){
-    if (strcmp(temp[n],"TRT") == 0){ //TRT flag detected, loading default specs
-      strcpy((*spec_names)[p],"tlen"); p++;
-      strcpy((*spec_names)[p],"xlen"); p++;
-      strcpy((*spec_names)[p],"ylen"); p++;
-      strcpy((*spec_names)[p],"bcT_left"); p++;
-      strcpy((*spec_names)[p],"bcT_bottom"); p++;
-      strcpy((*spec_names)[p],"bcT_right"); p++;
-      strcpy((*spec_names)[p],"bcT_top"); p++;
-      strcpy((*spec_names)[p],"Tini"); p++;
+    if (strcmp(spec_names[n],"TRT") == 0){ //TRT flag detected, loading default specs
+      strcpy((*Prb_specs)[p].name,"tlen"); p++;
+      strcpy((*Prb_specs)[p].name,"xlen"); p++;
+      strcpy((*Prb_specs)[p].name,"ylen"); p++;
+      strcpy((*Prb_specs)[p].name,"bcT_left"); p++;
+      strcpy((*Prb_specs)[p].name,"bcT_bottom"); p++;
+      strcpy((*Prb_specs)[p].name,"bcT_right"); p++;
+      strcpy((*Prb_specs)[p].name,"bcT_top"); p++;
+      strcpy((*Prb_specs)[p].name,"Tini"); p++;
     }
     else{
-      strcpy((*spec_names)[p],temp[n]); p++;
+      strcpy((*Prb_specs)[p].name,spec_names[n]); p++;
     }
   }
 
   //freeing temporary array
   for (size_t n=0; n<ns; n++){
-    free(temp[n]);
+    free(spec_names[n]);
   }
-  free(temp);
+  free(spec_names);
 
   //termination
   return err;
@@ -441,13 +424,13 @@ int Get_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims)
   dcmp_type - type of decomposition to use
   dcmp_data - type of data to decompose */
 /*================================================================================================================================*/
-int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *gsum, double *svd_eps, char ***spec_names, size_t *N_specs,
+int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *gsum, double *svd_eps, Spec **Prb_specs, size_t *N_specs,
   Data **Dcmp_data, size_t *N_data, Data **Disc_Wts, size_t *N_wts)
 {
   FILE *inpf;
   char line[256];
   char **inps, delim = ' ';
-  char dcmp_type_in[10], **data_names, **wt_names;
+  char dcmp_type_in[10], **spec_names, **data_names, **wt_names;
   int err;
   size_t nargs = 2;
   size_t inp_size = 25;
@@ -528,7 +511,7 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
       }
 
       //reading in list of spec_names
-      err = Read_List(line,spec_names,*N_specs,2);
+      err = Read_List(line,&spec_names,*N_specs,2);
 
     }
     else if (strcmp(inps[0],"Disc_wts") == 0){
@@ -579,22 +562,6 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
     return 1;
   }
 
-  //translating input dcmp_data to an integer value
-  // if (strcmp(dcmp_data_in,"QDf") == 0){
-  //   (*dcmp_data) = 0;
-  // }
-  // else if (strcmp(dcmp_data_in,"I") == 0){
-  //   (*dcmp_data) = 1;
-  // }
-  // else if (strcmp(dcmp_data_in,"Mean_I") == 0){
-  //   (*dcmp_data) = 2;
-  // }
-  // else{
-  //   printf("Error! [location INPUTS.c/Input]\n");
-  //   printf("Unrecognized dcmp_data in input file! (%s)\n",dcmp_data_in);
-  //   printf("Valid dcmp_data include: QDf, I, Mean_I\n");
-  //   return 1;
-  // }
   if (*N_data == 0){
     *N_data = 1;
     data_names = (char **)malloc(sizeof(char *));
@@ -610,11 +577,13 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
     strcpy(wt_names[0],"default");
   }
 
-  //loading spec_names (checking for flags to 'default' sets of spec_names)
-  err = Load_Specs(spec_names,N_specs);
+  //loading Prb_specs (checking for flags to 'default' sets of spec_names)
+  err = Load_Specs(spec_names,N_specs,Prb_specs);
 
+  //loading Dcmp_data
   err = Load_Data(data_names,N_data,Dcmp_data);
 
+  //loading Disc_Wts
   err = Load_Wts(wt_names,N_wts,Disc_Wts);
 
   //successfull termination

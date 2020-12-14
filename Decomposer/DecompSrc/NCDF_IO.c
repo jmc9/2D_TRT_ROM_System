@@ -88,3 +88,27 @@ int Get_Spec(const int ncid, Spec *spec)
 
   return err;
 }
+
+/*================================================================================================================================*/
+/*  */
+/*================================================================================================================================*/
+int Write_Spec(const int ncid, Spec *spec)
+{
+  int err;
+  char loc[11] = "Write_Spec";
+
+  err = nc_def_var(ncid,spec->name,spec->type,0,0,&spec->id); Handle_Err(err,loc);
+
+  if (spec->type == sp_dbl){
+    err = nc_put_var_double(ncid,spec->id,(double*)spec->data); Handle_Err(err,loc);
+  }
+  else if (spec->type == sp_int){
+    err = nc_put_var_int(ncid,spec->id,(int*)spec->data); Handle_Err(err,loc);
+  }
+  else{
+    printf("Write_Spec only handles doubles, ints right now\n");
+    return 1;
+  }
+
+  return err;
+}

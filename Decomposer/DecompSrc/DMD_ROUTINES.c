@@ -10,9 +10,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <netcdf.h>
+// #include <netcdf.h>
 #include <complex.h>
 #include <math.h>
+
+/* ----- LOCAL ----- */
+#include "Data_Handling.h"
 
 /*================================================================================================================================*/
 /* Importing Functions */
@@ -246,7 +249,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 /**/
 /*================================================================================================================================*/
 int Generate_DMD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const double svd_eps, const int *DCMP_IDs)
+  const size_t rank, const double svd_eps, Data *Decomp)
 {
   int err;
   int *N_modes;
@@ -284,7 +287,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = xr; countp[2] = 0;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-      err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,temp); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,temp); Handle_Err(err,loc);
 
       temp2 = (double *)malloc(sizeof(double)*xr);
       for (size_t i=0; i<xr; i++){
@@ -292,7 +295,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       }
 
       //write DMD eigenvalue (imaginary component) vector to outfile
-      err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,temp2); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
       //plot the singular values
       strcpy(pname,dname); sprintf(buf,"_g%lu",g+1); strcat(pname,buf);
@@ -308,14 +311,14 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = xr; countp[2] = clen;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
-      err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,temp); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[2].id,startp,countp,stridep,temp); Handle_Err(err,loc);
 
       for (size_t i=0; i<xr*clen; i++){
         temp[i] = cimag(wmat[i]);
       }
 
       //write DMD mode matrix (imaginary component) to outfile
-      err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,temp); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,temp); Handle_Err(err,loc);
 
       //deallocating arrays
       free(wmat); free(lambda); free(temp); free(temp2);
@@ -343,7 +346,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = xr; countp[1] = 0; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
-    err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,temp); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,temp); Handle_Err(err,loc);
 
     temp2 = (double *)malloc(sizeof(double)*xr);
     for (size_t i=0; i<xr; i++){
@@ -351,7 +354,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     }
 
     //write DMD eigenvalue (imaginary component) vector to outfile
-    err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,temp2); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
     //plot the singular values
     strcpy(pname,dname); err = Lambda_Plot(pname,temp,temp2,(int)xr,drop);
@@ -366,14 +369,14 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = xr; countp[1] = clen; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-    err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,temp); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[2].id,startp,countp,stridep,temp); Handle_Err(err,loc);
 
     for (size_t i=0; i<xr*clen; i++){
       temp[i] = cimag(wmat[i]);
     }
 
     //write DMD mode matrix (imaginary component) to outfile
-    err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,temp); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,temp); Handle_Err(err,loc);
 
     //deallocating arrays
     free(wmat); free(lambda); free(temp); free(temp2);
@@ -387,3 +390,145 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
 
   return err;
 }
+// int Generate_DMD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
+//   const size_t rank, const double svd_eps, const int *DCMP_IDs)
+// {
+//   int err;
+//   int *N_modes;
+//   char loc[13] = "Generate_DMD";
+//   char buf[25], pname[25], drop[25];
+//   double complex *wmat, *lambda;
+//   double *temp, *temp2;
+//
+//   size_t startp[3], countp[3], xr;
+//   ptrdiff_t stridep[3];
+//
+//   //creating directory to put plots
+//   err = Make_Dir(dname); //setting up directory
+//   strcpy(drop,dname); strcat(drop,"/"); //creating path to directory
+//
+//   //checking type of dataset to perform POD on
+//   if(N_g > 0){ //if N_g>0, then a multigroup dataset has been detected
+//     printf("    -- groupwise decomposition detected\n");
+//
+//     N_modes = (int *)malloc(sizeof(int)*N_g);
+//
+//     //loop over energy groups
+//     for(size_t g=0; g<N_g; g++){
+//       printf("    -- Start DMD on group %lu\n",g+1);
+//
+//       //find the POD modes and singular values of a given groupwise datamatrix
+//       err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&xr);
+//
+//       temp = (double *)malloc(sizeof(double)*xr);
+//       for (size_t i=0; i<xr; i++){
+//         temp[i] = creal(lambda[i]);
+//       }
+//
+//       //write singular value vector to outfile
+//       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+//       countp[0] = 1; countp[1] = xr; countp[2] = 0;
+//       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+//       err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,temp); Handle_Err(err,loc);
+//
+//       temp2 = (double *)malloc(sizeof(double)*xr);
+//       for (size_t i=0; i<xr; i++){
+//         temp2[i] = cimag(lambda[i]);
+//       }
+//
+//       //write DMD eigenvalue (imaginary component) vector to outfile
+//       err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,temp2); Handle_Err(err,loc);
+//
+//       //plot the singular values
+//       strcpy(pname,dname); sprintf(buf,"_g%lu",g+1); strcat(pname,buf);
+//       err = Lambda_Plot(pname,temp,temp2,(int)xr,drop);
+//
+//       free(temp);
+//       temp = (double *)malloc(sizeof(double)*xr*clen);
+//       for (size_t i=0; i<xr*clen; i++){
+//         temp[i] = creal(wmat[i]);
+//       }
+//
+//       //write left singular vector matrix to outfile
+//       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+//       countp[0] = 1; countp[1] = xr; countp[2] = clen;
+//       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
+//       err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,temp); Handle_Err(err,loc);
+//
+//       for (size_t i=0; i<xr*clen; i++){
+//         temp[i] = cimag(wmat[i]);
+//       }
+//
+//       //write DMD mode matrix (imaginary component) to outfile
+//       err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,temp); Handle_Err(err,loc);
+//
+//       //deallocating arrays
+//       free(wmat); free(lambda); free(temp); free(temp2);
+//
+//       N_modes[g] = (int)xr;
+//
+//     } //end g loop
+//
+//     memset(pname,0,25); strcpy(pname,"N_modes_"); strcat(pname,dname);
+//     err = nc_put_att_int(ncid_out,NC_GLOBAL,pname,NC_INT,N_g,N_modes); Handle_Err(err,loc);
+//     free(N_modes);
+//
+//   }
+//   else{
+//     printf("    -- Start DMD on full phase space\n");
+//
+//     err = DMD_Calc(data,N_t,N_g,clen,rank,0,svd_eps,&wmat,&lambda,&xr);
+//
+//     temp = (double *)malloc(sizeof(double)*xr);
+//     for (size_t i=0; i<xr; i++){
+//       temp[i] = creal(lambda[i]);
+//     }
+//
+//     //write DMD eigenvalue (real component) vector to outfile
+//     startp[0] = 0; startp[1] = 0; startp[2] = 0;
+//     countp[0] = xr; countp[1] = 0; countp[2] = 0;
+//     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
+//     err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,temp); Handle_Err(err,loc);
+//
+//     temp2 = (double *)malloc(sizeof(double)*xr);
+//     for (size_t i=0; i<xr; i++){
+//       temp2[i] = cimag(lambda[i]);
+//     }
+//
+//     //write DMD eigenvalue (imaginary component) vector to outfile
+//     err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,temp2); Handle_Err(err,loc);
+//
+//     //plot the singular values
+//     strcpy(pname,dname); err = Lambda_Plot(pname,temp,temp2,(int)xr,drop);
+//
+//     free(temp);
+//     temp = (double *)malloc(sizeof(double)*xr*clen);
+//     for (size_t i=0; i<xr*clen; i++){
+//       temp[i] = creal(wmat[i]);
+//     }
+//
+//     //write DMD mode matrix (real component) to outfile
+//     startp[0] = 0; startp[1] = 0; startp[2] = 0;
+//     countp[0] = xr; countp[1] = clen; countp[2] = 0;
+//     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+//     err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,temp); Handle_Err(err,loc);
+//
+//     for (size_t i=0; i<xr*clen; i++){
+//       temp[i] = cimag(wmat[i]);
+//     }
+//
+//     //write DMD mode matrix (imaginary component) to outfile
+//     err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,temp); Handle_Err(err,loc);
+//
+//     //deallocating arrays
+//     free(wmat); free(lambda); free(temp); free(temp2);
+//
+//     N_modes = (int *)malloc(sizeof(int)*1);
+//     N_modes[0] = (int)xr;
+//     memset(pname,0,25); strcpy(pname,"N_modes_"); strcat(pname,dname);
+//     err = nc_put_att_int(ncid_out,NC_GLOBAL,pname,NC_INT,1,N_modes); Handle_Err(err,loc);
+//
+//   }
+//
+//   return err;
+// }

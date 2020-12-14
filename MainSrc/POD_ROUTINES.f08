@@ -460,7 +460,7 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_BCg,S_BCg,U_BCg,
 
   CALL NF_INQ_DIM(ncID,"N_x",N_x)
   CALL NF_INQ_DIM(ncID,"N_y",N_y)
-  CALL NF_INQ_DIM(ncID,"N_m",N_m)
+  ! CALL NF_INQ_DIM(ncID,"N_m",N_m)
   CALL NF_INQ_DIM(ncID,"N_g",N_g)
   CALL NF_INQ_DIM(ncID,"N_t",N_t)
 
@@ -472,8 +472,12 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_BCg,S_BCg,U_BCg,
   CALL NF_INQ_VAR_0D(ncID,"Delt",Delt)
   CALL NF_INQ_VAR_1D(ncID,"Delx",Delx,(/1/),(/N_x/))
   CALL NF_INQ_VAR_1D(ncID,"Dely",Dely,(/1/),(/N_y/))
-  CALL NF_INQ_intVAR_1D(ncID,"BC_Type",BC_Type,(/1/),(/4/))
-  CALL NF_INQ_VAR_1D(ncID,"bcT",bcT,(/1/),(/4/))
+  ! CALL NF_INQ_intVAR_1D(ncID,"BC_Type",BC_Type,(/1/),(/4/))
+  ! CALL NF_INQ_VAR_1D(ncID,"bcT",bcT,(/1/),(/4/))
+  CALL NF_INQ_VAR_0D(ncID,"bcT_left",bcT(1))
+  CALL NF_INQ_VAR_0D(ncID,"bcT_bottom",bcT(2))
+  CALL NF_INQ_VAR_0D(ncID,"bcT_right",bcT(3))
+  CALL NF_INQ_VAR_0D(ncID,"bcT_top",bcT(4))
   CALL NF_INQ_VAR_0D(ncID,"Tini",Tini)
 
   IF (PODgsum .EQ. 1) THEN
@@ -584,26 +588,26 @@ SUBROUTINE INPUT_Ig_POD(Fname,PODgsum,N_x,N_y,N_m,N_g,N_t,eps,C_I_avg,S_I_avg,U_
     ALLOCATE(rrank_I_avg(1), rrank_I_edgV(1), rrank_I_edgH(1))
 
     clen = dN_x*dN_y*dN_m*dN_g
-    CALL READ_POD(ncID,'Ig_avg',clen,dN_t,eps,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg(1))
+    CALL READ_POD(ncID,'I_avg',clen,dN_t,eps,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg(1))
 
     clen = (dN_x+1)*dN_y*dN_m*dN_g
-    CALL READ_POD(ncID,'Ig_edgV',clen,dN_t,eps,C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV(1))
+    CALL READ_POD(ncID,'I_edgV',clen,dN_t,eps,C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV(1))
 
     clen = dN_x*(dN_y+1)*dN_m*dN_g
-    CALL READ_POD(ncID,'Ig_edgH',clen,dN_t,eps,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH(1))
+    CALL READ_POD(ncID,'I_edgH',clen,dN_t,eps,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH(1))
 
   ELSE
     ALLOCATE(rrank_I_avg(dN_g), rrank_I_edgV(dN_g), rrank_I_edgH(dN_g))
 
     DO g=1,dN_g
       clen = dN_x*dN_y*dN_m
-      CALL READ_POD(ncID,'Ig_avg',clen,dN_t,dN_g,g,eps,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg(g))
+      CALL READ_POD(ncID,'I_avg',clen,dN_t,dN_g,g,eps,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg(g))
 
       clen = (dN_x+1)*dN_y*dN_m
-      CALL READ_POD(ncID,'Ig_edgV',clen,dN_t,dN_g,g,eps,C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV(g))
+      CALL READ_POD(ncID,'I_edgV',clen,dN_t,dN_g,g,eps,C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV(g))
 
       clen = dN_x*(dN_y+1)*dN_m
-      CALL READ_POD(ncID,'Ig_edgH',clen,dN_t,dN_g,g,eps,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH(g))
+      CALL READ_POD(ncID,'I_edgH',clen,dN_t,dN_g,g,eps,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH(g))
 
     END DO
 

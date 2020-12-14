@@ -304,7 +304,6 @@ void Get_Dims(const int ncid, int *BC_Type, Spec *Prb_specs, const size_t N_spec
   Data *Dcmp_data, const size_t N_data, ncdim **dims, size_t *N_dims, Data *Disc_Wts, const size_t N_wts)
 {
   int err;
-  int Delt_ID, Delx_ID, Dely_ID;
   char loc[9] = "Get_Dims";
 
   *N_dims = 0;

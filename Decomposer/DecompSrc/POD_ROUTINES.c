@@ -10,7 +10,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <netcdf.h>
+// #include <netcdf.h>
+
+/* ----- LOCAL ----- */
+#include "Data_Handling.h"
 
 /*================================================================================================================================*/
 /* Importing Functions */
@@ -121,7 +124,7 @@ int POD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 /**/
 /*================================================================================================================================*/
 int Generate_POD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const int *DCMP_IDs)
+  const size_t rank, Data *Decomp)
 {
   int err;
   char loc[13] = "GENERATE_POD";
@@ -152,25 +155,25 @@ int Generate_POD(const double *data, const int ncid_out, const char *dname, cons
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = clen; countp[2] = 0;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-      err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,center); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,center); Handle_Err(err,loc);
 
       //write singular value vector to outfile
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = rank; countp[2] = 0;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-      err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,sig); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,sig); Handle_Err(err,loc);
 
       //write left singular vector matrix to outfile
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = rank; countp[2] = clen;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
-      err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,umat); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[2].id,startp,countp,stridep,umat); Handle_Err(err,loc);
 
       //write right singular vector matrix to outfile
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = N_t; countp[2] = rank;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
-      err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,vtmat); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,vtmat); Handle_Err(err,loc);
 
       //plot the singular values
       strcpy(pname,dname); sprintf(buf,"_g%lu",g+1); strcat(pname,buf);
@@ -191,25 +194,25 @@ int Generate_POD(const double *data, const int ncid_out, const char *dname, cons
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = clen; countp[1] = 0; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
-    err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,center); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,center); Handle_Err(err,loc);
 
     //write singular value vector to outfile
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = rank; countp[1] = 0; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
-    err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,sig); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,sig); Handle_Err(err,loc);
 
     //write left singular vector matrix to outfile
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = rank; countp[1] = clen; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-    err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,umat); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[2].id,startp,countp,stridep,umat); Handle_Err(err,loc);
 
     //write right singular vector matrix to outfile
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = N_t; countp[1] = rank; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-    err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,vtmat); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,vtmat); Handle_Err(err,loc);
 
     //plot the singular values
     strcpy(pname,dname); err = Sig_Plot(pname,sig,sigp,(int)rank,drop);
@@ -221,3 +224,105 @@ int Generate_POD(const double *data, const int ncid_out, const char *dname, cons
 
   return err;
 }
+
+// int Generate_POD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
+//   const size_t rank, const int *DCMP_IDs)
+// {
+//   int err;
+//   char loc[13] = "GENERATE_POD";
+//   char buf[25], pname[25], drop[25];
+//   double *center, *umat, *sig, *vtmat, *sigp;
+//
+//   size_t startp[3], countp[3];
+//   ptrdiff_t stridep[3];
+//
+//   // rank = min(clen,N_t);
+//
+//   //creating directory to put plots
+//   err = Make_Dir(dname); //setting up directory
+//   strcpy(drop,dname); strcat(drop,"/"); //creating path to directory
+//
+//   //checking type of dataset to perform POD on
+//   if(N_g > 0){ //if N_g>0, then a multigroup dataset has been detected
+//     printf("    -- groupwise decomposition detected\n");
+//
+//     //loop over energy groups
+//     for(size_t g=0; g<N_g; g++){
+//       printf("    -- Start POD on group %lu\n",g+1);
+//
+//       //find the POD modes and singular values of a given groupwise datamatrix
+//       err = POD_Calc(data,N_t,N_g,clen,rank,g,&center,&umat,&sig,&vtmat,&sigp);
+//
+//       //write centering (column-avg'd data) vector to outfile
+//       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+//       countp[0] = 1; countp[1] = clen; countp[2] = 0;
+//       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+//       err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,center); Handle_Err(err,loc);
+//
+//       //write singular value vector to outfile
+//       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+//       countp[0] = 1; countp[1] = rank; countp[2] = 0;
+//       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+//       err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,sig); Handle_Err(err,loc);
+//
+//       //write left singular vector matrix to outfile
+//       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+//       countp[0] = 1; countp[1] = rank; countp[2] = clen;
+//       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
+//       err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,umat); Handle_Err(err,loc);
+//
+//       //write right singular vector matrix to outfile
+//       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
+//       countp[0] = 1; countp[1] = N_t; countp[2] = rank;
+//       stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
+//       err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,vtmat); Handle_Err(err,loc);
+//
+//       //plot the singular values
+//       strcpy(pname,dname); sprintf(buf,"_g%lu",g+1); strcat(pname,buf);
+//       err = Sig_Plot(pname,sig,sigp,(int)rank,drop);
+//
+//       //deallocating arrays
+//       free(center); free(umat); free(sig); free(vtmat); free(sigp);
+//
+//     } //end g loop
+//
+//   }
+//   else{
+//     printf("    -- Start POD on full phase space\n");
+//
+//     err = POD_Calc(data,N_t,N_g,clen,rank,0,&center,&umat,&sig,&vtmat,&sigp);
+//
+//     //write centering (column-avg'd data) vector to outfile
+//     startp[0] = 0; startp[1] = 0; startp[2] = 0;
+//     countp[0] = clen; countp[1] = 0; countp[2] = 0;
+//     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
+//     err = nc_put_vars(ncid_out,DCMP_IDs[0],startp,countp,stridep,center); Handle_Err(err,loc);
+//
+//     //write singular value vector to outfile
+//     startp[0] = 0; startp[1] = 0; startp[2] = 0;
+//     countp[0] = rank; countp[1] = 0; countp[2] = 0;
+//     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
+//     err = nc_put_vars(ncid_out,DCMP_IDs[1],startp,countp,stridep,sig); Handle_Err(err,loc);
+//
+//     //write left singular vector matrix to outfile
+//     startp[0] = 0; startp[1] = 0; startp[2] = 0;
+//     countp[0] = rank; countp[1] = clen; countp[2] = 0;
+//     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+//     err = nc_put_vars(ncid_out,DCMP_IDs[2],startp,countp,stridep,umat); Handle_Err(err,loc);
+//
+//     //write right singular vector matrix to outfile
+//     startp[0] = 0; startp[1] = 0; startp[2] = 0;
+//     countp[0] = N_t; countp[1] = rank; countp[2] = 0;
+//     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+//     err = nc_put_vars(ncid_out,DCMP_IDs[3],startp,countp,stridep,vtmat); Handle_Err(err,loc);
+//
+//     //plot the singular values
+//     strcpy(pname,dname); err = Sig_Plot(pname,sig,sigp,(int)rank,drop);
+//
+//     //deallocating arrays
+//     free(center); free(umat); free(sig); free(vtmat); free(sigp);
+//
+//   }
+//
+//   return err;
+// }

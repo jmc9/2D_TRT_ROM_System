@@ -198,6 +198,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   for(size_t i=0; i<xr; i++){
     for(size_t j=0; j<(N_t-1); j++){
       xv[px] = xv[px]/xs[i];
+      px++;
     }
   }
   free(xs);

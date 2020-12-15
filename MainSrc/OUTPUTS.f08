@@ -263,10 +263,15 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   CALL NF_DEF_UNIT(outID,Tini_ID,'ev')
 
   CALL NF_DEF_VAR(xpts_avg_ID,outID,(/N_x_ID/),'xpts_avg','Double')
+  Status = nf90_put_att(outID,xpts_avg_ID,'bnds',(/0d0,xlen/))
   CALL NF_DEF_VAR(xpts_edgV_ID,outID,(/N_edgV_ID/),'xpts_edgV','Double')
+  Status = nf90_put_att(outID,xpts_edgV_ID,'bnds',(/0d0,xlen/))
   CALL NF_DEF_VAR(ypts_avg_ID,outID,(/N_y_ID/),'ypts_avg','Double')
+  Status = nf90_put_att(outID,ypts_avg_ID,'bnds',(/0d0,ylen/))
   CALL NF_DEF_VAR(ypts_edgH_ID,outID,(/N_edgH_ID/),'ypts_edgH','Double')
+  Status = nf90_put_att(outID,ypts_edgH_ID,'bnds',(/0d0,ylen/))
   CALL NF_DEF_VAR(tpts_ID,outID,(/N_t_ID/),'tpts','Double')
+  Status = nf90_put_att(outID,tpts_ID,'bnds',(/0d0,tlen/))
 
   !===========================================================================!
   !                                                                           !

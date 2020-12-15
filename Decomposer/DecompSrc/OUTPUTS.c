@@ -166,6 +166,7 @@ int Def_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims,
     free(d);
 
     err = nc_put_var_double(ncid,Grids[i].id,Grids[i].dat); Handle_Err(err,loc);
+    err = nc_put_att_double(ncid,Grids[i].id,"bnds",NC_DOUBLE,2,Grids[i].bnds); Handle_Err(err,loc);
   }
 
   size_t *dcounts = malloc(sizeof(size_t)*N_data);
@@ -175,17 +176,18 @@ int Def_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims,
 
   for (size_t i=0; i<N_data; i++){
 
+    int id, id2;
+    err = nc_def_var(ncid, Dcmp_data[i].name, NC_DOUBLE, 0, &id2, &id); Handle_Err(err,loc);
+    err = nc_put_att_int(ncid, id, "N_dims", NC_INT, 1, (int*)&Dcmp_data[i].ndims); Handle_Err(err,loc);
+    for (size_t j=0; j<Dcmp_data[i].ndims; j++){
+      char buf[10];
+      memset(buf,0,10);
+      sprintf(buf,"dim%ld",j);
+      err = nc_put_att_text(ncid, id, buf, 10, dims[Dcmp_data[i].dimids[j]].name); Handle_Err(err,loc);
+    }
+
     if (Dcmp_data[i].opt[0] == 0){
 
-      int id, id2;
-      err = nc_def_var(ncid, Dcmp_data[i].name, NC_DOUBLE, 0, &id2, &id); Handle_Err(err,loc);
-      err = nc_put_att_int(ncid, id, "N_dims", NC_INT, 1, (int*)&Dcmp_data[i].ndims); Handle_Err(err,loc);
-      for (size_t j=0; j<Dcmp_data[i].ndims; j++){
-        char buf[10];
-        memset(buf,0,10);
-        sprintf(buf,"dim%ld",j);
-        err = nc_put_att_text(ncid, id, buf, 10, dims[Dcmp_data[i].dimids[j]].name); Handle_Err(err,loc);
-      }
       err = nc_put_att_int(ncid, id, "N_grids", NC_INT, 1, (int*)&Dcmp_data[i].ngrids); Handle_Err(err,loc);
       for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
         char buf[10];

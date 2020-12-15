@@ -453,6 +453,9 @@ int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids
     }
     (*Grids)[i].dat = (double*)malloc(sizeof(double)*dlen);
     err = nc_get_var_double(ncid, (*Grids)[i].id, &(*Grids)[i].dat[0]); Handle_Err(err,loc);
+
+    (*Grids)[i].bnds = (double*)malloc(sizeof(double)*2);
+    err = nc_get_att_double(ncid, (*Grids)[i].id, "bnds", (*Grids)[i].bnds); Handle_Err(err,loc);
   }
   free(gridlist);
 

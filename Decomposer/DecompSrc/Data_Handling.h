@@ -35,6 +35,7 @@ typedef struct Data
   char cdat[50];
   double *dat;
   int id;
+  double *bnds;
 } Data;
 
 #define sp_int NC_INT

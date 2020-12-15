@@ -1,6 +1,7 @@
 MODULE OUTPUTS
 
   USE NCDF_IO
+  USE netcdf
 
   IMPLICIT NONE
 
@@ -15,7 +16,8 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   bcT_bottom,bcT_right,bcT_top,Tini,E_Bound_Low,T_Bound_Low,N_x,N_y,N_m,N_g,N_t,use_grey,maxit_RTE,&
   maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
   Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
-  QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type,Direc_Diff)
+  QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type,Direc_Diff,&
+  xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts)
 
   INTEGER,INTENT(OUT):: outID
   INTEGER,INTENT(OUT):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -24,6 +26,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
 
   REAL*8,INTENT(IN):: c, h, pi, erg, Comp_Unit, cv
   REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt, Theta
+  REAL*8,INTENT(IN):: xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low, POD_err
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: use_grey, maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads, BC_type(:)
@@ -36,6 +39,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   INTEGER:: Status
   INTEGER:: xlen_ID, ylen_ID
   INTEGER:: Delx_ID, Dely_ID, tlen_ID, Delt_ID, BC_type_ID, bcT_left_ID, bcT_bottom_ID, bcT_right_ID, bcT_top_ID, Tini_ID
+  INTEGER:: xpts_avg_ID, xpts_edgV_ID, ypts_avg_ID, ypts_edgH_ID, tpts_ID
   INTEGER:: Z(0)
 
   !Opening output file
@@ -258,6 +262,12 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   CALL NF_DEF_VAR(Tini_ID,outID,Z,'Tini','Double')
   CALL NF_DEF_UNIT(outID,Tini_ID,'ev')
 
+  CALL NF_DEF_VAR(xpts_avg_ID,outID,(/N_x_ID/),'xpts_avg','Double')
+  CALL NF_DEF_VAR(xpts_edgV_ID,outID,(/N_edgV_ID/),'xpts_edgV','Double')
+  CALL NF_DEF_VAR(ypts_avg_ID,outID,(/N_y_ID/),'ypts_avg','Double')
+  CALL NF_DEF_VAR(ypts_edgH_ID,outID,(/N_edgH_ID/),'ypts_edgH','Double')
+  CALL NF_DEF_VAR(tpts_ID,outID,(/N_t_ID/),'tpts','Double')
+
   !===========================================================================!
   !                                                                           !
   !     TAKING FILE OUT OF DEFINE MODE                                        !
@@ -321,6 +331,24 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   Status = nf90_put_var(outID,Tini_ID,Tini)
   CALL HANDLE_ERR(Status)
 
+  !
+  !
+
+  Status = nf90_put_var(outID,xpts_avg_ID,xpts_avg,(/1/),(/N_x/))
+  CALL HANDLE_ERR(Status)
+
+  Status = nf90_put_var(outID,xpts_edgV_ID,xpts_edgV,(/1/),(/N_x+1/))
+  CALL HANDLE_ERR(Status)
+
+  Status = nf90_put_var(outID,ypts_avg_ID,ypts_avg,(/1/),(/N_y/))
+  CALL HANDLE_ERR(Status)
+
+  Status = nf90_put_var(outID,ypts_edgH_ID,ypts_edgH,(/1/),(/N_y+1/))
+  CALL HANDLE_ERR(Status)
+
+  Status = nf90_put_var(outID,tpts_ID,tpts,(/1/),(/N_t/))
+  CALL HANDLE_ERR(Status)
+
 END SUBROUTINE OUTFILE_INIT
 
 !==================================================================================================================================!
@@ -374,6 +402,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   INTEGER,INTENT(OUT):: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID
 
   INTEGER:: Status
+  CHARACTER(50):: Location = 'MODULE: OUTPUTS / SUBROUTINE: OUTFILE_VARDEFS'
 
   !===========================================================================!
   !                                                                           !
@@ -461,12 +490,27 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !cell-averaged
     CALL NF_DEF_VAR(E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_Grey','Double') !from GQD eqs
     CALL NF_DEF_UNIT(outID,E_avg_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,E_avg_ID,'N_grids',3)
+    Status = nf90_put_att(outID,E_avg_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,E_avg_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,E_avg_ID,'grid2','xpts_avg')
+
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_Grey','Double') !from GQD eqs
     CALL NF_DEF_UNIT(outID,E_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,E_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,E_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,E_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,E_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_Grey','Double') !from GQD eqs
     CALL NF_DEF_UNIT(outID,E_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,E_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,E_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,E_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,E_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !---------------(multigroup loqd)------------------!
@@ -474,12 +518,27 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !cell-averaged
     CALL NF_DEF_VAR(MGQD_E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,MGQD_E_avg_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,MGQD_E_avg_ID,'N_grids',3)
+    Status = nf90_put_att(outID,MGQD_E_avg_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,MGQD_E_avg_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,MGQD_E_avg_ID,'grid2','xpts_avg')
+
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(MGQD_E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,MGQD_E_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,MGQD_E_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,MGQD_E_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,MGQD_E_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,MGQD_E_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(MGQD_E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,MGQD_E_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,MGQD_E_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,MGQD_E_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,MGQD_E_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,MGQD_E_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !------------------(high-order)--------------------!
@@ -487,12 +546,27 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !cell-averaged
     CALL NF_DEF_VAR(HO_E_avg_ID,outID,(/N_x_ID,N_y_ID,N_t_ID/),'E_avg_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_E_avg_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_E_avg_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_E_avg_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_E_avg_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,HO_E_avg_ID,'grid2','xpts_avg')
+
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(HO_E_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'E_edgV_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_E_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_E_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_E_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_E_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,HO_E_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(HO_E_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'E_edgH_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_E_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_E_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_E_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_E_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,HO_E_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !===========================================================================!
@@ -504,9 +578,19 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_Grey','Double') !from GQD eqs
     CALL NF_DEF_UNIT(outID,Fx_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,Fx_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,Fx_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,Fx_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,Fx_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_Grey','Double') !from GQD eqs
     CALL NF_DEF_UNIT(outID,Fy_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,Fy_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,Fy_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,Fy_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,Fy_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !---------------(multigroup loqd)------------------!
@@ -514,9 +598,19 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(MGQD_Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,MGQD_Fx_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,MGQD_Fx_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,MGQD_Fx_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,MGQD_Fx_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,MGQD_Fx_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(MGQD_Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,MGQD_Fy_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,MGQD_Fy_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,MGQD_Fy_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,MGQD_Fy_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,MGQD_Fy_edgH_ID,'grid2','xpts_avg')
+
 
   END IF
 
@@ -525,9 +619,19 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(HO_Fx_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_t_ID/),'Fx_edgV_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_Fx_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_Fx_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_Fx_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_Fx_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,HO_Fx_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(HO_Fy_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_t_ID/),'Fy_edgH_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_Fy_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_Fy_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_Fy_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_Fy_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,HO_Fy_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !===========================================================================!
@@ -539,12 +643,27 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !cell-averaged
     CALL NF_DEF_VAR(Eg_avg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_avg_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,Eg_avg_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,Eg_avg_ID,'N_grids',3)
+    Status = nf90_put_att(outID,Eg_avg_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,Eg_avg_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,Eg_avg_ID,'grid2','xpts_avg')
+
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(Eg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_edgV_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,Eg_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,Eg_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,Eg_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,Eg_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,Eg_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(Eg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Eg_edgH_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,Eg_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,Eg_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,Eg_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,Eg_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,Eg_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !------------------(high-order)--------------------!
@@ -552,12 +671,27 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !cell-averaged
     CALL NF_DEF_VAR(HO_Eg_avg_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_avg_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_Eg_avg_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_Eg_avg_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_Eg_avg_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_Eg_avg_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,HO_Eg_avg_ID,'grid2','xpts_avg')
+
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(HO_Eg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Eg_edgV_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_Eg_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_Eg_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_Eg_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_Eg_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,HO_Eg_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(HO_Eg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Eg_edgH_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_Eg_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_Eg_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_Eg_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_Eg_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,HO_Eg_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !===========================================================================!
@@ -569,9 +703,19 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(Fxg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Fxg_edgV_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,Fxg_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,Fxg_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,Fxg_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,Fxg_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,Fxg_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(Fyg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Fyg_edgH_MGQD','Double') !from MGQD eqs
     CALL NF_DEF_UNIT(outID,Fyg_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,Fyg_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,Fyg_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,Fyg_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,Fyg_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !------------------(high-order)--------------------!
@@ -579,9 +723,19 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(HO_Fxg_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'Fxg_edgV_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_Fxg_edgV_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_Fxg_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_Fxg_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_Fxg_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,HO_Fxg_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(HO_Fyg_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'Fyg_edgH_HO','Double') !from High-Order eqs
     CALL NF_DEF_UNIT(outID,HO_Fyg_edgH_ID,'ev/cm^3')
+    Status = nf90_put_att(outID,HO_Fyg_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,HO_Fyg_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,HO_Fyg_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,HO_Fyg_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !===========================================================================!
@@ -592,12 +746,27 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
     !cell-averaged
     CALL NF_DEF_VAR(I_avg_ID,outID,(/N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID/),'I_avg','Double')
     CALL NF_DEF_UNIT(outID,I_avg_ID,'erg/(Ster*cm^3)')
+    Status = nf90_put_att(outID,I_avg_ID,'N_grids',3)
+    Status = nf90_put_att(outID,I_avg_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,I_avg_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,I_avg_ID,'grid2','xpts_avg')
+
     !'vertical' cell edges, x-const
     CALL NF_DEF_VAR(I_edgV_ID,outID,(/N_edgV_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID/),'I_edgV','Double')
     CALL NF_DEF_UNIT(outID,I_edgV_ID,'erg/(Ster*cm^3)')
+    Status = nf90_put_att(outID,I_edgV_ID,'N_grids',3)
+    Status = nf90_put_att(outID,I_edgV_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,I_edgV_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,I_edgV_ID,'grid2','xpts_edgV')
+
     !'horizontal' cell edges, x-const
     CALL NF_DEF_VAR(I_edgH_ID,outID,(/N_x_ID,N_edgH_ID,N_m_ID,N_g_ID,N_t_ID/),'I_edgH','Double')
     CALL NF_DEF_UNIT(outID,I_edgH_ID,'erg/(Ster*cm^3)')
+    Status = nf90_put_att(outID,I_edgH_ID,'N_grids',3)
+    Status = nf90_put_att(outID,I_edgH_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,I_edgH_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,I_edgH_ID,'grid2','xpts_avg')
+
   END IF
 
   !===========================================================================!
@@ -626,12 +795,47 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   !--------------------------------------------------!
   IF (QDfg_out .EQ. 1) THEN
     CALL NF_DEF_VAR(fg_avg_xx_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_avg_xx','Double')
+    Status = nf90_put_att(outID,fg_avg_xx_ID,'N_grids',3)
+    Status = nf90_put_att(outID,fg_avg_xx_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,fg_avg_xx_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,fg_avg_xx_ID,'grid2','xpts_avg')
+
     CALL NF_DEF_VAR(fg_avg_yy_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_avg_yy','Double')
+    Status = nf90_put_att(outID,fg_avg_yy_ID,'N_grids',3)
+    Status = nf90_put_att(outID,fg_avg_yy_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,fg_avg_yy_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,fg_avg_yy_ID,'grid2','xpts_avg')
+
     CALL NF_DEF_VAR(fg_avg_xy_ID,outID,(/N_x_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_avg_xy','Double')
+    Status = nf90_put_att(outID,fg_avg_xy_ID,'N_grids',3)
+    Status = nf90_put_att(outID,fg_avg_xy_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,fg_avg_xy_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,fg_avg_xy_ID,'grid2','xpts_avg')
+
     CALL NF_DEF_VAR(fg_edgV_xx_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_edgV_xx','Double')
+    Status = nf90_put_att(outID,fg_edgV_xx_ID,'N_grids',3)
+    Status = nf90_put_att(outID,fg_edgV_xx_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,fg_edgV_xx_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,fg_edgV_xx_ID,'grid2','xpts_edgV')
+
     CALL NF_DEF_VAR(fg_edgV_xy_ID,outID,(/N_edgV_ID,N_y_ID,N_g_ID,N_t_ID/),'fg_edgV_xy','Double')
+    Status = nf90_put_att(outID,fg_edgV_xy_ID,'N_grids',3)
+    Status = nf90_put_att(outID,fg_edgV_xy_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,fg_edgV_xy_ID,'grid1','ypts_avg')
+    Status = nf90_put_att(outID,fg_edgV_xy_ID,'grid2','xpts_edgV')
+
     CALL NF_DEF_VAR(fg_edgH_yy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_yy','Double')
+    Status = nf90_put_att(outID,fg_edgH_yy_ID,'N_grids',3)
+    Status = nf90_put_att(outID,fg_edgH_yy_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,fg_edgH_yy_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,fg_edgH_yy_ID,'grid2','xpts_avg')
+
     CALL NF_DEF_VAR(fg_edgH_xy_ID,outID,(/N_x_ID,N_edgH_ID,N_g_ID,N_t_ID/),'fg_edgH_xy','Double')
+    Status = nf90_put_att(outID,fg_edgH_xy_ID,'N_grids',3)
+    Status = nf90_put_att(outID,fg_edgH_xy_ID,'grid0','tpts')
+    Status = nf90_put_att(outID,fg_edgH_xy_ID,'grid1','ypts_edgH')
+    Status = nf90_put_att(outID,fg_edgH_xy_ID,'grid2','xpts_avg')
+
   END IF
 
   IF (D_out .EQ. 1) THEN

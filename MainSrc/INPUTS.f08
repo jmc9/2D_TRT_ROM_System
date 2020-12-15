@@ -12,8 +12,8 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
-  quad_weight,tpoints,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
-  Direc_Diff)
+  quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
+  Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts)
 
   IMPLICIT NONE
 
@@ -38,8 +38,8 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
-  REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:)
-  INTEGER,INTENT(OUT):: N_x, N_y, tpoints, BC_Type(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:), xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
+  INTEGER,INTENT(OUT):: N_x, N_y, N_t, BC_Type(:)
 
   CHARACTER(100),INTENT(OUT):: outfile
   INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
@@ -57,7 +57,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
 
   !LOCAL VARIABLES
   INTEGER:: inpunit = 10
-  INTEGER:: err
+  INTEGER:: err, i, j
 
   OPEN(UNIT=inpunit,FILE="input/input.inp",STATUS='OLD',ACTION='READ',IOSTAT=err)
   !   making sure file exists/opens, if not tells user
@@ -93,8 +93,32 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   ALLOCATE(Dely(N_y))
   Delx = xlen/REAL(N_x,8)
   Dely = ylen/REAL(N_y,8)
-  tpoints = NINT(tlen/delt)
+  N_t = NINT(tlen/delt)
   Cv=0.5917d0*ar*(bcT_left)**3*((1.38d-16)**4*(11600d0**4)*erg**4)
+
+  ALLOCATE(xpts_avg(N_x), xpts_edgV(N_x+1))
+  ALLOCATE(ypts_avg(N_y), ypts_edgH(N_y+1))
+  ALLOCATE(tpts(N_t))
+  xpts_edgV(1) = 0d0
+  DO i=1,N_x
+    xpts_edgv(i+1) = xpts_edgv(i) + Delx(i)
+  END DO
+  xpts_avg(1) = Delx(1)/2d0
+  DO i=2,N_x
+    xpts_avg(i) = xpts_avg(i-1) + (Delx(i) + Delx(i-1))/2d0
+  END DO
+  ypts_edgH(1) = 0d0
+  DO i=1,N_y
+    ypts_edgH(i+1) = ypts_edgH(i) + Dely(i)
+  END DO
+  ypts_avg(1) = Dely(1)/2d0
+  DO i=2,N_y
+    ypts_avg(i) = ypts_avg(i-1) + (Dely(i) + Dely(i-1))/2d0
+  END DO
+  tpts(1) = Delt
+  DO i=2,N_t
+    tpts(i) = tpts(i-1) + Delt
+  END DO
 
   CALL INPUT_TEST_TYPE(Test,N_x,N_y,Delx,Dely,xlen,ylen,Mat,Kappa_Mult)
 

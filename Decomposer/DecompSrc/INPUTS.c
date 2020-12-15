@@ -352,6 +352,7 @@ void Get_Dims(const int ncid, int *BC_Type, Spec *Prb_specs, const size_t N_spec
   *dims = (ncdim*)malloc(sizeof(ncdim)*(*N_dims));
   for (size_t i=0; i<*N_dims; i++){
     (*dims)[i].id = dimlist[i];
+    memset((*dims)[i].name,0,10);
     err = nc_inq_dimname(ncid,(*dims)[i].id,(*dims)[i].name); Handle_Err(err,loc);
     err = nc_inq_dimlen(ncid,(*dims)[i].id,&(*dims)[i].len); Handle_Err(err,loc);
 
@@ -389,6 +390,84 @@ void Get_Dims(const int ncid, int *BC_Type, Spec *Prb_specs, const size_t N_spec
 
   // err = nc_get_att_int(ncid,NC_GLOBAL,"BC_type",BC_Type); Handle_Err(err,loc);
 
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids, size_t *N_grids, ncdim *dims, const size_t N_dims)
+{
+  int err;
+  char loc[10] = "Get_Grids";
+
+  size_t N_grids_ = 0;
+  for (size_t i=0; i<N_data; i++){
+
+    if (Dcmp_data[i].opt[0] == 0){
+
+      err = nc_get_att_int(ncid, Dcmp_data[i].id, "N_grids", (int*)&Dcmp_data[i].ngrids);
+      Dcmp_data[i].gridids = (int*)malloc(sizeof(int)*Dcmp_data[i].ngrids);
+      N_grids_ = N_grids_ + Dcmp_data[i].ngrids;
+      for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
+        char buf[10], gname[50];
+        memset(buf,0,10); memset(gname,0,50);
+        sprintf(buf,"grid%ld",j);
+        err = nc_get_att_text(ncid, Dcmp_data[i].id, buf, gname); Handle_Err(err,loc);
+        err = nc_inq_varid(ncid, gname, &Dcmp_data[i].gridids[j]); Handle_Err(err,loc);
+      }
+    }
+  }
+
+  int *gridlist = malloc(sizeof(Data)*N_grids_);
+  size_t p = 0;
+  for (size_t i=0; i<N_data; i++){
+    for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
+      gridlist[p] = Dcmp_data[i].gridids[j];
+      p++;
+    }
+  }
+
+  Sort_Uniq_int(gridlist,N_grids_,N_grids);
+
+  *Grids = (Data*)malloc(sizeof(Data)*(*N_grids));
+  for (size_t i=0; i<(*N_grids); i++){
+    (*Grids)[i].id = gridlist[i];
+    memset((*Grids)[i].name,0,10);
+    err = nc_inq_varname(ncid, (*Grids)[i].id, (*Grids)[i].name); Handle_Err(err,loc);
+    err = nc_inq_varndims(ncid, (*Grids)[i].id, (int*)&(*Grids)[i].ndims); Handle_Err(err,loc);
+    (*Grids)[i].dimids = (int*)malloc(sizeof(int)*(*Grids)[i].ndims);
+    err = nc_inq_vardimid(ncid, (*Grids)[i].id, (*Grids)[i].dimids); Handle_Err(err,loc);
+
+    for (size_t j=0; j<(*Grids)[i].ndims; j++){
+      for (size_t k=0; k<N_dims; k++){
+        if ((*Grids)[i].dimids[j] == dims[k].id){
+          (*Grids)[i].dimids[j] = (int)k;
+          break;
+        }
+      }
+    }
+
+    size_t dlen = 1.;
+    for (size_t j=0; j<(*Grids)[i].ndims; j++){
+      dlen = dlen*dims[(*Grids)[i].dimids[j]].len;
+    }
+    (*Grids)[i].dat = (double*)malloc(sizeof(double)*dlen);
+    err = nc_get_var_double(ncid, (*Grids)[i].id, &(*Grids)[i].dat[0]); Handle_Err(err,loc);
+  }
+  free(gridlist);
+
+  for (size_t i=0; i<N_data; i++){
+    for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
+      for (size_t k=0; k<(*N_grids); k++){
+        if (Dcmp_data[i].gridids[j] == (*Grids)[k].id){
+          Dcmp_data[i].gridids[j] = (int)k;
+          break;
+        }
+      }
+    }
+  }
+
+  return err;
 }
 
 /*================================================================================================================================*/

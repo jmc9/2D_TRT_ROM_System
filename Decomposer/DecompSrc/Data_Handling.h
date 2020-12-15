@@ -29,6 +29,8 @@ typedef struct Data
   char name[50];
   size_t ndims;
   int *dimids;
+  size_t ngrids;
+  int *gridids;
   int opt[3];
   char cdat[50];
   double *dat;

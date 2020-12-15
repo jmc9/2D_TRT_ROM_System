@@ -34,6 +34,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
 
 /* ----- FROM MISC_PROCS.c ----- */
 void Sort_Uniq_sizet(size_t *list, const size_t len, size_t *ulen);
+void Sort_Uniq_int(int *list, const size_t len, size_t *ulen);
 
 int Delimit(const char *line, const char del, char **parts, const int nparts);
 
@@ -142,6 +143,59 @@ int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, 
   for (size_t i=0; i<N_clen; i++){
     err = nc_def_dim(ncid,(*clen)[i].name,(*clen)[i].len,&(*clen)[i].id); Handle_Err(err,loc);
     err = nc_def_dim(ncid,(*rank)[i].name,(*rank)[i].len,&(*rank)[i].id); Handle_Err(err,loc);
+  }
+
+  //termination
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Def_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, const size_t N_dims, Data *Grids, const size_t N_grids)
+{
+  int err;
+  char loc[10] = "Def_Grids";
+
+  for (size_t i=0; i<N_grids; i++){
+    int *d = malloc(sizeof(int)*Grids[i].ndims);
+    for (size_t j=0; j<Grids[i].ndims; j++){
+      d[j] = dims[Grids[i].dimids[j]].id;
+    }
+    err = nc_def_var(ncid,Grids[i].name,NC_DOUBLE,(int)Grids[i].ndims,d,&Grids[i].id); Handle_Err(err,loc);
+    free(d);
+
+    err = nc_put_var_double(ncid,Grids[i].id,Grids[i].dat); Handle_Err(err,loc);
+  }
+
+  size_t *dcounts = malloc(sizeof(size_t)*N_data);
+  for (size_t i=0; i<N_data; i++){
+    dcounts[i] = Dcmp_data[i].ndims;
+  }
+
+  for (size_t i=0; i<N_data; i++){
+
+    if (Dcmp_data[i].opt[0] == 0){
+
+      int id, id2;
+      err = nc_def_var(ncid, Dcmp_data[i].name, NC_DOUBLE, 0, &id2, &id); Handle_Err(err,loc);
+      err = nc_put_att_int(ncid, id, "N_dims", NC_INT, 1, (int*)&Dcmp_data[i].ndims); Handle_Err(err,loc);
+      for (size_t j=0; j<Dcmp_data[i].ndims; j++){
+        char buf[10];
+        memset(buf,0,10);
+        sprintf(buf,"dim%ld",j);
+        err = nc_put_att_text(ncid, id, buf, 10, dims[Dcmp_data[i].dimids[j]].name); Handle_Err(err,loc);
+      }
+      err = nc_put_att_int(ncid, id, "N_grids", NC_INT, 1, (int*)&Dcmp_data[i].ngrids); Handle_Err(err,loc);
+      for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
+        char buf[10];
+        memset(buf,0,10);
+        sprintf(buf,"grid%ld",j);
+        err = nc_put_att_text(ncid, id, buf, 10, Grids[Dcmp_data[i].gridids[j]].name); Handle_Err(err,loc);
+      }
+
+    }
+
   }
 
   //termination

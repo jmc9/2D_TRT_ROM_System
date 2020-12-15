@@ -31,6 +31,8 @@ void Get_Dims(const int ncid, int *BC_Type, Spec *Prb_specs, const size_t N_spec
 
 int Get_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims);
 
+int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids, size_t *N_grids, ncdim *dims, const size_t N_dims);
+
 /* ----- FROM OUTPUTS.c ----- */
 int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, const size_t N_dims, ncdim **clen,
   ncdim **rank, const int gsum, const int dcmp_type, int ***dcdims);
@@ -38,6 +40,8 @@ int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, 
 int Def_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims);
 
 int Def_Specs(const int ncid, Spec *Prb_specs, const size_t N_specs);
+
+int Def_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, const size_t N_dims, Data *Grids, const size_t N_grids);
 
 int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcmp_data, const size_t N_data, ncdim *clen,
   ncdim *rank, ncdim *dims, Data **Decomp, int **dcdims);
@@ -70,9 +74,9 @@ int main()
   int BC_Type[4];
 
   //
-  size_t N_specs, N_data, N_dims, N_Wts;
+  size_t N_specs, N_data, N_dims, N_Wts, N_grids;
   Spec *Prb_specs;
-  Data *Dcmp_data, *Disc_Wts, *Decomp;
+  Data *Dcmp_data, *Disc_Wts, *Decomp, *Grids;
   ncdim *dims, *clen, *rank;
 
   //big text header output to terminal on program execution
@@ -104,6 +108,7 @@ int main()
   err = nc_open(dsfile,NC_NOWRITE,&ncid_in); Handle_Err(err,loc); //opening NetCDF dataset
   Get_Dims(ncid_in,BC_Type,Prb_specs,N_specs,Dcmp_data,N_data,&dims,&N_dims,Disc_Wts,N_Wts); //finding dimensions of problem domain
   err = Get_Disc(ncid_in,Disc_Wts,N_Wts,dims); //reading in discretization of domain
+  err = Get_Grids(ncid_in,Dcmp_data,N_data,&Grids,&N_grids,dims,N_dims);
 
   /*===========================================================================*/
   /*                                                                            /
@@ -123,6 +128,7 @@ int main()
 
   err =  Def_Disc(ncid_out,Disc_Wts,N_Wts,dims); //writing discretization to output file
   err =  Def_Specs(ncid_out,Prb_specs,N_specs); //writing problem specs to output file
+  err =  Def_Grids(ncid_out,Dcmp_data,N_data,dims,N_dims,Grids,N_grids);
 
   /*===========================================================================*/
   /*                                                                            /

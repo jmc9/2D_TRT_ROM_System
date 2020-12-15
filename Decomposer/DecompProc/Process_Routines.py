@@ -17,24 +17,20 @@ import ToolBox as tb
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Process_DMD(dset,plotdir,clen_avg,clen_edgV,clen_edgH,BClen,rank_avg,rank_edgV,rank_edgH,rank_BC,N_g,N_y,N_x,xp,yp):
-    dir = '{}/{}'.format(plotdir,'fg_avg_xx'); tb.dirset(dir)
-    dmdr.Plot_DMD(dset,'fg_avg_xx',range(10),clen_avg,rank_avg,N_g,N_y,N_x,xp,yp,dir)
+def Process_Data(dset,Dcmp_Data,plt_modes,plotdir):
 
-    dir = '{}/{}'.format(plotdir,'fg_avg_yy'); tb.dirset(dir)
-    dmdr.Plot_DMD(dset,'fg_avg_yy',range(10),clen_avg,rank_avg,N_g,N_y,N_x,xp,yp,dir)
+    N_data = len(Dcmp_Data)
+    for i in range(N_data):
+        dcmp = Dcmp_Data[i]
 
-    dir = '{}/{}'.format(plotdir,'BCg'); tb.dirset(dir)
-    dmdr.Plot_DMD(dset,'BCg',[],BClen,rank_BC,N_g,N_y,N_x,xp,yp,dir,evecs=False)
+        dir = '{}/{}'.format(plotdir,dcmp.name)
+        tb.dirset(dir)
 
-    dir = '{}/{}'.format(plotdir,'fg_edgV_xx'); tb.dirset(dir)
-    dmdr.Plot_DMD(dset,'fg_edgV_xx',[],clen_edgV,rank_edgV,N_g,N_y,N_x,xp,yp,dir,evecs=False)
+        if (Dcmp_Data[i].type in ['DMD','DMDg']):
+            (dcmp.rank, dcmp.clen) = dmdr.Read_Dims(dset,dcmp.name)
+            dcmp.dat = dmdr.Read_DMD(dset,dcmp.name)
 
-    dir = '{}/{}'.format(plotdir,'fg_edgV_xy'); tb.dirset(dir)
-    dmdr.Plot_DMD(dset,'fg_edgV_xy',[],clen_edgV,rank_edgV,N_g,N_y,N_x,xp,yp,dir,evecs=False)
-
-    dir = '{}/{}'.format(plotdir,'fg_edgH_yy'); tb.dirset(dir)
-    dmdr.Plot_DMD(dset,'fg_edgH_yy',[],clen_edgH,rank_edgH,N_g,N_y,N_x,xp,yp,dir,evecs=False)
-
-    dir = '{}/{}'.format(plotdir,'fg_edgH_xy'); tb.dirset(dir)
-    dmdr.Plot_DMD(dset,'fg_edgH_xy',[],clen_edgH,rank_edgH,N_g,N_y,N_x,xp,yp,dir,evecs=False)
+            if dcmp.opt[0] == 0:
+                dmdr.Plot_DMD(dcmp,dir,plt_modes)
+            else:
+                dmdr.Plot_DMD(dcmp,dir,plt_modes,evecs=False)

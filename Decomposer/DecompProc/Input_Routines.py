@@ -10,6 +10,11 @@
 #==================================================================================================================================#
 #local tools
 import ToolBox as tb
+import numpy as np
+
+from Classes import Data
+from Classes import DMD
+from Classes import Grid
 
 #==================================================================================================================================#
 #
@@ -18,7 +23,7 @@ def Input(infile,proc_dir_,plotdir_):
 
     tb.FileCheck(infile) #check if input file exists
 
-    (proc_dir,plotdir,dset) = Default_Inps() #load default inputs
+    (proc_dir,plotdir,dset,dcmp_data) = Default_Inps() #load default inputs
 
     #if proc_dir, plotdir previously specified - use values
     if not proc_dir_ == '': proc_dir = proc_dir_
@@ -37,19 +42,24 @@ def Input(infile,proc_dir_,plotdir_):
 
             elif input[0] == 'dset': dset = input[1]
 
+            elif input[0] == 'dcmp_data': dcmp_data = input[1:]
+
     Check_Inps(dset) #checking for invalid inputs
 
-    return (proc_dir,plotdir,dset)
+    dcmp_data = Data_Defaults(dcmp_data)
+
+    return (proc_dir,plotdir,dset,dcmp_data)
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
 def Default_Inps():
-    proc_dir = 'processed_data'
-    plotdir  = 'plots'
-    dset     = 'dcmp_out.h5'
+    proc_dir  = 'processed_data'
+    plotdir   = 'plots'
+    dset      = 'dcmp_out.h5'
+    dcmp_data = 'QDf'
 
-    return (proc_dir,plotdir,dset)
+    return (proc_dir,plotdir,dset,dcmp_data)
 
 #==================================================================================================================================#
 #
@@ -60,29 +70,58 @@ def Check_Inps(dset):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Dcmp_Parms(dset):
-    dcmp_type = getattr(dset,'dcmp_type')
-    dcmp_data = getattr(dset,'dcmp_data')
+def Dcmp_Parms(dset,data_names):
+    dcmp_type = getattr(dset,'dcmp_type') #type of decomposition found in the datafile
 
-    (xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = Domain_Parms(dset)
+    Dcmp_Data = [] #array to hold all decomposition data
+    N_data = len(data_names) #number of input datasets
 
-    if dcmp_data == 'QDf':
-        BClen = dset.dimensions['BClen'].size
-        rank_BC = dset.dimensions['rank_BC'].size
-    else:
-        BClen = 0.
-        rank_BC = 0.
+    #collecting information on each dataset
+    p = 0
+    for i in range(N_data):
+        #checking if dataset exists in datafile
+        try:
+            ncdat = dset[data_names[i]]
 
-    clen_avg = dset.dimensions['clen_avg'].size
-    clen_edgV = dset.dimensions['clen_edgV'].size
-    clen_edgH = dset.dimensions['clen_edgH'].size
+        except:
+                print("Error! {} either does not exist, or has no attribute block".format(data_names[i]))
+                print("- Henceforth ignoring {} in visualization".format(data_names[i]))
+                continue
 
-    rank_avg = dset.dimensions['rank_avg'].size
-    rank_edgV = dset.dimensions['rank_edgV'].size
-    rank_edgH = dset.dimensions['rank_edgH'].size
+        Dcmp_Data.append(Data(data_names[i])) #allocating element of Dcmp_Data as Data object
 
-    return (dcmp_type,dcmp_data,xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x,
-    BClen,clen_avg,clen_edgV,clen_edgH,rank_BC,rank_avg,rank_edgV,rank_edgH)
+        Dcmp_Data[p].typeset(dcmp_type)
+
+        Dcmp_Data[p].opt[0] = 0
+
+        #collecting dimensions of dataset
+        N_dims = getattr(ncdat, 'N_dims')
+        Dcmp_Data[p].dims = np.zeros(N_dims, dtype=int)
+        for j in range(N_dims):
+            dname = getattr( ncdat, 'dim{}'.format(j) )
+            Dcmp_Data[p].dims[j] = dset.dimensions[dname].size
+
+        #collecting grids on which the dataset resides
+        try:
+            N_grids = getattr(ncdat, 'N_grids')
+
+            Dcmp_Data[p].grids = []
+            for j in range(N_grids):
+                gname = getattr( ncdat, 'grid{}'.format(j) )
+                grid = dset[gname][:]
+                bnds = dset[gname].bnds
+                Dcmp_Data[p].grids.append( Grid(bnds,grid) )
+
+        except:
+            Dcmp_Data[p].opt[0] = 1
+
+        p+=1
+
+    if not Dcmp_Data:
+        print("Error! None of the data input for processing was found, terminating program")
+        quit()
+
+    return Dcmp_Data
 
 #==================================================================================================================================#
 #
@@ -113,8 +152,23 @@ def Domain_Parms(dset):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Name_Gen(dcmp_data):
-    if dcmp_data == 'QDf':
-        names = ['BCg','fg_avg_xx','fg_edgV_xx','fg_avg_yy','fg_edgH_yy','fg_edgV_xy','fg_edgH_xy']
+def Data_Defaults(dcmp_data):
+    data_names = []
 
-    return names
+    for i in range(len(dcmp_data)):
+        if dcmp_data[i] == 'QDf':
+            data_names.append('BCg')
+            data_names.append('fg_avg_xx')
+            data_names.append('fg_edgV_xx')
+            data_names.append('fg_avg_yy')
+            data_names.append('fg_edgH_yy')
+            data_names.append('fg_edgV_xy')
+            data_names.append('fg_edgH_xy')
+        elif dcmp_data[i] == "I":
+            data_names.append("I_avg")
+            data_names.append("I_edgV")
+            data_names.append("I_edgH")
+        else:
+            data_names.append(dcmp_data[i])
+
+    return data_names

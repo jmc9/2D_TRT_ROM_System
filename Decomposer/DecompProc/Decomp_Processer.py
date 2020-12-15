@@ -29,19 +29,17 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
 
     tb.BigTitle() #output code title to command line
 
-    (proc_dir,plotdir,dset) = inp.Input(infile,proc_dir,plotdir)
+    (proc_dir,plotdir,dset,data_names) = inp.Input(infile,proc_dir,plotdir)
     tb.dirset(proc_dir)
     plotdir = proc_dir+'/'+plotdir
     tb.dirset(plotdir)
 
     dset = ncds(dset,'r') #opening specified dataset
 
-    (dcmp_type,dcmp_data,xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x,
-    BClen,clen_avg,clen_edgV,clen_edgH,rank_BC,rank_avg,rank_edgV,rank_edgH) = inp.Dcmp_Parms(dset)
+    Dcmp_Data = inp.Dcmp_Parms(dset,data_names)
 
-    names = inp.Name_Gen(dcmp_data)
-
-    pr.Process_DMD(dset,plotdir,clen_avg,clen_edgV,clen_edgH,BClen,rank_avg,rank_edgV,rank_edgH,rank_BC,N_g,N_y,N_x,xp,yp)
+    plt_modes = [0,1,2]
+    pr.Process_Data(dset,Dcmp_Data,plt_modes,plotdir)
 
     dset.close() #closing dataset file
     print('success!')

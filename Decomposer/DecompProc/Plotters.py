@@ -122,7 +122,9 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabe
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def scatterplot(arr: np.ndarray,name,drop,xlabel='',ylabel='',marker='.',c='black',legend=[],yscale='linear',xlim=[],ylim=[],cr=0):
+def scatterplot(arr: np.ndarray, name, drop, xlabel='', ylabel='', marker='.', c='black', legend=[], yscale='linear',
+    xlim=[], ylim=[], cr=0, ygrid=True, xgrid=True):
+
     if hasattr(arr[0][0],'__len__'):
         sets = len(arr[0])
     else:
@@ -160,8 +162,14 @@ def scatterplot(arr: np.ndarray,name,drop,xlabel='',ylabel='',marker='.',c='blac
     ax.tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True)
 
     ax.set_yscale(yscale)
-    plt.grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--')
-    plt.grid(which = 'minor', axis = 'y', color = 'lightgrey', linestyle = ':', linewidth=.75)
+
+    if ygrid:
+        plt.grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--')
+        plt.grid(which = 'minor', axis = 'y', color = 'lightgrey', linestyle = ':', linewidth=.75)
+    if xgrid:
+        plt.grid(which = 'major', axis = 'x', color = 'lightgrey', linestyle = '--')
+        plt.grid(which = 'minor', axis = 'x', color = 'lightgrey', linestyle = ':', linewidth=.75)
+
     ax.set_axisbelow(True)
 
     plt.savefig(drop+'/'+name+'.pdf') #saving the figure

@@ -11,6 +11,7 @@
 #generic python tools
 import numpy as np
 import math
+import cmath
 
 #local tools
 import Plotters as pltr
@@ -215,6 +216,9 @@ def Read_Evecs(dset,name,Nmodes):
 
     return W
 
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
 def DMD_Sort(DMD_Data):
 
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
@@ -296,3 +300,30 @@ def DMD_Sort(DMD_Data):
                 DMD_Data.dat.evec.imag[p2 : p2 + DMD_Data.clen] = evci
 
     return DMD_Data
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Coef_Calc(DMD_Data,Prob_Data):
+
+    b = []
+    if hasattr(DMD_Data.dat.N_modes,'__len__'):
+        quit()
+
+    else:
+        init = Prob_Data.dat[0][0 : DMD_Data.clen]
+        p = 0
+        for j in range(DMD_Data.dat.N_modes):
+            prod = complex(0., 0.)
+            nrm  = complex(0., 0.)
+            for i in range(DMD_Data.clen):
+                c1 = complex(init[i], 0.)
+                c2 = complex(DMD_Data.dat.evec.real[p], DMD_Data.dat.evec.imag[p])
+
+                prod = prod + c1*c2
+                nrm = nrm + c2*c2
+
+            b.append( prod / nrm )
+            p = p + DMD_Data.clen
+
+    return b

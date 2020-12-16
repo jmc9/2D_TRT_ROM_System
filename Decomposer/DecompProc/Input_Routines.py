@@ -23,7 +23,7 @@ def Input(infile,proc_dir_,plotdir_):
 
     tb.FileCheck(infile) #check if input file exists
 
-    (proc_dir,plotdir,dset,dcmp_data) = Default_Inps() #load default inputs
+    (proc_dir,plotdir,dset,dset_dat,dcmp_data) = Default_Inps() #load default inputs
 
     #if proc_dir, plotdir previously specified - use values
     if not proc_dir_ == '': proc_dir = proc_dir_
@@ -42,13 +42,15 @@ def Input(infile,proc_dir_,plotdir_):
 
             elif input[0] == 'dset': dset = input[1]
 
+            elif input[0] == 'dset_dat': dset_dat = input[1]
+
             elif input[0] == 'dcmp_data': dcmp_data = input[1:]
 
     Check_Inps(dset) #checking for invalid inputs
 
     dcmp_data = Data_Defaults(dcmp_data)
 
-    return (proc_dir,plotdir,dset,dcmp_data)
+    return (proc_dir,plotdir,dset,dset_dat,dcmp_data)
 
 #==================================================================================================================================#
 #
@@ -57,9 +59,10 @@ def Default_Inps():
     proc_dir  = 'processed_data'
     plotdir   = 'plots'
     dset      = 'dcmp_out.h5'
+    dset_dat  = ''
     dcmp_data = 'QDf'
 
-    return (proc_dir,plotdir,dset,dcmp_data)
+    return (proc_dir,plotdir,dset,dset_dat,dcmp_data)
 
 #==================================================================================================================================#
 #
@@ -122,6 +125,71 @@ def Dcmp_Parms(dset,data_names):
         quit()
 
     return Dcmp_Data
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Dat_Parms(dset,data_names):
+    Prob_Data = [] #array to hold all data from problem
+    N_data = len(data_names) #number of input datasets
+
+    #collecting information on each dataset
+    p = 0
+    for i in range(N_data):
+        #checking if dataset exists in datafile
+        try:
+            ncdat = dset[data_names[i]]
+
+        except:
+                print("Error! {} does not exist".format(data_names[i]))
+                print("- Henceforth ignoring {} in visualization".format(data_names[i]))
+                continue
+
+        Prob_Data.append(Data(data_names[i])) #allocating element of Dcmp_Data as Data object
+
+        Prob_Data[p].opt[0] = 0
+
+        #collecting dimensions of dataset
+        dnames = ncdat.dimensions
+        N_dims = len(dnames)
+        Prob_Data[p].dims = np.zeros(N_dims, dtype=int)
+        for j in range(N_dims):
+            Prob_Data[p].dims[j] = dset.dimensions[dnames[j]].size
+
+        #
+        Prob_Data[p].dat = ncdat[:]
+        if N_dims == 4:
+            for t in range(Prob_Data[p].dims):
+                Prob_Data[p].dat[t] = tb.Flatten3D(Prob_Data[p].dat[t])
+        elif N_dims == 3:
+            for t in range(Prob_Data[p].dims):
+                Prob_Data[p].dat[t] = tb.Flatten2D(Prob_Data[p].dat[t])
+        elif N_dims > 4:
+            print('cannot flatted data of dimensionality greater than 4 right now!')
+            quit()
+
+        #collecting grids on which the dataset resides
+        try:
+            N_grids = getattr(ncdat, 'N_grids')
+
+            Prob_Data[p].grids = []
+            for j in range(N_grids):
+                gname = getattr( ncdat, 'grid{}'.format(j) )
+                grid = dset[gname][:]
+                bnds = dset[gname].bnds
+                Prob_Data[p].grids.append( Grid(bnds,grid) )
+
+        except:
+            Prob_Data[p].opt[0] = 1
+
+        p+=1
+
+    if not Prob_Data:
+        print("Error! None of the data input for processing was found, terminating program")
+        quit()
+
+    return Prob_Data
+
 
 #==================================================================================================================================#
 #

@@ -18,7 +18,7 @@ import ToolBox as tb
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Process_Data(dset,Dcmp_Data,plt_modes,plotdir):
+def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
 
     N_data = len(Dcmp_Data)
     for i in range(N_data):
@@ -35,5 +35,9 @@ def Process_Data(dset,Dcmp_Data,plt_modes,plotdir):
 
             if dcmp.opt[0] == 0:
                 dmdr.Plot_DMD(dcmp,dir,plt_modes)
+
+                if len(Prob_Data) != 0:
+                    coef = dmdr.Coef_Calc(dcmp,Prob_Data[i])
+
             else:
                 dmdr.Plot_DMD(dcmp,dir,plt_modes,evecs=False)

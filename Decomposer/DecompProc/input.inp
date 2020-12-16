@@ -1,2 +1,3 @@
 dset outf.h5
+dset_dat fom.h5
 dcmp_data QDf

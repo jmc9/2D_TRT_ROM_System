@@ -29,17 +29,26 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
 
     tb.BigTitle() #output code title to command line
 
-    (proc_dir,plotdir,dset,data_names) = inp.Input(infile,proc_dir,plotdir)
+    (proc_dir,plotdir,dset,dset_dat,data_names) = inp.Input(infile,proc_dir,plotdir)
     tb.dirset(proc_dir)
     plotdir = proc_dir+'/'+plotdir
     tb.dirset(plotdir)
 
     dset = ncds(dset,'r') #opening specified dataset
-
     Dcmp_Data = inp.Dcmp_Parms(dset,data_names)
 
+    if dset_dat != '':
+        dset_dat = ncds(dset_dat,'r')
+        Prob_Data = inp.Dat_Parms(dset_dat,data_names)
+
+        if (len(Prob_Data) != len(Dcmp_Data)):
+            print('len(Prob_Data) != len(Dcmp_Data)')
+            quit()
+    else:
+        Prob_Data = []
+
     plt_modes = [0,1,2]
-    pr.Process_Data(dset,Dcmp_Data,plt_modes,plotdir)
+    pr.Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir)
 
     dset.close() #closing dataset file
     print('success!')

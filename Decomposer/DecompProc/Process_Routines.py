@@ -9,6 +9,7 @@
 #importing packages
 #==================================================================================================================================#
 #generic python tools
+import math
 
 #local tools
 import DMD_Routines as dmdr
@@ -26,9 +27,11 @@ def Process_Data(dset,Dcmp_Data,plt_modes,plotdir):
         dir = '{}/{}'.format(plotdir,dcmp.name)
         tb.dirset(dir)
 
-        if (Dcmp_Data[i].type in ['DMD','DMDg']):
+        if (dcmp.type in ['DMD','DMDg']):
             (dcmp.rank, dcmp.clen) = dmdr.Read_Dims(dset,dcmp.name)
             dcmp.dat = dmdr.Read_DMD(dset,dcmp.name)
+
+            dcmp = dmdr.DMD_Sort(dcmp)
 
             if dcmp.opt[0] == 0:
                 dmdr.Plot_DMD(dcmp,dir,plt_modes)

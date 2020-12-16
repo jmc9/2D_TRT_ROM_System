@@ -29,20 +29,20 @@ import matplotlib.ticker as ticker
 #   N_x - number of x grid points
 #
 #==================================================================================================================================#
-def plot_heatmap2D(data,name,xp,yp,drop,N_y,N_x,c='inferno',units=[],bnds=[]):
+def plot_heatmap2D(data,name,xp,yp,drop,N_y,N_x,c='inferno',units=[],bnds=[],title=''):
     dat = np.reshape(data,(N_y,N_x)) #reforming vector of data to 2D array
-    heatmap2d(dat,name,xp,yp,drop,units,bnds,c) #plotting data over spatial grid
+    heatmap2d(dat,name,xp,yp,drop,units,bnds,c,title=title) #plotting data over spatial grid
 
-def plot_heatmap3D(data,name,xp,yp,drop,N_z,N_y,N_x,c='inferno',units=[],bnds=[],zlab=''):
+def plot_heatmap3D(data,name,xp,yp,drop,N_z,N_y,N_x,c='inferno',units=[],bnds=[],zlab='',title=''):
     dat = np.reshape(data,(N_z,N_y,N_x)) #reforming vector of data to N_g 2D arrays
     for z in range(N_z):
-        if bnds: heatmap2d(dat[z],name+'_'+zlab+str(z+1),xp,yp,drop,units,bnds[g],c) #plotting each group data over spatial grid
-        else: heatmap2d(dat[z],name+'_'+zlab+str(z+1),xp,yp,drop,units,c=c)
+        if bnds: heatmap2d(dat[z],name+'_'+zlab+str(z+1),xp,yp,drop,units,bnds[g],c,title=title) #plotting each group data over spatial grid
+        else: heatmap2d(dat[z],name+'_'+zlab+str(z+1),xp,yp,drop,units,c=c,title=title)
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def heatmap2d(arr: np.ndarray,name,xp,yp,drop,units=[],bnds=[],c='inferno'):
+def heatmap2d(arr: np.ndarray,name,xp,yp,drop,units=[],bnds=[],c='inferno',title=''):
     fig, ax = plt.subplots() #creating the figure
 
     if bnds and not bnds == [0.,0.]:
@@ -54,6 +54,9 @@ def heatmap2d(arr: np.ndarray,name,xp,yp,drop,units=[],bnds=[],c='inferno'):
     if units:
         clb.ax.set_title(units)
 
+    if (title != ''):
+        plt.title(title)
+
     tickfreq = 1 #frequency of ticks on each axis
     ax.xaxis.set_major_locator(ticker.MultipleLocator(tickfreq)) #setting frequency of ticks along the x-axis
     ax.yaxis.set_major_locator(ticker.MultipleLocator(tickfreq)) #setting frequency of ticks along the y-axis
@@ -63,7 +66,7 @@ def heatmap2d(arr: np.ndarray,name,xp,yp,drop,units=[],bnds=[],c='inferno'):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right'):
+def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',title=''):
     if hasattr(arr[0],'__len__'):
         sets = len(arr)
 
@@ -102,9 +105,13 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabe
             leg = legend[i]
             ax.plot(tp,arr[i],label=leg,linewidth=.75,marker=marker[i])
 
-    ax.legend()
-    plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
-    # plt.legend(bbox_to_anchor=(1.2, 1), loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
+    if legend != '':
+        ax.legend()
+        plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
+        # plt.legend(bbox_to_anchor=(1.2, 1), loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
+
+    if (title != ''):
+        plt.title(title)
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)

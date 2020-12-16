@@ -10,6 +10,7 @@
 #==================================================================================================================================#
 #generic python tools
 import numpy as np
+import math
 
 #local tools
 import Plotters as pltr
@@ -43,9 +44,20 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
         N_g = DMD_Data.dims[1]
         for g in range(N_g):
             for m in plt_modes:
+                p = g * DMD_Data.rank + m
+                lr = DMD_Data.dat.eval.real[p]; (lr_e, lr_c) = tb.pow10(lr)
+                li = DMD_Data.dat.eval.imag[p]; (li_e, li_c) = tb.pow10(li)
+                l2 = math.sqrt(lr**2 + li**2);  (l2_e, l2_c) = tb.pow10(l2)
+                if (li < 0): s = '-'
+                else: s = '+'
+                title_r = 'Re($\omega$) \n  $\lambda$ = ${:.2f}\cdot 10^{:d} {} {:.2f}\cdot 10^{:d} i = | {:.2f}\cdot 10^{:d} |$'.format(lr_c,lr_e,s,abs(li_c),li_e,l2_c,l2_e)
+                title_i = 'Im($\omega$) \n  $\lambda$ = ${:.2f}\cdot 10^{:d} {} {:.2f}\cdot 10^{:d} i = | {:.2f}\cdot 10^{:d} |$'.format(lr_c,lr_e,s,abs(li_c),li_e,l2_c,l2_e)
+
                 p = g * DMD_Data.clen * DMD_Data.rank + m * DMD_Data.clen
-                w = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
-                title = '{}_m{}_g{}'.format(DMD_Data.name,g+1,m+1)
+                wr = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
+                wi = DMD_Data.dat.evec.imag[p : p + DMD_Data.clen]
+                pltname_r = '{}_m{}_g{}_re'.format(DMD_Data.name,m+1,g+1)
+                pltname_i = '{}_m{}_g{}_im'.format(DMD_Data.name,m+1,g+1)
 
                 if (N_grids == 2): #
                     print('Plot_DMD_evecs doesn not support N_grids = 2 yet for groupwise decompositions')
@@ -58,18 +70,31 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
                     xp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-1])
                     yp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-2])
 
-                    pltr.plot_heatmap2D(w, title, xp, yp, dir, N_y, N_x)
+                    pltr.plot_heatmap2D(wr, pltname_r, xp, yp, dir, N_y, N_x, title=title_r)
+                    if li != 0.: pltr.plot_heatmap2D(wi, pltname_i, xp, yp, dir, N_y, N_x, title=title_i)
 
     else:
         for m in plt_modes:
+            lr = DMD_Data.dat.eval.real[m]; (lr_e, lr_c) = tb.pow10(lr)
+            li = DMD_Data.dat.eval.imag[m]; (li_e, li_c) = tb.pow10(li)
+            l2 = math.sqrt(lr**2 + li**2);  (l2_e, l2_c) = tb.pow10(l2)
+            if (li < 0): s = '-'
+            else: s = '+'
+            title_r = 'Re($\omega$) \n  $\lambda$ = ${:.2f}\cdot 10^{:d} {} {:.2f}\cdot 10^{:d} i = | {:.2f}\cdot 10^{:d} |$'.format(lr_c,lr_e,s,abs(li_c),li_e,l2_c,l2_e)
+            title_i = 'Im($\omega$) \n  $\lambda$ = ${:.2f}\cdot 10^{:d} {} {:.2f}\cdot 10^{:d} i = | {:.2f}\cdot 10^{:d} |$'.format(lr_c,lr_e,s,abs(li_c),li_e,l2_c,l2_e)
+
             p = m * DMD_Data.clen
-            w = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
-            title = '{}_m{}'.format(DMD_Data.name,m+1)
+            wr = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
+            wi = DMD_Data.dat.evec.imag[p : p + DMD_Data.clen]
+            pltname_r = '{}_m{}_re'.format(DMD_Data.name,m+1)
+            pltname_i = '{}_m{}_im'.format(DMD_Data.name,m+1)
 
             if (N_grids == N_dims): #no 'group' dimensions
                 if (N_grids == 2): #simple 2D data
-                    print('Plot_DMD_evecs doesn not support N_grids = 2 yet for groupwise decompositions')
-                    quit()
+                    xp = DMD_Data.grids[N_grids-1].crds
+
+                    pltr.lineplot(pltname_r, xp, wr, dir, title=title_r)
+                    if li != 0.: pltr.lineplot(pltname_i, xp, wi, dir, title=title_i)
 
                 elif (N_grids == 3): #
                     N_x = DMD_Data.dims[N_dims-1]
@@ -78,7 +103,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
                     xp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-1])
                     yp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-2])
 
-                    pltr.plot_heatmap2D(w, title, xp, yp, dir, N_y, N_x)
+                    pltr.plot_heatmap2D(wr, pltname_r, xp, yp, dir, N_y, N_x, title=title_r)
+                    if li != 0.: pltr.plot_heatmap2D(wi, pltname_i, xp, yp, dir, N_y, N_x, title=title_i)
 
 
             elif (N_grids == N_dims - 1): #only 1 'group' dimension exists
@@ -94,7 +120,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
                     xp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-1])
                     yp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-2])
 
-                    pltr.plot_heatmap3D(w, title, xp, yp, dir, N_z, N_y, N_x, zlab='g')
+                    pltr.plot_heatmap3D(wr, pltname_r, xp, yp, dir, N_z, N_y, N_x, zlab='g', title=title_r)
+                    if li != 0.: pltr.plot_heatmap3D(wi, pltname_i, xp, yp, dir, N_z, N_y, N_x, zlab='g', title=title_i)
 
             else:
                 print('Plot_DMD_evecs can only handle data with a single group dimension right now!')
@@ -187,3 +214,85 @@ def Read_Evecs(dset,name,Nmodes):
         W = [tb.Flatten2D(W_real), tb.Flatten2D(W_imag)]
 
     return W
+
+def DMD_Sort(DMD_Data):
+
+    if hasattr(DMD_Data.dat.N_modes,'__len__'):
+        N_g = len(DMD_Data.dat.N_modes)
+        for g in range(N_g):
+
+            evl_p = g * DMD_Data.rank
+            lr = DMD_Data.dat.eval.real[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
+            li = DMD_Data.dat.eval.imag[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
+
+            evc_p = g * DMD_Data.clen * DMD_Data.rank
+            wr = DMD_Data.dat.evec.real[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
+            wi = DMD_Data.dat.evec.imag[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
+
+            for j in range(DMD_Data.dat.N_modes[g]):
+                max = math.sqrt( lr[j]**2 + li[j]**2 )
+                loc = j
+                for k in range(j+1,DMD_Data.dat.N_modes[g]):
+                    val = math.sqrt( lr[k]**2 + li[k]**2 )
+                    if (val > max):
+                        max = val
+                        loc = k
+
+                if (loc != j):
+                    evlr = lr[j]
+                    evli = li[j]
+
+                    p = j * DMD_Data.clen
+                    evcr = wr[p : p + DMD_Data.clen]
+                    evci = wi[p : p + DMD_Data.clen]
+
+                    lr[j] = lr[loc]
+                    li[j] = li[loc]
+
+                    p2 = loc * DMD_Data.clen
+                    wr[p : p + DMD_Data.clen] = wr[p2 : p2 + DMD_Data.clen]
+                    wi[p : p + DMD_Data.clen] = wi[p2 : p2 + DMD_Data.clen]
+
+                    lr[loc] = evlr
+                    li[loc] = evli
+
+                    wr[p2 : p2 + DMD_Data.clen] = evcr
+                    wi[p2 : p2 + DMD_Data.clen] = evci
+
+            DMD_Data.dat.eval.real[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = lr
+            DMD_Data.dat.eval.imag[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = li
+            DMD_Data.dat.evec.real[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = wr
+            DMD_Data.dat.evec.imag[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = wi
+
+    else:
+        for j in range(DMD_Data.dat.N_modes):
+            max = math.sqrt( DMD_Data.dat.eval.real[j]**2 + DMD_Data.dat.eval.imag[j]**2 )
+            loc = j
+            for k in range(j+1,DMD_Data.dat.N_modes):
+                val = math.sqrt( DMD_Data.dat.eval.real[k]**2 + DMD_Data.dat.eval.imag[k]**2 )
+                if (val > max):
+                    max = val
+                    loc = k
+
+            if (loc != j):
+                evlr = DMD_Data.dat.eval.real[j]
+                evli = DMD_Data.dat.eval.imag[j]
+
+                p = j * DMD_Data.clen
+                evcr = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
+                evci = DMD_Data.dat.evec.imag[p : p + DMD_Data.clen]
+
+                DMD_Data.dat.eval.real[j] = DMD_Data.dat.eval.real[loc]
+                DMD_Data.dat.eval.imag[j] = DMD_Data.dat.eval.imag[loc]
+
+                p2 = loc * DMD_Data.clen
+                DMD_Data.dat.evec.real[p : p + DMD_Data.clen] = DMD_Data.dat.evec.real[p2 : p2 + DMD_Data.clen]
+                DMD_Data.dat.evec.imag[p : p + DMD_Data.clen] = DMD_Data.dat.evec.imag[p2 : p2 + DMD_Data.clen]
+
+                DMD_Data.dat.eval.real[loc] = evlr
+                DMD_Data.dat.eval.imag[loc] = evli
+
+                DMD_Data.dat.evec.real[p2 : p2 + DMD_Data.clen] = evcr
+                DMD_Data.dat.evec.imag[p2 : p2 + DMD_Data.clen] = evci
+
+    return DMD_Data

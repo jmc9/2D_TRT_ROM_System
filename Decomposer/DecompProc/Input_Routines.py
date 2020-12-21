@@ -129,41 +129,44 @@ def Dcmp_Parms(dset,data_names):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Dat_Parms(dset,data_names):
+def Dat_Parms(dset,Dcmp_Data):
     Prob_Data = [] #array to hold all data from problem
-    N_data = len(data_names) #number of input datasets
+    N_data = len(Dcmp_Data) #number of input datasets
 
     #collecting information on each dataset
-    p = 0
     for i in range(N_data):
+
+        Prob_Data.append(Data(Dcmp_Data[i].name)) #allocating element of Dcmp_Data as Data object
+
         #checking if dataset exists in datafile
         try:
-            ncdat = dset[data_names[i]]
+            ncdat = dset[Dcmp_Data[i].name]
 
         except:
-                print("Error! {} does not exist".format(data_names[i]))
-                print("- Henceforth ignoring {} in visualization".format(data_names[i]))
-                continue
+            Prob_Data[i].opt[0] = -1
+            continue
 
-        Prob_Data.append(Data(data_names[i])) #allocating element of Dcmp_Data as Data object
-
-        Prob_Data[p].opt[0] = 0
+        Prob_Data[i].opt[0] = 0
 
         #collecting dimensions of dataset
         dnames = ncdat.dimensions
         N_dims = len(dnames)
-        Prob_Data[p].dims = np.zeros(N_dims, dtype=int)
+        Prob_Data[i].dims = np.zeros(N_dims, dtype=int)
         for j in range(N_dims):
-            Prob_Data[p].dims[j] = dset.dimensions[dnames[j]].size
+            Prob_Data[i].dims[j] = dset.dimensions[dnames[j]].size
 
         #
-        Prob_Data[p].dat = ncdat[:]
+        dat = ncdat[:]
+        dlen = 1
+        for j in range(1,N_dims):
+            dlen = dlen * Prob_Data[i].dims[j]
+        Prob_Data[i].dat = np.zeros([Prob_Data[i].dims[0], dlen])
         if N_dims == 4:
-            for t in range(Prob_Data[p].dims):
-                Prob_Data[p].dat[t] = tb.Flatten3D(Prob_Data[p].dat[t])
+            for t in range(Prob_Data[i].dims[0]):
+                Prob_Data[i].dat[t] = tb.Flatten3D(dat[t])
         elif N_dims == 3:
-            for t in range(Prob_Data[p].dims):
-                Prob_Data[p].dat[t] = tb.Flatten2D(Prob_Data[p].dat[t])
+            for t in range(Prob_Data[i].dims[0]):
+                Prob_Data[i].dat[t] = tb.Flatten2D(dat[t])
         elif N_dims > 4:
             print('cannot flatted data of dimensionality greater than 4 right now!')
             quit()
@@ -172,17 +175,16 @@ def Dat_Parms(dset,data_names):
         try:
             N_grids = getattr(ncdat, 'N_grids')
 
-            Prob_Data[p].grids = []
+        except:
+            Prob_Data[i].opt[0] = 1
+
+        if Prob_Data[i].opt[0] == 0:
+            Prob_Data[i].grids = []
             for j in range(N_grids):
                 gname = getattr( ncdat, 'grid{}'.format(j) )
                 grid = dset[gname][:]
                 bnds = dset[gname].bnds
-                Prob_Data[p].grids.append( Grid(bnds,grid) )
-
-        except:
-            Prob_Data[p].opt[0] = 1
-
-        p+=1
+                Prob_Data[i].grids.append( Grid(bnds,grid) )
 
     if not Prob_Data:
         print("Error! None of the data input for processing was found, terminating program")

@@ -10,6 +10,7 @@
 #==================================================================================================================================#
 #generic python tools
 import math
+import numpy as np
 
 #local tools
 import DMD_Routines as dmdr
@@ -37,7 +38,15 @@ def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
                 dmdr.Plot_DMD(dcmp,dir,plt_modes)
 
                 if len(Prob_Data) != 0:
-                    coef = dmdr.Coef_Calc(dcmp,Prob_Data[i])
+                    if Prob_Data[i].opt[0] == 0:
+                        coef = dmdr.Coef_Calc(dcmp,Prob_Data[i])
+
+                        len1 = len(Prob_Data[i].dat)
+                        len2 = len(Prob_Data[i].dat[0])
+                        edat = np.zeros([len1, len2],dtype=np.complex_)
+                        for j in range(len1):
+                            time = Prob_Data[i].grids[0].crds[j]
+                            edat[j] = dmdr.Expand(dcmp, coef, time)
 
             else:
                 dmdr.Plot_DMD(dcmp,dir,plt_modes,evecs=False)

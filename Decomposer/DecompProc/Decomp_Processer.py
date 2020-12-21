@@ -39,7 +39,7 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
 
     if dset_dat != '':
         dset_dat = ncds(dset_dat,'r')
-        Prob_Data = inp.Dat_Parms(dset_dat,data_names)
+        Prob_Data = inp.Dat_Parms(dset_dat,Dcmp_Data)
 
         if (len(Prob_Data) != len(Dcmp_Data)):
             print('len(Prob_Data) != len(Dcmp_Data)')

@@ -311,7 +311,7 @@ def Coef_Calc(DMD_Data,Prob_Data):
         quit()
 
     else:
-        init = Prob_Data.dat[0][0 : DMD_Data.clen]
+        init = Prob_Data.dat[0]
         p = 0
         for j in range(DMD_Data.dat.N_modes):
             prod = complex(0., 0.)
@@ -323,7 +323,29 @@ def Coef_Calc(DMD_Data,Prob_Data):
                 prod = prod + c1*c2
                 nrm = nrm + c2*c2
 
+                p += 1
+
             b.append( prod / nrm )
-            p = p + DMD_Data.clen
 
     return b
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Expand(DMD_Data, Coef, t):
+
+    Expn = np.zeros(DMD_Data.clen)
+    if hasattr(DMD_Data.dat.N_modes,'__len__'):
+        quit()
+
+    else:
+        p = 0
+        for i in range(DMD_Data.dat.N_modes):
+            for j in range(DMD_Data.clen):
+                w = complex(DMD_Data.dat.evec.real[p], DMD_Data.dat.evec.imag[p])
+                l = complex(DMD_Data.dat.eval.real[i], DMD_Data.dat.eval.imag[i])
+                Expn = Expn + Coef[i] * w * cmath.exp(l * t)
+
+                p += 1
+
+    return Expn

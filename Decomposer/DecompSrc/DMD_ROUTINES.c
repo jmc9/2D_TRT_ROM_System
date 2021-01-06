@@ -183,9 +183,55 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     xr = rank;
     printf("    -- Using full-rank SVD\n");
   }
-  else{ //negative svd_eps flags the use of reduced-rank SVD
+  else{ //positive svd_eps flags the use of reduced-rank SVD
     xr = SVD_Rank_Calc(rank,svd_eps,0,xs);
     printf("    -- Truncating SVD of data with rank %ld\n",xr);
+
+    //reallocating V^T with reduced row count
+    double *z = malloc(sizeof(double)*(N_t-1)*xr); //temporary array
+    size_t p = 0;
+    size_t p2 = 0;
+    for (size_t j=0; j<(N_t-1); j++){
+      for (size_t i=0; i<xr; i++){
+        z[p] = xvt[p2]; //copying first xr rows of xvt into z
+        p++;
+        p2++;
+      }
+      p2 = p2 + rank - xr;
+    }
+    free(xvt);
+
+    xvt = (double *)malloc(sizeof(double)*(N_t-1)*xr); //allocating xvt with rank = xr
+    p = 0;
+    for (size_t j=0; j<(N_t-1); j++){
+      for (size_t i=0; i<xr; i++){
+        xvt[p] = z[p]; //copying data back into xvt
+        p++;
+      }
+    }
+    free(z);
+
+    //reallocating U with reduced column count
+    z = (double *)malloc(sizeof(double)*clen*xr); //temporary array
+    p = 0;
+    for (size_t j=0; j<xr; j++){
+      for (size_t i=0; i<clen; i++){
+        z[p] = xu[p]; //copying first xr columns of xu into z
+        p++;
+      }
+    }
+    free(xu);
+
+    xu = (double *)malloc(sizeof(double)*clen*xr); //allocating xu with rank = xr
+    p = 0;
+    for (size_t j=0; j<xr; j++){
+      for (size_t i=0; i<clen; i++){
+        xu[p] = z[p]; //copying data back into xu
+        p++;
+      }
+    }
+    free(z);
+
   }
 
   //transposing V^T (finding V = (V^T)^T)

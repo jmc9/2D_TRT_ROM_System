@@ -416,6 +416,9 @@ int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids
         err = nc_inq_varid(ncid, gname, &Dcmp_data[i].gridids[j]); Handle_Err(err,loc);
       }
     }
+    else{
+      Dcmp_data[i].ngrids = 0;
+    }
   }
 
   int *gridlist = malloc(sizeof(Data)*N_grids_);

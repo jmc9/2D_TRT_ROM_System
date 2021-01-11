@@ -158,29 +158,46 @@ int EIG_Calc(double *a, size_t len, double complex *wmat, double complex *lambda
   double *wmat_l, *wmat_r, *wmat_i, *lambda_r, *lambda_i;
   char jobvl[2], jobvr[2];
 
-  wmat_r = (double *)malloc(sizeof(double)*len*len);
-  wmat_i = (double *)malloc(sizeof(double)*len*len);
-  lambda_r = (double *)malloc(sizeof(double)*len);
-  lambda_i = (double *)malloc(sizeof(double)*len);
+  wmat_r = (double *)malloc(sizeof(double)*len*len); //real component of eigenvectors
+  wmat_i = (double *)malloc(sizeof(double)*len*len); //imaginary component of eigenvectors
+  lambda_r = (double *)malloc(sizeof(double)*len);   //real component of eigenvalues
+  lambda_i = (double *)malloc(sizeof(double)*len);   //imaginary component of eigenvalues
+
+  //initializing imaginary component of eigenvectors to zero
+  size_t p = 0;
+  for (size_t i=0; i<len; i++){
+    for (size_t j=0; j<len; j++){
+      wmat_i[p] = 0.;
+      p++;
+    }
+  }
 
   //options for dgeev
   strcpy(jobvl,"N"); strcpy(jobvr,"V");
 
+  //performing eigendecomposition via LAPACKE
   err = LAPACKE_dgeev(LAPACK_COL_MAJOR,*jobvl,*jobvr,(int)len,a,(int)len,lambda_r,lambda_i,wmat_l,1,wmat_r,(int)len);
 
-  size_t p = 0;
+  /*LAPACKE_dgeev outputs *all* eigenvector components to wmat_r
+    if the real component of the i-th and (i-1)-th eigenvalue are equal, this signals a complex conjugate pair
+    for complex conjugate pairs:
+      1) the (i-1)th column of wmat_r holds the real component of the i-th and (i-1)th eigenvectors
+      2) letting x = the i-th column of wmat_r --> the imaginary components of the (i-1)th and i-th -
+         - eigenvectors are x and -x, respectively
+  */
   for (size_t i=1; i<len; i++){
     if (lambda_r[i] == lambda_r[i-1]){
       p = i*len;
       for (size_t j=0; j<len; j++){
-        wmat_i[p] = wmat_r[p];
-        wmat_i[p-len] = -wmat_r[p];
+        wmat_i[p] = -wmat_r[p];
+        wmat_i[p-len] = wmat_r[p];
         wmat_r[p] = wmat_r[p-len];
         p++;
       }
     }
   }
 
+  //moving eigenvalues and eigenvectors into complex arrays for output
   p = 0;
   for (size_t i=0; i<len; i++){
 

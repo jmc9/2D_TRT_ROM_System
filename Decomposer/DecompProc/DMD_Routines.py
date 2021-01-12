@@ -46,8 +46,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
         for g in range(N_g):
             for m in plt_modes:
                 p = g * DMD_Data.rank + m
-                lr = DMD_Data.dat.eval.real[p]; (lr_e, lr_c) = tb.pow10(lr)
-                li = DMD_Data.dat.eval.imag[p]; (li_e, li_c) = tb.pow10(li)
+                lr = DMD_Data.dat.eval[p].real; (lr_e, lr_c) = tb.pow10(lr)
+                li = DMD_Data.dat.eval[p].imag; (li_e, li_c) = tb.pow10(li)
                 l2 = math.sqrt(lr**2 + li**2);  (l2_e, l2_c) = tb.pow10(l2)
                 if (li < 0): s = '-'
                 else: s = '+'
@@ -55,8 +55,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
                 title_i = 'Im($\omega$) \n  $\lambda$ = ${:.2f}\cdot 10^{:d} {} {:.2f}\cdot 10^{:d} i = | {:.2f}\cdot 10^{:d} |$'.format(lr_c,lr_e,s,abs(li_c),li_e,l2_c,l2_e)
 
                 p = g * DMD_Data.clen * DMD_Data.rank + m * DMD_Data.clen
-                wr = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
-                wi = DMD_Data.dat.evec.imag[p : p + DMD_Data.clen]
+                wr = DMD_Data.dat.evec[p : p + DMD_Data.clen].real
+                wi = DMD_Data.dat.evec[p : p + DMD_Data.clen].imag
                 pltname_r = '{}_m{}_g{}_re'.format(DMD_Data.name,m+1,g+1)
                 pltname_i = '{}_m{}_g{}_im'.format(DMD_Data.name,m+1,g+1)
 
@@ -76,8 +76,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
 
     else:
         for m in plt_modes:
-            lr = DMD_Data.dat.eval.real[m]; (lr_e, lr_c) = tb.pow10(lr)
-            li = DMD_Data.dat.eval.imag[m]; (li_e, li_c) = tb.pow10(li)
+            lr = DMD_Data.dat.eval[m].real; (lr_e, lr_c) = tb.pow10(lr)
+            li = DMD_Data.dat.eval[m].imag; (li_e, li_c) = tb.pow10(li)
             l2 = math.sqrt(lr**2 + li**2);  (l2_e, l2_c) = tb.pow10(l2)
             if (li < 0): s = '-'
             else: s = '+'
@@ -85,8 +85,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
             title_i = 'Im($\omega$) \n  $\lambda$ = ${:.2f}\cdot 10^{:d} {} {:.2f}\cdot 10^{:d} i = | {:.2f}\cdot 10^{:d} |$'.format(lr_c,lr_e,s,abs(li_c),li_e,l2_c,l2_e)
 
             p = m * DMD_Data.clen
-            wr = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
-            wi = DMD_Data.dat.evec.imag[p : p + DMD_Data.clen]
+            wr = DMD_Data.dat.evec[p : p + DMD_Data.clen].real
+            wi = DMD_Data.dat.evec[p : p + DMD_Data.clen].imag
             pltname_r = '{}_m{}_re'.format(DMD_Data.name,m+1)
             pltname_i = '{}_m{}_im'.format(DMD_Data.name,m+1)
 
@@ -136,8 +136,8 @@ def Plot_DMD_evals(DMD_Data,dir):
         N_g = DMD_Data.dims[1]
         for g in range(N_g):
             p = g * DMD_Data.rank
-            lr = DMD_Data.dat.eval.real[p : p + DMD_Data.dat.N_modes[g]]
-            li = DMD_Data.dat.eval.imag[p : p + DMD_Data.dat.N_modes[g]]
+            lr = DMD_Data.dat.eval[p : p + DMD_Data.dat.N_modes[g]].real
+            li = DMD_Data.dat.eval[p : p + DMD_Data.dat.N_modes[g]].imag
 
             title = '{}_Evals_g{}'.format(DMD_Data.name,g+1)
             pltr.scatterplot([lr,li],title,dir,xlabel='Re($\lambda$)',ylabel='Imag($\lambda$)')
@@ -146,8 +146,8 @@ def Plot_DMD_evals(DMD_Data,dir):
             pltr.scatterplot([lr,li],title,dir,xlim=[-1.5,1.5],ylim=[-1.5,1.5],cr=1,xlabel='Re($\lambda$)',ylabel='Imag($\lambda$)')
 
     else:
-        lr = DMD_Data.dat.eval.real[0:DMD_Data.dat.N_modes]
-        li = DMD_Data.dat.eval.imag[0:DMD_Data.dat.N_modes]
+        lr = DMD_Data.dat.eval[0:DMD_Data.dat.N_modes].real
+        li = DMD_Data.dat.eval[0:DMD_Data.dat.N_modes].imag
 
         title = '{}_Evals'.format(DMD_Data.name)
         pltr.scatterplot([lr,li],title,dir,xlabel='Re($\lambda$)',ylabel='Imag($\lambda$)')
@@ -192,10 +192,12 @@ def Read_Evals(dset,name,Nmodes):
     #checking whether evals are multi-d
     if hasattr(Nmodes,'__len__'):
         #if evals are multi-d, flattening them into 1D arrays
-        L = [tb.Flatten2D(L_real), tb.Flatten2D(L_imag)]
+        L_real = tb.Flatten2D(L_real)
+        L_imag = tb.Flatten2D(L_imag)
 
-    else:
-        L = [L_real, L_imag]
+    L = np.zeros(Nmodes, dtype='complex')
+    for i in range(Nmodes):
+        L[i] = complex(L_real[i], L_imag[i])
 
     return L
 
@@ -209,10 +211,16 @@ def Read_Evecs(dset,name,Nmodes):
 
     #flattening eigenvector arrays into 1D arrays
     if hasattr(Nmodes,'__len__'):
-        W = [tb.Flatten3D(W_real), tb.Flatten3D(W_imag)]
+        W_real = tb.Flatten3D(W_real)
+        W_imag = tb.Flatten3D(W_imag)
 
     else:
-        W = [tb.Flatten2D(W_real), tb.Flatten2D(W_imag)]
+        W_real = tb.Flatten2D(W_real)
+        W_imag = tb.Flatten2D(W_imag)
+
+    W = np.zeros(len(W_real), dtype='complex')
+    for i in range(len(W_real)):
+        W[i] = complex(W_real[i], W_imag[i])
 
     return W
 
@@ -226,106 +234,79 @@ def DMD_Sort(DMD_Data):
         for g in range(N_g):
 
             evl_p = g * DMD_Data.rank
-            lr = DMD_Data.dat.eval.real[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
-            li = DMD_Data.dat.eval.imag[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
+            l = DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
 
             evc_p = g * DMD_Data.clen * DMD_Data.rank
-            wr = DMD_Data.dat.evec.real[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
-            wi = DMD_Data.dat.evec.imag[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
+            w = DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
 
             for j in range(DMD_Data.dat.N_modes[g]):
-                max = math.sqrt( lr[j]**2 + li[j]**2 )
+                max = math.sqrt( l[j].real**2 + l[j].imag**2 )
                 loc = j
                 for k in range(j+1,DMD_Data.dat.N_modes[g]):
-                    val = math.sqrt( lr[k]**2 + li[k]**2 )
+                    val = math.sqrt( l[k].real**2 + l[k].imag**2 )
                     if (val > max):
                         max = val
                         loc = k
 
                 if (loc != j):
-                    evlr = lr[j]
-                    evli = li[j]
+                    evl = l[j]
 
                     p = j * DMD_Data.clen
-                    evcr = wr[p : p + DMD_Data.clen]
-                    evci = wi[p : p + DMD_Data.clen]
+                    evc = w[p : p + DMD_Data.clen]
 
-                    lr[j] = lr[loc]
-                    li[j] = li[loc]
+                    l[j] = l[loc]
 
                     p2 = loc * DMD_Data.clen
-                    wr[p : p + DMD_Data.clen] = wr[p2 : p2 + DMD_Data.clen]
-                    wi[p : p + DMD_Data.clen] = wi[p2 : p2 + DMD_Data.clen]
+                    w[p : p + DMD_Data.clen] = w[p2 : p2 + DMD_Data.clen]
 
-                    lr[loc] = evlr
-                    li[loc] = evli
+                    l[loc] = evl
 
-                    wr[p2 : p2 + DMD_Data.clen] = evcr
-                    wi[p2 : p2 + DMD_Data.clen] = evci
+                    w[p2 : p2 + DMD_Data.clen] = evc
 
-            DMD_Data.dat.eval.real[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = lr
-            DMD_Data.dat.eval.imag[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = li
-            DMD_Data.dat.evec.real[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = wr
-            DMD_Data.dat.evec.imag[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = wi
+            DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = l
+            DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = w
 
     else:
         for j in range(DMD_Data.dat.N_modes):
-            max = math.sqrt( DMD_Data.dat.eval.real[j]**2 + DMD_Data.dat.eval.imag[j]**2 )
+            max = math.sqrt( DMD_Data.dat.eval[j].real**2 + DMD_Data.dat.eval[j].imag**2 )
             loc = j
             for k in range(j+1,DMD_Data.dat.N_modes):
-                val = math.sqrt( DMD_Data.dat.eval.real[k]**2 + DMD_Data.dat.eval.imag[k]**2 )
+                val = math.sqrt( DMD_Data.dat.eval[k].real**2 + DMD_Data.dat.eval[k].imag**2 )
                 if (val > max):
                     max = val
                     loc = k
 
             if (loc != j):
-                evlr = DMD_Data.dat.eval.real[j]
-                evli = DMD_Data.dat.eval.imag[j]
+                evl = DMD_Data.dat.eval[j]
 
                 p = j * DMD_Data.clen
-                evcr = DMD_Data.dat.evec.real[p : p + DMD_Data.clen]
-                evci = DMD_Data.dat.evec.imag[p : p + DMD_Data.clen]
+                evc = np.zeros(DMD_Data.clen, dtype='complex')
+                for q in range(DMD_Data.clen): evc[q] = DMD_Data.dat.evec[p + q]
 
-                DMD_Data.dat.eval.real[j] = DMD_Data.dat.eval.real[loc]
-                DMD_Data.dat.eval.imag[j] = DMD_Data.dat.eval.imag[loc]
+                DMD_Data.dat.eval[j] = DMD_Data.dat.eval[loc]
 
                 p2 = loc * DMD_Data.clen
-                DMD_Data.dat.evec.real[p : p + DMD_Data.clen] = DMD_Data.dat.evec.real[p2 : p2 + DMD_Data.clen]
-                DMD_Data.dat.evec.imag[p : p + DMD_Data.clen] = DMD_Data.dat.evec.imag[p2 : p2 + DMD_Data.clen]
+                DMD_Data.dat.evec[p : p + DMD_Data.clen] = DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen]
 
-                DMD_Data.dat.eval.real[loc] = evlr
-                DMD_Data.dat.eval.imag[loc] = evli
+                DMD_Data.dat.eval[loc] = evl
 
-                DMD_Data.dat.evec.real[p2 : p2 + DMD_Data.clen] = evcr
-                DMD_Data.dat.evec.imag[p2 : p2 + DMD_Data.clen] = evci
+                DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen] = evc
 
     return DMD_Data
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Coef_Calc(DMD_Data,Prob_Data):
+def Coef_Calc(DMD_Data,init):
 
     b = []
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
         quit()
 
     else:
-        init = Prob_Data.dat[0]
         p = 0
-        for j in range(DMD_Data.dat.N_modes):
-            prod = complex(0., 0.)
-            nrm  = complex(0., 0.)
-            for i in range(DMD_Data.clen):
-                c1 = complex(init[i], 0.)
-                c2 = complex(DMD_Data.dat.evec.real[p], DMD_Data.dat.evec.imag[p])
-
-                prod = prod + c1*c2
-                nrm = nrm + c2*c2
-
-                p += 1
-
-            b.append( prod / nrm )
+        w = np.reshape(DMD_Data.dat.evec, (DMD_Data.dat.N_modes, DMD_Data.clen))
+        b = np.linalg.solve(w, init)
 
     return b
 
@@ -341,11 +322,10 @@ def Expand(DMD_Data, Coef, t):
     else:
         p = 0
         for i in range(DMD_Data.dat.N_modes):
-            for j in range(DMD_Data.clen):
-                w = complex(DMD_Data.dat.evec.real[p], DMD_Data.dat.evec.imag[p])
-                l = complex(DMD_Data.dat.eval.real[i], DMD_Data.dat.eval.imag[i])
-                Expn = Expn + Coef[i] * w * cmath.exp(l * t)
+            w = DMD_Data.dat.evec[p : p + DMD_Data.clen]
+            l = DMD_Data.dat.eval[i]
+            Expn = Expn + Coef[i] * w * l**t
 
-                p += 1
+            p += DMD_Data.clen
 
     return Expn

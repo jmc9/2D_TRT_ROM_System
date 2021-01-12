@@ -167,6 +167,9 @@ def Dat_Parms(dset,Dcmp_Data):
         elif N_dims == 3:
             for t in range(Prob_Data[i].dims[0]):
                 Prob_Data[i].dat[t] = tb.Flatten2D(dat[t])
+        elif N_dims == 2:
+            for t in range(Prob_Data[i].dims[0]):
+                Prob_Data[i].dat[t] = dat[t]
         elif N_dims > 4:
             print('cannot flatted data of dimensionality greater than 4 right now!')
             quit()

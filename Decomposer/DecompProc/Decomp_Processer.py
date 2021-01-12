@@ -29,14 +29,29 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
 
     tb.BigTitle() #output code title to command line
 
+    #===========================================================================#
+    #                                                                           #
+    #                              READING INPUTS                               #
+    #                                                                           #
+    #===========================================================================#
     (proc_dir,plotdir,dset,dset_dat,data_names) = inp.Input(infile,proc_dir,plotdir)
     tb.dirset(proc_dir)
     plotdir = proc_dir+'/'+plotdir
     tb.dirset(plotdir)
 
+    #===========================================================================#
+    #                                                                           #
+    #                       COLLECTING DECOMPOSITION DATA                       #
+    #                                                                           #
+    #===========================================================================#
     dset = ncds(dset,'r') #opening specified dataset
     Dcmp_Data = inp.Dcmp_Parms(dset,data_names)
 
+    #===========================================================================#
+    #                                                                           #
+    #                         COLLECTING REFERENCE DATA                         #
+    #                                                                           #
+    #===========================================================================#
     if dset_dat != '':
         dset_dat = ncds(dset_dat,'r')
         Prob_Data = inp.Dat_Parms(dset_dat,Dcmp_Data)
@@ -47,8 +62,15 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
     else:
         Prob_Data = []
 
+    #===========================================================================#
+    #                                                                           #
+    #                              PROCESSING DATA                              #
+    #                                                                           #
+    #===========================================================================#
     plt_modes = [0,1,2]
-    pr.Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir)
+    recon = pr.Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir)
+    err = pr.Error_Calc(recon,Prob_Data)
+    pr.Output(recon, err, Prob_Data)
 
     dset.close() #closing dataset file
     print('success!')

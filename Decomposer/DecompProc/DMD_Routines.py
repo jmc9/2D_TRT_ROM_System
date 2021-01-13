@@ -145,6 +145,15 @@ def Plot_DMD_evals(DMD_Data,dir):
             title = '{}_Evals_g{}_ucirc'.format(DMD_Data.name,g+1)
             pltr.scatterplot([lr,li],title,dir,xlim=[-1.5,1.5],ylim=[-1.5,1.5],cr=1,xlabel='Re($\lambda$)',ylabel='Imag($\lambda$)')
 
+            lr = DMD_Data.dat.expval[p : p + DMD_Data.dat.N_modes[g]].real
+            li = DMD_Data.dat.expval[p : p + DMD_Data.dat.N_modes[g]].imag
+
+            title = '{}_Expvals_g{}'.format(DMD_Data.name,g+1)
+            pltr.scatterplot([lr,li],title,dir,xlabel='Re($e\lambda$)',ylabel='Imag($e\lambda$)')
+
+            title = '{}_Expvals_g{}_ucirc'.format(DMD_Data.name,g+1)
+            pltr.scatterplot([lr,li],title,dir,xlim=[-1.5,1.5],ylim=[-1.5,1.5],cr=1,xlabel='Re($e\lambda$)',ylabel='Imag($e\lambda$)')
+
     else:
         lr = DMD_Data.dat.eval[0:DMD_Data.dat.N_modes].real
         li = DMD_Data.dat.eval[0:DMD_Data.dat.N_modes].imag
@@ -155,6 +164,15 @@ def Plot_DMD_evals(DMD_Data,dir):
         title = '{}_Evals_ucirc'.format(DMD_Data.name)
         pltr.scatterplot([lr,li],title,dir,xlim=[-1.05,1.05],ylim=[-1.05,1.05],cr=1,xlabel='Re($\lambda$)',ylabel='Imag($\lambda$)')
 
+        lr = DMD_Data.dat.expval[0:DMD_Data.dat.N_modes].real
+        li = DMD_Data.dat.expval[0:DMD_Data.dat.N_modes].imag
+
+        title = '{}_Expvals'.format(DMD_Data.name)
+        pltr.scatterplot([lr,li],title,dir,xlabel='Re($e\lambda$)',ylabel='Imag($e\lambda$)')
+
+        title = '{}_Expvals_ucirc'.format(DMD_Data.name)
+        pltr.scatterplot([lr,li],title,dir,xlim=[-1.05,1.05],ylim=[-1.05,1.05],cr=1,xlabel='Re($e\lambda$)',ylabel='Imag($e\lambda$)')
+
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
@@ -164,8 +182,9 @@ def Read_DMD(dset,name):
 
     Evals = Read_Evals(dset, name, N_modes)
     Evecs = Read_Evecs(dset, name, N_modes)
+    Expvals = Read_Expvals(dset, name, N_modes)
 
-    DMD_dat = DMD(N_modes, Evals, Evecs)
+    DMD_dat = DMD(N_modes, Evals, Evecs, Expvals)
 
     return DMD_dat
 
@@ -184,10 +203,10 @@ def Read_Dims(dset,name):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Read_Evals(dset,name,Nmodes):
+def Read_Evals(dset,name,Nmodes,evn='L'):
     #reading eigenvalues from dataset
-    L_real = dset['L_real_'+name][:] #real component
-    L_imag = dset['L_imag_'+name][:] #imaginary component
+    L_real = dset['{}_real_'.format(evn)+name][:] #real component
+    L_imag = dset['{}_imag_'.format(evn)+name][:] #imaginary component
 
     #checking whether evals are multi-d
     if hasattr(Nmodes,'__len__'):
@@ -200,6 +219,14 @@ def Read_Evals(dset,name,Nmodes):
         L[i] = complex(L_real[i], L_imag[i])
 
     return L
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Read_Expvals(dset,name,Nmodes):
+    eL = Read_Evals(dset,name,Nmodes,'eL')
+
+    return eL
 
 #==================================================================================================================================#
 #
@@ -235,6 +262,7 @@ def DMD_Sort(DMD_Data):
 
             evl_p = g * DMD_Data.rank
             l = DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
+            el = DMD_Data.dat.expval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
 
             evc_p = g * DMD_Data.clen * DMD_Data.rank
             w = DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
@@ -250,20 +278,24 @@ def DMD_Sort(DMD_Data):
 
                 if (loc != j):
                     evl = l[j]
+                    expvl = el[j]
 
                     p = j * DMD_Data.clen
                     evc = w[p : p + DMD_Data.clen]
 
                     l[j] = l[loc]
+                    el[j] = el[loc]
 
                     p2 = loc * DMD_Data.clen
                     w[p : p + DMD_Data.clen] = w[p2 : p2 + DMD_Data.clen]
 
                     l[loc] = evl
+                    el[loc] = expvl
 
                     w[p2 : p2 + DMD_Data.clen] = evc
 
             DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = l
+            DMD_Data.dat.expval[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = el
             DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = w
 
     else:
@@ -278,17 +310,20 @@ def DMD_Sort(DMD_Data):
 
             if (loc != j):
                 evl = DMD_Data.dat.eval[j]
+                expvl = DMD_Data.dat.expval[j]
 
                 p = j * DMD_Data.clen
                 evc = np.zeros(DMD_Data.clen, dtype='complex')
                 for q in range(DMD_Data.clen): evc[q] = DMD_Data.dat.evec[p + q]
 
                 DMD_Data.dat.eval[j] = DMD_Data.dat.eval[loc]
+                DMD_Data.dat.expval[j] = DMD_Data.dat.expval[loc]
 
                 p2 = loc * DMD_Data.clen
                 DMD_Data.dat.evec[p : p + DMD_Data.clen] = DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen]
 
                 DMD_Data.dat.eval[loc] = evl
+                DMD_Data.dat.expval[loc] = expvl
 
                 DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen] = evc
 

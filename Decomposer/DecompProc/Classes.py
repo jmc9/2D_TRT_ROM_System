@@ -29,10 +29,11 @@ class Grid:
 #
 #==================================================================================================================================#
 class DMD:
-    def __init__(self,N_modes=0,eval=complex(0.,0.),evec=complex(0.,0.)):
+    def __init__(self,N_modes=0,eval=complex(0.,0.),evec=complex(0.,0.),expval=complex(0.,0.)):
         self.N_modes = N_modes
         self.eval = eval
         self.evec = evec
+        self.expval = expval
 
 #==================================================================================================================================#
 #

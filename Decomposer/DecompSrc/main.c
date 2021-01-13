@@ -47,7 +47,8 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcm
   ncdim *rank, ncdim *dims, Data **Decomp, int **dcdims);
 
 int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int gsum, Data *Dcmp_data,
-  const size_t N_data, Data *Decomp, ncdim *clen, ncdim *rank, ncdim *dims, int **dcdims, const double svd_eps);
+  const size_t N_data, Data *Grids, const size_t N_grids, Data *Decomp, ncdim *clen, ncdim *rank, ncdim *dims,
+  int **dcdims, const double svd_eps);
 
 /* ----- LOCAL DEFINITIONS ----- */
 #define min(a,b) \
@@ -135,7 +136,7 @@ int main()
   /                          PERFORMING DECOMPOSITION                           /
   /                                                                            */
   /*===========================================================================*/
-  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,gsum,Dcmp_data,N_data,Decomp,clen,rank,dims,dcdims,svd_eps);
+  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,gsum,Dcmp_data,N_data,Grids,N_grids,Decomp,clen,rank,dims,dcdims,svd_eps);
 
   /*===========================================================================*/
   /*                                                                            /

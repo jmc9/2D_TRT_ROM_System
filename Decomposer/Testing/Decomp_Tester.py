@@ -27,12 +27,56 @@ def Exec():
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Decomp_Tester(exec_dir, decomp_dir, proc_dir):
+def Decomp_Tester(exec_dir, decomp_dir, proc_dir, testdir='testdir'):
 
-    drop = 'testdir'
-    drop = tb.dirset(drop, exec_dir)
+    testdir = tb.dirset(testdir, exec_dir)
 
-    tt.Run_Test(exec_dir, decomp_dir, proc_dir, drop)
+    decomp_perphs = tt.peripherals(decomp_dir)
+    proc_perphs = tt.peripherals(proc_dir)
+
+    decomp_perphs.load('input.inp', 'test_dmd.h5', 'DecompLog.log')
+    proc_perphs.load('proc_input.inp', 'processed_test', 'ProcLog.log')
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                              Test 1                                               #
+    #Simple test on basic calculations                                                                  #
+    #single small exponential growth term in 1D with single grid point in space                         #
+    #----------------------------------------------------------------------------------------------------#
+    test1_drop = tb.dirset('Test_1', testdir)
+    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test1_drop, [.1], [], 'cvec')
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                               Test 2                                               #
+    # multiple (5) exponential growth terms in 1D                                                        #
+    # each exponential is attached to a unit vector in space (i.e. w_1=[0 1 0 0 0])                      #
+    #----------------------------------------------------------------------------------------------------#
+    test2_drop = tb.dirset('Test_2', testdir)
+    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test2_drop, [.1, .2, .3, .4, .5], [], 'cvec')
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                               Test 3                                               #
+    # an exact copy of Test 2, but with exponential decay instead og growth                              #
+    #----------------------------------------------------------------------------------------------------#
+    test3_drop = tb.dirset('Test_3', testdir)
+    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test3_drop, [-.1, -.2, -.3, -.4, -.5], [], 'cvec')
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                               Test 4                                               #
+    # now combines exponential growth and decay in 1D                                                    #
+    # each exponential is attached to a unit vector in space (i.e. w_1=[0 1 0 0])                        #
+    #----------------------------------------------------------------------------------------------------#
+    test4_drop = tb.dirset('Test_4', testdir)
+    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test4_drop, [.1, -.1, .2, -.2], [], 'cvec')
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                               Test 5                                               #
+    # The same test as Test 4 but in 2D geometry                                                         #
+    # instead of 4 grid points along the x-axis, --                                                      #
+    # -- there are 2 grid points along each of the x- and y- axes                                        #
+    # each exponential is attached to a unit vector in 2D space (i.e. w_(1,0)=[ [0 1] [0 0] ])           #
+    #----------------------------------------------------------------------------------------------------#
+    test5_drop = tb.dirset('Test_5', testdir)
+    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test5_drop, [.1, -.1, .2, -.2], [[],[0.,1.],[0.,1.]], ['cvec', 'cvec'])
 
 #==================================================================================================================================#
 #

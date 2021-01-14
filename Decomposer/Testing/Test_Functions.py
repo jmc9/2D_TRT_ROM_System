@@ -31,7 +31,7 @@ def expf(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
     grids = expf_gcalc(N_a, tp, xp, yp, yshp)
 
     #
-    w = w_gen(grids.x.pts, xshp, N_a)
+    w = w_gen(grids.x.pts, xshp, N_a, grids.y.pts, yshp)
 
     fdim = tuple(grids.dlist_tr())
     flen = grids.all.len
@@ -125,7 +125,7 @@ def expf_incheck(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
         check = 1
         errs.append('invalid xshp detected ({})'.format(xshp))
 
-    if not yshp in ['cvec','none']:
+    if not yshp in ['cvec','none','linear','lin']:
         check = 1
         errs.append('invalid yshp detected ({})'.format(xshp))
 
@@ -136,8 +136,13 @@ def expf_incheck(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
 #==================================================================================================================================#
 def w_gen(xp, xshp='cvec', N_w=0, yp=[], yshp='none'):
 
+    #tracking all possible conflicts:
+    #-----
+
+    #
     N_x = len(xp)
 
+    #
     if yshp == 'none':
         N_y = 0
         N_xy = N_x
@@ -149,10 +154,12 @@ def w_gen(xp, xshp='cvec', N_w=0, yp=[], yshp='none'):
             N_y = len(yp)
         N_xy = N_y * N_x
 
+    #
     if N_w == 0:
         N_w = N_xy
     w = np.zeros((N_w * N_xy))
 
+    #
     if xshp == 'cvec':
         if yshp in ['none','cvec']:
             N_v = min([N_xy, N_w])
@@ -160,5 +167,15 @@ def w_gen(xp, xshp='cvec', N_w=0, yp=[], yshp='none'):
             for i in range(N_v):
                 w[p] = 1.
                 p += N_xy + 1
+        elif yshp in ['linear','lin']:
+            c = np.linspace(-1., 1., N_w)
+            r = 0
+            p = 0
+            for i in range(N_w):
+                for j in range(N_y):
+                    w[p] = c[i] * yp[j] + 1.
+                    p += N_x
+                p += 1
+
 
     return w

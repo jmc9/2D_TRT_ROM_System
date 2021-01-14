@@ -31,10 +31,13 @@ def FileCheck(file):
 # INPUTS:
 #   dir - path to target directory
 #==================================================================================================================================#
-def dirset(dir, path):
+def dirset(dir, path=''):
+    if path != '':
+        dir = os.path.join(path, dir)
+
     if os.path.isdir(dir): #if directory exists, clear all files from inside
         if len(os.listdir(dir)) > 0: os.system('rm -r '+dir+'/*')
     else: #if directory does not exist, create it
         os.mkdir(dir)
 
-    return os.path.join(path, dir)
+    return dir

@@ -42,7 +42,7 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
     N_dims  = len(DMD_Data.dims)
 
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
-        N_g = DMD_Data.dims[1]
+        N_g = DMD_Data.dims[1].len
         for g in range(N_g):
             for m in plt_modes:
                 p = g * DMD_Data.rank + m
@@ -65,8 +65,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
                     quit()
 
                 elif (N_grids == 3): #
-                    N_x = DMD_Data.dims[N_dims-1]
-                    N_y = DMD_Data.dims[N_dims-2]
+                    N_x = DMD_Data.dims[N_dims-1].len
+                    N_y = DMD_Data.dims[N_dims-2].len
 
                     xp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-1])
                     yp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-2])
@@ -98,8 +98,8 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
                     if li != 0.: pltr.lineplot(pltname_i, xp, wi, dir, title=title_i)
 
                 elif (N_grids == 3): #
-                    N_x = DMD_Data.dims[N_dims-1]
-                    N_y = DMD_Data.dims[N_dims-2]
+                    N_x = DMD_Data.dims[N_dims-1].len
+                    N_y = DMD_Data.dims[N_dims-2].len
 
                     xp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-1])
                     yp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-2])
@@ -114,9 +114,9 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
                     quit()
 
                 elif (N_grids == 3): #
-                    N_x = DMD_Data.dims[N_dims-1]
-                    N_y = DMD_Data.dims[N_dims-2]
-                    N_z = DMD_Data.dims[N_dims-3]
+                    N_x = DMD_Data.dims[N_dims-1].len
+                    N_y = DMD_Data.dims[N_dims-2].len
+                    N_z = DMD_Data.dims[N_dims-3].len
 
                     xp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-1])
                     yp = tb.Grid_Edg_Gen(DMD_Data.grids[N_grids-2])
@@ -133,7 +133,7 @@ def Plot_DMD_evecs(DMD_Data,plt_modes,dir):
 #==================================================================================================================================#
 def Plot_DMD_evals(DMD_Data,dir):
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
-        N_g = DMD_Data.dims[1]
+        N_g = DMD_Data.dims[1].len
         for g in range(N_g):
             p = g * DMD_Data.rank
             lr = DMD_Data.dat.eval[p : p + DMD_Data.dat.N_modes[g]].real

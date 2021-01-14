@@ -67,11 +67,11 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
     #                              PROCESSING DATA                              #
     #                                                                           #
     #===========================================================================#
-    plt_modes = [0,1]
+    plt_modes = [0]
     recon = pr.Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir)
     err = pr.Error_Calc(recon,Prob_Data)
     pr.Output(recon, err, Prob_Data)
-    os.system('cp proc_summary.h5 {}'.format(plotdir))
+    os.system('cp proc_summary.h5 {}'.format(proc_dir))
 
     dset.close() #closing dataset file
     print('success!')

@@ -15,6 +15,7 @@ import numpy as np
 from Classes import Data
 from Classes import DMD
 from Classes import Grid
+from Classes import Dimension
 
 #==================================================================================================================================#
 #
@@ -99,10 +100,10 @@ def Dcmp_Parms(dset,data_names):
 
         #collecting dimensions of dataset
         N_dims = getattr(ncdat, 'N_dims')
-        Dcmp_Data[p].dims = np.zeros(N_dims, dtype=int)
+        Dcmp_Data[p].dims = []
         for j in range(N_dims):
-            dname = getattr( ncdat, 'dim{}'.format(j) )
-            Dcmp_Data[p].dims[j] = dset.dimensions[dname].size
+            Dcmp_Data[p].dims.append( Dimension( name = getattr( ncdat, 'dim{}'.format(j) ) ) )
+            Dcmp_Data[p].dims[j].len = dset.dimensions[Dcmp_Data[p].dims[j].name].size
 
         #collecting grids on which the dataset resides
         try:
@@ -151,24 +152,24 @@ def Dat_Parms(dset,Dcmp_Data):
         #collecting dimensions of dataset
         dnames = ncdat.dimensions
         N_dims = len(dnames)
-        Prob_Data[i].dims = np.zeros(N_dims, dtype=int)
+        Prob_Data[i].dims = []
         for j in range(N_dims):
-            Prob_Data[i].dims[j] = dset.dimensions[dnames[j]].size
+            Prob_Data[i].dims.append( Dimension( name = dnames[j], len = dset.dimensions[dnames[j]].size ) )
 
         #
         dat = ncdat[:]
         dlen = 1
         for j in range(1,N_dims):
-            dlen = dlen * Prob_Data[i].dims[j]
-        Prob_Data[i].dat = np.zeros([Prob_Data[i].dims[0], dlen])
+            dlen = dlen * Prob_Data[i].dims[j].len
+        Prob_Data[i].dat = np.zeros([Prob_Data[i].dims[0].len, dlen])
         if N_dims == 4:
-            for t in range(Prob_Data[i].dims[0]):
+            for t in range(Prob_Data[i].dims[0].len):
                 Prob_Data[i].dat[t] = tb.Flatten3D(dat[t])
         elif N_dims == 3:
-            for t in range(Prob_Data[i].dims[0]):
+            for t in range(Prob_Data[i].dims[0].len):
                 Prob_Data[i].dat[t] = tb.Flatten2D(dat[t])
         elif N_dims == 2:
-            for t in range(Prob_Data[i].dims[0]):
+            for t in range(Prob_Data[i].dims[0].len):
                 Prob_Data[i].dat[t] = dat[t]
         elif N_dims > 4:
             print('cannot flatted data of dimensionality greater than 4 right now!')

@@ -38,9 +38,9 @@ def Decomp_Tester(exec_dir, decomp_dir, proc_dir, testdir='testdir'):
     proc_perphs.load('proc_input.inp', 'processed_test', 'ProcLog.log')
 
     #----------------------------------------------------------------------------------------------------#
-    #                                              Test 1                                               #
-    #Simple test on basic calculations                                                                  #
-    #single small exponential growth term in 1D with single grid point in space                         #
+    #                                               Test 1                                               #
+    # Simple test on basic calculations                                                                  #
+    # single small exponential growth term in 1D with single grid point in space                         #
     #----------------------------------------------------------------------------------------------------#
     test1_drop = tb.dirset('Test_1', testdir)
     tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test1_drop, [.1], [], 'cvec')
@@ -77,6 +77,15 @@ def Decomp_Tester(exec_dir, decomp_dir, proc_dir, testdir='testdir'):
     #----------------------------------------------------------------------------------------------------#
     test5_drop = tb.dirset('Test_5', testdir)
     tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test5_drop, [.1, -.1, .2, -.2], [[],[0.,1.],[0.,1.]], ['cvec', 'cvec'])
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                               Test 6                                               #
+    # 2D geometry test with eigenvectors that are linear in the y-direction                              #
+    # The x- and y- dimensions are now also different (non-square domain)                                #
+    # There exist more grid points in space then there are eigenvalues                                   #
+    #----------------------------------------------------------------------------------------------------#
+    test6_drop = tb.dirset('Test_6', testdir)
+    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test6_drop, [.1, .3, -.2, -.4], [[],[],[0.,1.,2.,3.,4.,5.,6.,7.,8.,9.]], ['cvec', 'lin'])
 
 #==================================================================================================================================#
 #

@@ -31,11 +31,21 @@ class Dimension:
 #
 #==================================================================================================================================#
 class DMD:
-    def __init__(self,N_modes=0,eval=complex(0.,0.),evec=complex(0.,0.),expval=complex(0.,0.)):
+
+    N_modes = 0
+    eval    = complex(0.,0.)
+    evec    = complex(0.,0.)
+    expval  = complex(0.,0.)
+    uvec    = 0.
+    r_evec  = complex(0.,0.)
+
+    def __init__(self,N_modes=0,eval=complex(0.,0.),evec=complex(0.,0.),expval=complex(0.,0.),uvec=0.,r_evec=complex(0.,0.)):
         self.N_modes = N_modes
-        self.eval = eval
-        self.evec = evec
-        self.expval = expval
+        self.eval    = eval
+        self.evec    = evec
+        self.expval  = expval
+        self.uvec    = uvec
+        self.r_evec  = r_evec
 
 #==================================================================================================================================#
 #
@@ -66,9 +76,9 @@ class Data:
         self.type = type
 
         if (type in ['DMD','DMDg']):
-            self.dat = DMD
+            self.dat = DMD()
         elif (type in ['POD','PODg']):
-            self.dat = POD
+            self.dat = POD()
         else:
             print('Error! unsupported decomposition type detected')
             quit()

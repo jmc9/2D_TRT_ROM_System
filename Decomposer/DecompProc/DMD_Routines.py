@@ -12,6 +12,7 @@
 import numpy as np
 import math
 import cmath
+import copy
 
 #local tools
 import Plotters as pltr
@@ -24,15 +25,18 @@ from Classes import DMD
 #==================================================================================================================================#
 def Plot_DMD(DMD_Data,dir,plt_modes=[0,1,2],evecs=True,evals=True):
 
+    dat_ = copy.deepcopy(DMD_Data) #have to copy the DMD data object like this to avoid copying to dat_ by reference
+    DMD_Sort(dat_) #sorting eigenvalues/eigenvectors by magnitude of eigenvalues
+
     if evecs:
         evec_dir = dir+'/Eigenvectors'
         tb.dirset(evec_dir)
-        Plot_DMD_evecs(DMD_Data,plt_modes,evec_dir)
+        Plot_DMD_evecs(dat_,plt_modes,evec_dir)
 
     if evals:
         eval_dir = dir+'/Eigenvalues'
         tb.dirset(eval_dir)
-        Plot_DMD_evals(DMD_Data,eval_dir)
+        Plot_DMD_evals(dat_,eval_dir)
 
 #==================================================================================================================================#
 #
@@ -176,15 +180,17 @@ def Plot_DMD_evals(DMD_Data,dir):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Read_DMD(dset,name):
+def Read_DMD(dset,name,clen,rank):
 
     N_modes = getattr(dset,'N_modes_'+name)
 
     Evals = Read_Evals(dset, name, N_modes)
-    Evecs = Read_Evecs(dset, name, N_modes)
+    Evecs = Read_Evecs(dset, name, N_modes, clen)
     Expvals = Read_Expvals(dset, name, N_modes)
+    r_Evecs = Read_r_Evecs(dset, name, N_modes, rank)
+    Uvecs = Read_Vecs(dset, name, N_modes, clen)
 
-    DMD_dat = DMD(N_modes, Evals, Evecs, Expvals)
+    DMD_dat = DMD(N_modes, Evals, Evecs, Expvals, Uvecs, r_Evecs)
 
     return DMD_dat
 
@@ -231,25 +237,54 @@ def Read_Expvals(dset,name,Nmodes):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Read_Evecs(dset,name,Nmodes):
-    #reading eigenvectors from dataset
-    W_real = dset['W_real_'+name][:] #real component
-    W_imag = dset['W_imag_'+name][:] #imaginary component
-
-    #flattening eigenvector arrays into 1D arrays
-    if hasattr(Nmodes,'__len__'):
-        W_real = tb.Flatten3D(W_real)
-        W_imag = tb.Flatten3D(W_imag)
-
-    else:
-        W_real = tb.Flatten2D(W_real)
-        W_imag = tb.Flatten2D(W_imag)
+def Read_Evecs(dset,name,Nmodes,vlen,evcn='W',tlen=0):
+    # #reading eigenvectors from dataset
+    W_real = Read_Vecs(dset,name,Nmodes,vlen,'{}_real'.format(evcn),tlen)
+    W_imag = Read_Vecs(dset,name,Nmodes,vlen,'{}_imag'.format(evcn),tlen)
 
     W = np.zeros(len(W_real), dtype='complex')
     for i in range(len(W_real)):
         W[i] = complex(W_real[i], W_imag[i])
 
     return W
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Read_r_Evecs(dset,name,Nmodes,rank):
+    rW = Read_Evecs(dset,name,Nmodes,rank,'Wtild',Nmodes)
+
+    return rW
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Read_Vecs(dset,name,Nmodes,vlen,uvcn='Umat',tlen=0):
+    if tlen == 0: tlen = vlen
+
+    #reading eigenvectors from dataset
+    U = np.array(dset['{}_'.format(uvcn)+name])
+
+    #flattening eigenvector arrays into 1D arrays
+    if hasattr(Nmodes,'__len__'):
+        U_ = tb.Flatten3D(U)
+
+    else:
+        U_ = tb.Flatten2D(U)
+        U = np.zeros(Nmodes * tlen) #creating vector of true size
+
+        #copying flattened vector back into U, truncating columns after tlen elements
+        p1 = 0
+        p2 = 0
+        k = vlen - tlen
+        for i in range(Nmodes):
+            for j in range(tlen):
+                U[p1] = U_[p2]
+                p1 += 1
+                p2 += 1
+            p2 += k
+
+    return U
 
 #==================================================================================================================================#
 #
@@ -339,9 +374,11 @@ def Coef_Calc(DMD_Data,init):
         quit()
 
     else:
-        p = 0
-        w = np.reshape(DMD_Data.dat.evec, (DMD_Data.dat.N_modes, DMD_Data.clen))
-        b = np.linalg.solve(w, init)
+        w = np.transpose( np.reshape(DMD_Data.dat.r_evec, (DMD_Data.dat.N_modes, DMD_Data.dat.N_modes) ) )
+        ut = np.reshape(DMD_Data.dat.uvec, (DMD_Data.dat.N_modes, DMD_Data.clen))
+        ut = np.array(ut, dtype='complex')
+        init_ = np.array(init, dtype='complex')
+        b = np.linalg.solve(w, np.dot(ut, init_) )
 
     return b
 
@@ -350,17 +387,16 @@ def Coef_Calc(DMD_Data,init):
 #==================================================================================================================================#
 def Expand(DMD_Data, Coef, t):
 
-    Expn = np.zeros(DMD_Data.clen)
+    Expn = np.zeros(DMD_Data.clen, dtype='complex')
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
         quit()
 
     else:
         p = 0
         for i in range(DMD_Data.dat.N_modes):
-            w = DMD_Data.dat.evec[p : p + DMD_Data.clen]
             l = DMD_Data.dat.eval[i]
-            Expn = Expn + Coef[i] * w * l**t
-
-            p += DMD_Data.clen
+            for j in range(DMD_Data.clen):
+                Expn[j] = Expn[j] + Coef[i] * DMD_Data.dat.evec[p] * l**t
+                p += 1
 
     return Expn

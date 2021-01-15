@@ -85,7 +85,7 @@ int Lambda_Plot(const char *pname, const double *lambda_r, const double *lambda_
 /**/
 /*================================================================================================================================*/
 int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_t clen, const size_t rank, const size_t g,
-   const double svd_eps, double complex **wmat, double complex **lambda, size_t *N_modes)
+   const double svd_eps, double complex **wmat, double complex **lambda, double complex **wmat_tild, double **umat, size_t *N_modes)
 {
   double *x, *y;
   double *xu, *xs, *xvt, *xv, *a;
@@ -232,7 +232,8 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   //allocating DMD arrays
   *wmat = (double complex *)malloc(sizeof(double complex)*clen*xr);
   *lambda = (double complex *)malloc(sizeof(double complex)*xr);
-  w = (double complex *)malloc(sizeof(double complex)*xr*xr);
+  *wmat_tild = (double complex *)malloc(sizeof(double complex)*xr*xr);
+  *umat = (double *)malloc(sizeof(double)*clen*xr);
 
   //transposing V^T (finding V = (V^T)^T)
   xv = (double *)malloc(sizeof(double)*(N_t-1)*xr);
@@ -258,6 +259,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   y = (double *)malloc(sizeof(double)*clen*xr);
   for(size_t i=0; i<clen*xr; i++){ //copying U into y
     y[i] = xu[i];
+    (*umat)[i] = xu[i];
   }
   err = Transpose_Double(y,xu,clen,xr); //finding U^T, writing into xu
   free(y);
@@ -268,7 +270,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   free(xu);
 
   //calculating the eigendecomposition of a (a*w = l*w)
-  err = EIG_Calc(a,xr,w,*lambda);
+  err = EIG_Calc(a,xr,*wmat_tild,*lambda);
 
   x2 = (double complex *)malloc(sizeof(double complex)*clen*xr);
   for (size_t i=0; i<clen*xr; i++){
@@ -276,8 +278,8 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   }
   free(x);
 
-  err = MatMul_cDouble(*wmat,x2,w,clen,xr,xr);
-  free(x2); free(w);
+  err = MatMul_cDouble(*wmat,x2,*wmat_tild,clen,xr,xr);
+  free(x2);
 
   px = 0;
   for (size_t j=0; j<xr; j++){
@@ -302,8 +304,8 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   int *N_modes;
   char loc[13] = "Generate_DMD";
   char buf[25], pname[25], drop[25];
-  double complex *wmat, *lambda;
-  double *temp, *temp2;
+  double complex *wmat, *lambda, *wmat_tild;
+  double *temp, *temp2, *umat;
 
   size_t startp[3], countp[3], xr;
   ptrdiff_t stridep[3];
@@ -323,7 +325,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       printf("    -- Start DMD on group %lu\n",g+1);
 
       //find the POD modes and singular values of a given groupwise datamatrix
-      err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&xr);
+      err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr);
 
       temp = (double *)malloc(sizeof(double)*xr);
       temp2 = (double *)malloc(sizeof(double)*xr);
@@ -397,7 +399,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   else{
     printf("    -- Start DMD on full phase space\n");
 
-    err = DMD_Calc(data,N_t,N_g,clen,rank,0,svd_eps,&wmat,&lambda,&xr);
+    err = DMD_Calc(data,N_t,N_g,clen,rank,0,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr);
 
     temp = (double *)malloc(sizeof(double)*xr);
     temp2 = (double *)malloc(sizeof(double)*xr);
@@ -418,7 +420,6 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,temp); Handle_Err(err,loc);
     err = nc_put_vars(ncid_out,Decomp[4].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
-    // temp2 = (double *)malloc(sizeof(double)*xr);
     for (size_t i=0; i<xr; i++){
       temp[i] = cimag(lambda[i]);
       if (temp[i] != 0.){
@@ -437,10 +438,12 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     // //plot the singular values
     // err = Lambda_Plot(pname,temp,temp2,(int)xr,drop);
 
-    free(temp); free(temp2);
+    free(lambda); free(temp); free(temp2);
     temp = (double *)malloc(sizeof(double)*xr*clen);
+    temp2 = (double *)malloc(sizeof(double)*xr*clen);
     for (size_t i=0; i<xr*clen; i++){
       temp[i] = creal(wmat[i]);
+      temp2[i] = cimag(wmat[i]);
     }
 
     //write DMD mode matrix (real component) to outfile
@@ -448,16 +451,32 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     countp[0] = xr; countp[1] = clen; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
     err = nc_put_vars(ncid_out,Decomp[2].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-
-    for (size_t i=0; i<xr*clen; i++){
-      temp[i] = cimag(wmat[i]);
-    }
-
     //write DMD mode matrix (imaginary component) to outfile
-    err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,temp); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
+
+    //write umat
+    err = nc_put_vars(ncid_out,Decomp[8].id,startp,countp,stridep,umat); Handle_Err(err,loc);
 
     //deallocating arrays
-    free(wmat); free(lambda); free(temp);
+    free(wmat); free(umat); free(temp); free(temp2);
+
+    temp = (double *)malloc(sizeof(double)*xr*xr);
+    temp2 = (double *)malloc(sizeof(double)*xr*xr);
+    for (size_t i=0; i<xr*xr; i++){
+      temp[i] = creal(wmat_tild[i]);
+      temp2[i] = cimag(wmat_tild[i]);
+    }
+
+    //write reduced DMD mode matrix (real component) to outfile
+    startp[0] = 0; startp[1] = 0; startp[2] = 0;
+    countp[0] = xr; countp[1] = xr; countp[2] = 0;
+    stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+    err = nc_put_vars(ncid_out,Decomp[6].id,startp,countp,stridep,temp); Handle_Err(err,loc);
+    //write reduced DMD mode matrix (imaginary component) to outfile
+    err = nc_put_vars(ncid_out,Decomp[7].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
+
+    //deallocating arrays
+    free(wmat_tild); free(temp); free(temp2);
 
     N_modes = (int *)malloc(sizeof(int)*1);
     N_modes[0] = (int)xr;

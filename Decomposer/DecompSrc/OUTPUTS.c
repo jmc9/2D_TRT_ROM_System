@@ -309,7 +309,7 @@ int Def_DMD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_
   if (gsum == 1){ ndims = 2; p1 = 0; p2 = 1;}
   else{ ndims = 3; p1 = 1; p2 = 2;}
 
-  for (size_t i=0; i<6; i++){
+  for (size_t i=0; i<9; i++){
     Decomp[i].ndims = ndims;
     Decomp[i].dimids = (int *)malloc(sizeof(int)*ndims);
     Decomp[i].dimids[0] = N_g_ID;
@@ -351,6 +351,24 @@ int Def_DMD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_
   strcat(Decomp[5].name,dname);
   err = nc_def_var(ncid,Decomp[5].name,NC_DOUBLE,(int)ndims-1,Decomp[5].dimids,&Decomp[5].id); Handle_Err(err,loc);
 
+  Decomp[6].dimids[p1] = rank_ID; Decomp[6].dimids[p2] = rank_ID;
+  memset(Decomp[6].name,0,50);
+  strcpy(Decomp[6].name,"Wtild_real_");
+  strcat(Decomp[6].name,dname);
+  err = nc_def_var(ncid,Decomp[6].name,NC_DOUBLE,(int)ndims,Decomp[6].dimids,&Decomp[6].id); Handle_Err(err,loc);
+
+  Decomp[7].dimids[p1] = rank_ID; Decomp[7].dimids[p2] = rank_ID;
+  memset(Decomp[7].name,0,50);
+  strcpy(Decomp[7].name,"Wtild_imag_");
+  strcat(Decomp[7].name,dname);
+  err = nc_def_var(ncid,Decomp[7].name,NC_DOUBLE,(int)ndims,Decomp[7].dimids,&Decomp[7].id); Handle_Err(err,loc);
+
+  Decomp[8].dimids[p1] = rank_ID; Decomp[8].dimids[p2] = clen_ID;
+  memset(Decomp[8].name,0,50);
+  strcpy(Decomp[8].name,"Umat_");
+  strcat(Decomp[8].name,dname);
+  err = nc_def_var(ncid,Decomp[8].name,NC_DOUBLE,(int)ndims,Decomp[8].dimids,&Decomp[8].id); Handle_Err(err,loc);
+
   return 0;
 
 }
@@ -391,19 +409,24 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcm
   /*------------------------------------------------------------/
   /                             DMD                             /
   /------------------------------------------------------------*/
-  /*DMD uses 4 variables: ID[0] = L_real (DMD eigenvalues, real component),
+  /*DMD uses 9 variables: ID[0] = L_real (DMD eigenvalues, real component),
                           ID[1] = L_imag (DMD eigenvalues, imaginary component),
-                          ID[2] = W_real (DMD modes/ eigenvectors, real component)
-                          ID[3] = W_imag (DMD modes/ eigenvectors, imaginary component)
+                          ID[2] = W_real (DMD modes/ eigenvectors, real component),
+                          ID[3] = W_imag (DMD modes/ eigenvectors, imaginary component),
+                          ID[4] = eL_real (DMD exponentials = ln(L)/Delta t , real component),
+                          ID[5] = eL_imag (DMD exponentials = ln(L)/Delta t , imaginary component),
+                          ID[6] = Wtild_real (reduced DMD modes/ eigenvectors, real component),
+                          ID[7] = Wtild_imag (reduced DMD modes/ eigenvectors, imaginary component),
+                          ID[8] = Umat (left singular vectors of first orbital data matrix X)
   */
   else if (dcmp_type == 1){ //decompose with the DMD
 
-    *Decomp = (Data*)malloc(sizeof(Data)*N_data*6);
+    *Decomp = (Data*)malloc(sizeof(Data)*N_data*9);
     size_t p = 0;
     for (size_t i=0; i<N_data; i++){
       err = Def_DMD_Vars(ncid, Dcmp_data[i].name, rank[dcdims[i][1]].id, clen[dcdims[i][0]].id,
         dims[0].id, dims[1].id, gsum, &(*Decomp)[p]);
-      p = p + 6;
+      p = p + 9;
 
     }
 

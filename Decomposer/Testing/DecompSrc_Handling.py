@@ -14,10 +14,10 @@ import shutil
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def exec_decompsrc(decomp_perphs, f_file, drop, exec_dir):
+def exec_decompsrc(decomp_perphs, f_file, drop, exec_dir, eps):
 
     #make all preparations for execution of DecompSrc
-    exec_prep(decomp_perphs, f_file)
+    exec_prep(decomp_perphs, f_file, eps)
 
     #execute DecompSrc
     call_decompsrc(decomp_perphs, exec_dir)
@@ -30,7 +30,7 @@ def exec_decompsrc(decomp_perphs, f_file, drop, exec_dir):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def write_inpf(decomp_perphs, f_file, f_name='f', dcmp_type='DMD', svd_eps=1e-14):
+def write_inpf(decomp_perphs, f_file, f_name='f', dcmp_type='DMD', svd_eps=1e-12):
     file = open(decomp_perphs.inp, 'w')
     file.write('dataset {}\n'.format(f_file))
     file.write('outfile {}\n'.format(decomp_perphs.out))
@@ -46,9 +46,9 @@ def write_inpf(decomp_perphs, f_file, f_name='f', dcmp_type='DMD', svd_eps=1e-14
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def exec_prep(decomp_perphs, f_file):
+def exec_prep(decomp_perphs, f_file, eps):
     #create input file for DecompSrc
-    write_inpf(decomp_perphs, f_file)
+    write_inpf(decomp_perphs, f_file, svd_eps=eps)
 
     #move required files for DecompSrc operation into DecompSrc directory from Testing directory
     shutil.move(decomp_perphs.inp, os.path.join(decomp_perphs.path, decomp_perphs.inp))

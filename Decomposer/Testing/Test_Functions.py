@@ -16,22 +16,34 @@ import Grid_Handling as gh
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def expf(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
+def expf(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none', scale=[], shift=[]):
 
     #checking inputs for errors
-    err, errs = expf_incheck(alpha, tp, xp, yp, xshp, yshp)
+    err, errs = expf_incheck(alpha, tp, xp, yp, xshp, yshp, scale, shift)
     if err != 0: #errors were encountered -> print error messages and terminate function call
+        print()
         x = [print(messg) for messg in errs]
+        print()
         return 1
 
     #finding number of exponentials
     N_a = len(alpha)
 
+    #
+    if isinstance(xshp,str):
+        shp = xshp
+        xshp = []
+        for i in range(N_a): xshp.append(shp)
+    if isinstance(yshp,str):
+        shp = yshp
+        yshp = []
+        for i in range(N_a): yshp.append(shp)
+
     #setting up grids over each dimension
-    grids = expf_gcalc(N_a, tp, xp, yp, yshp)
+    grids = expf_gcalc(N_a, tp, xp, yp, yshp[0])
 
     #
-    w = w_gen(grids.x.pts, xshp, N_a, grids.y.pts, yshp)
+    w = w_gen(grids.x.pts, xshp, N_a, grids.y.pts, yshp, scale, shift)
 
     fdim = tuple(grids.dlist_tr())
     flen = grids.all.len
@@ -75,23 +87,24 @@ def expf_calc(f, w, alpha, grids):
                 pw += 1
                 pf += 1
             pf -= grids.xy.len
-        pw -= N_w * grids.xy.len
 
     return f
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def expf_incheck(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
+def expf_incheck(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none', scale=[], shift=[]):
     check = 0
     errs = ['**********ERROR(s) DECTECTED**********',
             'The following error(s) were encountered in Test_Functions.expf :']
 
-    if not isinstance(alpha,list):
+    #
+    if not isinstance(alpha,(list, np.ndarray)):
         check = 1
         errs.append('alpha is not a list')
 
-    if not isinstance(tp,list):
+    #
+    if not isinstance(tp,(list, np.ndarray)):
         check = 1
         errs.append('tp is not a list')
     else:
@@ -101,7 +114,8 @@ def expf_incheck(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
                 errs.append('at least one element of tp is negative')
                 break
 
-    if not isinstance(yp,list):
+    #
+    if not isinstance(yp,(list, np.ndarray)):
         check = 1
         errs.append('yp is not a list')
     else:
@@ -111,7 +125,8 @@ def expf_incheck(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
                 errs.append('at least one element of yp is negative')
                 break
 
-    if not isinstance(xp,list):
+    #
+    if not isinstance(xp,(list, np.ndarray)):
         check = 1
         errs.append('xp is not a list')
     else:
@@ -121,61 +136,144 @@ def expf_incheck(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none'):
                 errs.append('at least one element of xp is negative')
                 break
 
-    if not xshp in ['cvec']:
+    #
+    if isinstance(xshp,str):
+        if not xshp in ['cvec','linear','lin','const']:
+            check = 1
+            errs.append('invalid xshp detected ({})'.format(xshp))
+    elif isinstance(xshp,(list, np.ndarray)):
+        if len(xshp) < len(alpha):
+            check = 1
+            errs.append('len(xshp) < len(alpha)')
+        for shp in xshp:
+            if not shp in ['cvec','linear','lin','const']:
+                check = 1
+                errs.append('invalid xshp detected ({})'.format(shp))
+    else:
         check = 1
-        errs.append('invalid xshp detected ({})'.format(xshp))
+        errs.append('xshp is not a string nor a list')
 
-    if not yshp in ['cvec','none','linear','lin']:
+    #
+    if isinstance(yshp,str):
+        if not yshp in ['none','cvec','linear','lin','const']:
+            check = 1
+            errs.append('invalid yshp detected ({})'.format(yshp))
+    elif isinstance(yshp,(list, np.ndarray)):
+        if len(yshp) < len(alpha):
+            check = 1
+            errs.append('len(yshp) < len(alpha)')
+        for shp in yshp:
+            if not shp in ['none','cvec','linear','lin','const']:
+                check = 1
+                errs.append('invalid yshp detected ({})'.format(shp))
+        if 'none' in yshp:
+            for shp in yshp:
+                if shp != 'none':
+                    check = 1
+                    errs.append('yshp list cannot mix "none" with other shapes')
+                    break
+    else:
         check = 1
-        errs.append('invalid yshp detected ({})'.format(xshp))
+        errs.append('yshp is not a string nor a list')
 
+    #
+    if isinstance(scale,(list, np.ndarray)):
+        if (len(scale) < len(alpha))and(len(scale) != 0):
+            check = 1
+            errs.append('len(scale) < len(alpha)')
+
+    #
+    if isinstance(shift,(list, np.ndarray)):
+        if (len(shift) < len(alpha))and(len(shift) != 0):
+            check = 1
+            errs.append('len(shift) < len(alpha)')
+
+    #
     return check, errs
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def w_gen(xp, xshp='cvec', N_w=0, yp=[], yshp='none'):
+def w_gen(xp, xshp=['cvec'], N_w=1, yp=[], yshp=['none'], scale=[], shift=[]):
 
-    #tracking all possible conflicts:
-    #-----
+    #
+    if len(scale) == 0:
+        scale = []
+        for i in range(N_w):
+            scale.append([1., 1.])
+    else:
+        scale = scale.tolist()
+        for i in range(len(scale)):
+            if not isinstance(scale[i],(list, np.ndarray)):
+                scale[i] = [scale[i], scale[i]]
+
+    #
+    if len(shift) == 0:
+        shift = []
+        for i in range(N_w):
+            shift.append(0.)
 
     #
     N_x = len(xp)
-
-    #
-    if yshp == 'none':
-        N_y = 0
-        N_xy = N_x
-    else:
-        if len(yp) == 0:
-            yp = xp
-            N_y = N_x
-        else:
-            N_y = len(yp)
-        N_xy = N_y * N_x
-
-    #
-    if N_w == 0:
-        N_w = N_xy
+    N_y = len(yp)
+    N_xy = (N_y * N_x) if (N_y > 0) else N_x
     w = np.zeros((N_w * N_xy))
 
-    #
-    if xshp == 'cvec':
-        if yshp in ['none','cvec']:
-            N_v = min([N_xy, N_w])
-            p = 0
-            for i in range(N_v):
-                w[p] = 1.
-                p += N_xy + 1
-        elif yshp in ['linear','lin']:
-            c = np.linspace(-1., 1., N_w)
-            r = 0
-            p = 0
-            for i in range(N_w):
-                for j in range(N_y):
-                    w[p] = c[i] * yp[j] + 1.
-                    p += N_x
-                p += 1
+    p = 0
+    for i in range(N_w):
+        if (yshp[i] != 'none')and(N_y == 0): yshp[i] = 'none'
 
+        if yshp[i] == 'none':
+            if xshp[i] == 'cvec':
+                w[p + i] = scale[i][0] + shift[i]
+                p += N_x
+
+            elif xshp[i] in ['linear','lin','const']:
+                if xshp[i] == 'const': xvals = np.full(N_x, scale[i][0])
+                elif xshp[i] in ['linear','lin']: xvals = np.linspace(0., scale[i][0], N_x)
+
+                for j in range(N_x):
+                    w[p] = xvals[j] + shift[i]
+                    p += 1
+
+        elif yshp[i] == 'cvec':
+            if xshp[i] == 'cvec':
+                w[p + i] = scale[i][0] + shift[i]
+                p += N_xy
+
+            elif xshp[i] == 'const':
+                p += i * N_x
+                for j in range(N_x):
+                    w[p] = scale[i][0] + shift[i]
+                    p += 1
+                p += (N_y - i - 1) * N_x
+
+            elif xshp[i] in ['linear','lin','const']:
+                if xshp[i] == 'const': xvals = np.full(N_x, scale[i][0])
+                elif xshp[i] in ['linear','lin']: xvals = np.linspace(0., scale[i][0], N_x)
+
+                p += i * N_x
+                for j in range(N_x):
+                    w[p] = xvals[j] + shift[i]
+                    p += 1
+                p += (N_y - i - 1) * N_x
+
+        elif yshp[i] in ['linear','lin','const']:
+            if yshp[i] == 'const': yvals = np.full(N_y, scale[i][1])
+            elif yshp[i] in ['linear','lin']: yvals = np.linspace(0., scale[i][1], N_y)
+
+            if xshp[i] == 'cvec':
+                for j in range(N_y):
+                    w[p + i] = yvals[j] + shift[i]
+                    p += N_x
+
+            elif xshp[i] in ['linear','lin','const']:
+                if xshp[i] == 'const': xvals = np.full(N_x, scale[i][0])
+                elif xshp[i] in ['linear','lin']: xvals = np.linspace(0., scale[i][0], N_x)
+
+                for j in range(N_y):
+                    for k in range(N_x):
+                        w[p] = xvals[k] + yvals[j] + shift[i]
+                        p += 1
 
     return w

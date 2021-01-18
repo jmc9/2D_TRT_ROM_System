@@ -8,6 +8,7 @@
 #importing packages
 #==================================================================================================================================#
 #
+import numpy as np
 from Test_Functions import expf
 from IO_Functions import output_f as outf
 from DecompSrc_Handling import exec_decompsrc as ds_exec
@@ -37,7 +38,7 @@ class peripherals():
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Run_Test(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[],[]], shp=['cvec', 'none']):
+def Run_Test(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[],[]], shp=['cvec', 'none'], scale=[], shift=[], eps=1e-12):
 
     #
     tp = []
@@ -46,7 +47,7 @@ def Run_Test(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[]
     if isinstance(mesh, list):
         ml = len(mesh)
         if ml > 0:
-            if isinstance(mesh[0], list):
+            if isinstance(mesh[0], (list, np.ndarray)):
                 tp = mesh[0]
                 if ml > 1: xp = mesh[1]
                 if ml > 2: yp = mesh[2]
@@ -58,7 +59,7 @@ def Run_Test(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[]
     #
     xshp = 'cvec'
     yshp = 'none'
-    if isinstance(shp, list):
+    if isinstance(shp, (list, np.ndarray)):
         sl = len(shp)
         xshp = shp[0]
         if sl > 1: yshp = shp[1]
@@ -66,16 +67,16 @@ def Run_Test(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[]
         xshp = shp
     else:
         quit()
-        
+
     #
-    f, fgrids = expf(alpha, tp, xp, yp, xshp, yshp)
+    f, fgrids = expf(alpha, tp, xp, yp, xshp, yshp, scale, shift)
 
     #
     outfile = 'test.h5'
     outf(f, fgrids, outfile)
 
     #
-    ds_exec(decomp_perphs, outfile, drop, exec_dir)
+    ds_exec(decomp_perphs, outfile, drop, exec_dir, eps)
     dp_exec(proc_perphs, decomp_perphs.out, outfile, drop, exec_dir)
 
     return

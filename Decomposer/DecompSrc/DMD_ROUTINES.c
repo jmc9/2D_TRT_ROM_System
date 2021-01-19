@@ -179,7 +179,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     printf("    -- Using full-rank SVD\n");
   }
   else{ //positive svd_eps flags the use of reduced-rank SVD
-    xr = SVD_Rank_Calc(rank,svd_eps,0,xs);
+    xr = SVD_Rank_Calc(rank,svd_eps,1,xs);
     printf("    -- Truncating SVD of data with rank %ld\n",xr);
 
     //reallocating V^T with reduced row count

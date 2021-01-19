@@ -128,7 +128,7 @@ size_t SVD_Rank_Calc(const size_t frank, const double svd_eps, const int opt, co
   }
   else if (opt == 1){
     fsum=0.;
-    for (size_t i=1; i<frank; i++){
+    for (size_t i=0; i<frank; i++){
       fsum = fsum + pow(s[i],2);
     }
     fsum=sqrt(fsum);

@@ -256,6 +256,11 @@ int Read_Data_Dims(const int ncid, Data *data)
     char del=',';
     err = Delimit(data->cdat,del,dats,(int)ndat); //finding names of construction data, assumed to be comma delimited
 
+    err = nc_inq_varid(ncid, dats[0], &data->id); Handle_Err(err,loc); /*setting the data ID to the ID of the *first* construction data
+                                                                       -- this is for the purposes of grid manipulation later on,
+                                                                       -- since construction data for a dataset with opt[0]=1 are
+                                                                       -- assumed to all reside on at least the same grid in time */
+
     int *nd = malloc(sizeof(int)*ndat); //nd holds the number of dimensions for each construction data
     int **ds = malloc(sizeof(int*)*ndat); //ds holds the dimensions of each construction data
     for (size_t j=0; j<ndat; j++){
@@ -401,26 +406,23 @@ int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids
   char loc[10] = "Get_Grids";
 
   size_t N_grids_ = 0;
+  //collecting the grids over which each each dataset is defined over
   for (size_t i=0; i<N_data; i++){
 
-    if (Dcmp_data[i].opt[0] == 0){
-
-      err = nc_get_att_int(ncid, Dcmp_data[i].id, "N_grids", (int*)&Dcmp_data[i].ngrids);
-      Dcmp_data[i].gridids = (int*)malloc(sizeof(int)*Dcmp_data[i].ngrids);
-      N_grids_ = N_grids_ + Dcmp_data[i].ngrids;
+      err = nc_get_att_int(ncid, Dcmp_data[i].id, "N_grids", (int*)&Dcmp_data[i].ngrids); //finding the number of grids defined for dataset-i
+      Dcmp_data[i].gridids = (int*)malloc(sizeof(int)*Dcmp_data[i].ngrids); //allocating array to hold the nc-ID's of each grid
+      N_grids_ = N_grids_ + Dcmp_data[i].ngrids; //adding the number of grids defined for dataset-i to the number of all grids
       for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
         char buf[10], gname[50];
         memset(buf,0,10); memset(gname,0,50);
         sprintf(buf,"grid%ld",j);
-        err = nc_get_att_text(ncid, Dcmp_data[i].id, buf, gname); Handle_Err(err,loc);
-        err = nc_inq_varid(ncid, gname, &Dcmp_data[i].gridids[j]); Handle_Err(err,loc);
+        err = nc_get_att_text(ncid, Dcmp_data[i].id, buf, gname); Handle_Err(err,loc); //getting the name of the jth grid for dataset-i
+        err = nc_inq_varid(ncid, gname, &Dcmp_data[i].gridids[j]); Handle_Err(err,loc); //getting the nc-ID of the jth grid given its name
       }
-    }
-    else{
-      Dcmp_data[i].ngrids = 0;
-    }
+
   }
 
+  //putting the nc_ID's of each grid collected above into one list
   int *gridlist = malloc(sizeof(Data)*N_grids_);
   size_t p = 0;
   for (size_t i=0; i<N_data; i++){
@@ -430,8 +432,10 @@ int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids
     }
   }
 
+  //finding the number of *unique* grids by nc-ID
   Sort_Uniq_int(gridlist,N_grids_,N_grids);
 
+  //creating an array of grid structs (Data type) to carry information of each unique grid
   *Grids = (Data*)malloc(sizeof(Data)*(*N_grids));
   for (size_t i=0; i<(*N_grids); i++){
     (*Grids)[i].id = gridlist[i];
@@ -462,6 +466,7 @@ int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids
   }
   free(gridlist);
 
+  //for each dataset, replacing the nc-ID's of its grids with location of each grid in the 'Grids' array
   for (size_t i=0; i<N_data; i++){
     for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
       for (size_t k=0; k<(*N_grids); k++){

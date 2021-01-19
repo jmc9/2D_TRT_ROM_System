@@ -590,15 +590,8 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
   size_t p = 0;
   for (size_t i=0; i<N_data; i++){
     printf("Decomposing %s\n",Dcmp_data[i].name);
-
-    //
-    //
-    //
+    
     delt = Grids[Dcmp_data[i].gridids[0]].dat[1] - Grids[Dcmp_data[i].gridids[0]].dat[0];
-    // exit(0);
-    //
-    //
-    //
 
     /*------------------------------------------------------------/
     /                     As-is decomposition                     /
@@ -713,7 +706,12 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
       exit(1);
     }
 
-    p = p + 4;
+    if (dcmp_type == 0){
+      p = p + 4;
+    }
+    else if (dcmp_type == 1){
+      p = p + 9;
+    }
 
   }
 

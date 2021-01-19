@@ -12,6 +12,7 @@
 import math
 import cmath
 import numpy as np
+import copy
 
 #netcdf tools
 from netCDF4 import Dataset as ncds
@@ -50,7 +51,7 @@ def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
                         edat = np.zeros([len1, len2],dtype=np.complex_)
                         for j in range(len1):
                             edat[j] = dmdr.Expand(dcmp, coef, j)
-                        recon[i] = edat
+                        recon[i] = copy.deepcopy(edat)
 
             else:
                 dmdr.Plot_DMD(dcmp,dir,plt_modes,evecs=False)
@@ -70,12 +71,13 @@ def Error_Calc(recon, Prob_Data):
         return err
 
     for j in range(N_data):
-        tlen = len(Prob_Data[j].dat)
-        clen = len(Prob_Data[j].dat[0])
         err.append([]) #appending blank array first -> stays consistent with N_data and allows easy flag for uncalculated errors
 
         #straightforward error calculations for opt[0] = 0 (standard data array)
         if Prob_Data[j].opt[0] == 0:
+            tlen = len(Prob_Data[j].dat)
+            clen = len(Prob_Data[j].dat[0])
+
             err_ = np.zeros((tlen,clen)) #temporary array to hold j-th data errors
             for t in range(tlen):
                 for i in range(clen):
@@ -101,17 +103,20 @@ def Output(recon, err, Prob_Data):
     recon = np.array(recon)
 
     dims = []
+    all_dims = []
     d = 0
     for i in range(N_data):
         dlocs = []
-        if len(recon[i]) != 0:
+        if Prob_Data[i].opt[0] == 0:
             ndims = len(Prob_Data[i].dims)
             ngrids = len(Prob_Data[i].grids)
             dname = Prob_Data[i].name
             dims = Prob_Data[i].dims
 
             for j in range(ndims):
-                nc_dim = dset.createDimension(dims[j].name, dims[j].len)
+                if not (dims[j].name in all_dims):
+                    nc_dim = dset.createDimension(dims[j].name, dims[j].len)
+                    all_dims.append(dims[j].name)
 
             #--------------------------------------------------
             # Creating err, recon variables (in 2D)
@@ -266,7 +271,7 @@ def Output(recon, err, Prob_Data):
 
             #creating, recording the maximal absolute error across all grid points
             nc_err_max = dset.createVariable("{}_Err_max".format(dname), "f8", ())
-            nc_err_max[:] = np.amax(np.absolute(err))
+            nc_err_max[:] = np.amax(np.absolute(err_))
 
             #if the error 2-norm was not calculated, then err2 = []
             if len(err2) != 0:

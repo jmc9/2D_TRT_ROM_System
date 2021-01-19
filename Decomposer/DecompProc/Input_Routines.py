@@ -96,7 +96,7 @@ def Dcmp_Parms(dset,data_names):
 
         Dcmp_Data[p].typeset(dcmp_type)
 
-        Dcmp_Data[p].opt[0] = 0
+        Dcmp_Data[p].opt = [0]
 
         #collecting dimensions of dataset
         N_dims = getattr(ncdat, 'N_dims')
@@ -117,7 +117,7 @@ def Dcmp_Parms(dset,data_names):
                 Dcmp_Data[p].grids.append( Grid(bnds,grid) )
 
         except:
-            Dcmp_Data[p].opt[0] = 1
+            Dcmp_Data[p].opt = [1]
 
         p+=1
 
@@ -144,10 +144,10 @@ def Dat_Parms(dset,Dcmp_Data):
             ncdat = dset[Dcmp_Data[i].name]
 
         except:
-            Prob_Data[i].opt[0] = -1
+            Prob_Data[i].opt = [-1]
             continue
 
-        Prob_Data[i].opt[0] = 0
+        Prob_Data[i].opt = [0]
 
         #collecting dimensions of dataset
         dnames = ncdat.dimensions
@@ -180,9 +180,9 @@ def Dat_Parms(dset,Dcmp_Data):
             N_grids = getattr(ncdat, 'N_grids')
 
         except:
-            Prob_Data[i].opt[0] = 1
+            Prob_Data[i].opt = [1]
 
-        if Prob_Data[i].opt[0] == 0:
+        if Prob_Data[i].opt == [0]:
             Prob_Data[i].grids = []
             for j in range(N_grids):
                 gname = getattr( ncdat, 'grid{}'.format(j) )

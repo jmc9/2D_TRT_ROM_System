@@ -217,12 +217,19 @@ def Read_Evals(dset,name,Nmodes,evn='L'):
     #checking whether evals are multi-d
     if hasattr(Nmodes,'__len__'):
         #if evals are multi-d, flattening them into 1D arrays
-        L_real = tb.Flatten2D(L_real)
-        L_imag = tb.Flatten2D(L_imag)
+        # L_real = tb.Flatten2D(L_real)
+        # L_imag = tb.Flatten2D(L_imag)
+        L = np.zeros(sum(Nmodes), dtype='complex')
+        p1 = 0
+        for n in range(len(Nmodes)):
+            for i in range(Nmodes[n]):
+                L[p1] = complex(L_real[n][i], L_imag[n][i])
+                p1 += 1
 
-    L = np.zeros(Nmodes, dtype='complex')
-    for i in range(Nmodes):
-        L[i] = complex(L_real[i], L_imag[i])
+    else:
+        L = np.zeros(Nmodes, dtype='complex')
+        for i in range(Nmodes):
+            L[i] = complex(L_real[i], L_imag[i])
 
     return L
 
@@ -263,14 +270,24 @@ def Read_Vecs(dset,name,Nmodes,vlen,uvcn='Umat',tlen=0):
     if tlen == 0: tlen = vlen
 
     #reading eigenvectors from dataset
-    U = np.array(dset['{}_'.format(uvcn)+name])
+    # U = np.array(dset['{}_'.format(uvcn)+name])
+    U_ = np.array(dset['{}_'.format(uvcn)+name])
 
     #flattening eigenvector arrays into 1D arrays
     if hasattr(Nmodes,'__len__'):
-        U_ = tb.Flatten3D(U)
+        # U_ = tb.Flatten3D(U)
+        U = np.zeros(sum(Nmodes) * tlen) #creating vector of true size
+
+        p1 = 0
+        for n in range(len(Nmodes)):
+            for i in range(Nmodes[n]):
+                for j in range(tlen):
+                    U[p1] = U_[n][i][j]
+                    p1 += 1
+
 
     else:
-        U_ = tb.Flatten2D(U)
+        # U_ = tb.Flatten2D(U)
         U = np.zeros(Nmodes * tlen) #creating vector of true size
 
         #copying flattened vector back into U, truncating columns after tlen elements
@@ -279,10 +296,11 @@ def Read_Vecs(dset,name,Nmodes,vlen,uvcn='Umat',tlen=0):
         k = vlen - tlen
         for i in range(Nmodes):
             for j in range(tlen):
-                U[p1] = U_[p2]
+                U[p1] = U_[i][j]
+                # U[p1] = U_[p2]
                 p1 += 1
-                p2 += 1
-            p2 += k
+            #     p2 += 1
+            # p2 += k
 
     return U
 
@@ -316,7 +334,9 @@ def DMD_Sort(DMD_Data):
                     expvl = el[j]
 
                     p = j * DMD_Data.clen
-                    evc = w[p : p + DMD_Data.clen]
+                    evc = np.zeros(DMD_Data.clen, dtype='complex')
+                    for q in range(DMD_Data.clen): evc[q] = DMD_Data.dat.evec[p + q]
+                    # evc = w[p : p + DMD_Data.clen]
 
                     l[j] = l[loc]
                     el[j] = el[loc]
@@ -371,7 +391,22 @@ def Coef_Calc(DMD_Data,init):
 
     b = []
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
-        quit()
+        nm = len(DMD_Data.dat.N_modes)
+        for n in range(nm):
+            p1 = n * DMD_Data.dat.N_modes[n] * DMD_Data.dat.N_modes[n]
+            p2 = p1 + DMD_Data.dat.N_modes[n] * DMD_Data.dat.N_modes[n]
+            w = np.transpose( np.reshape(DMD_Data.dat.r_evec[p1 : p2], (DMD_Data.dat.N_modes[n], DMD_Data.dat.N_modes[n]) ) )
+
+            p1 = n * DMD_Data.dat.N_modes[n] * DMD_Data.clen
+            p2 = p1 + DMD_Data.dat.N_modes[n] * DMD_Data.clen
+            ut = np.reshape(DMD_Data.dat.uvec[p1 : p2], (DMD_Data.dat.N_modes[n], DMD_Data.clen))
+            ut = np.array(ut, dtype='complex')
+
+            p1 = n * DMD_Data.clen
+            p2 = p1 + DMD_Data.clen
+            init_ = np.array(init[p1 : p2], dtype='complex')
+
+            b.append( np.linalg.solve(w, np.dot(ut, init_) ) )
 
     else:
         w = np.transpose( np.reshape(DMD_Data.dat.r_evec, (DMD_Data.dat.N_modes, DMD_Data.dat.N_modes) ) )
@@ -387,11 +422,28 @@ def Coef_Calc(DMD_Data,init):
 #==================================================================================================================================#
 def Expand(DMD_Data, Coef, t):
 
-    Expn = np.zeros(DMD_Data.clen, dtype='complex')
+    # Expn = np.zeros(DMD_Data.clen, dtype='complex')
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
-        quit()
+        # quit()
+        nm = len(DMD_Data.dat.N_modes)
+        Expn = np.zeros(nm * DMD_Data.clen, dtype='complex')
+
+        p1 = 0
+        p2 = 0
+        p3 = 0
+        for n in range(nm):
+            for i in range(DMD_Data.dat.N_modes):
+                l = DMD_Data.dat.eval[p1]
+                for j in range(DMD_Data.clen):
+                    Expn[p3] = Expn[p3] + Coef[p1] * DMD_Data.dat.evec[p3] * l**t
+                    p2 += 1
+                    p3 += 1
+                p3 -= DMD_Data.clen
+                p1 += 1
 
     else:
+        Expn = np.zeros(DMD_Data.clen, dtype='complex')
+
         p = 0
         for i in range(DMD_Data.dat.N_modes):
             l = DMD_Data.dat.eval[i]

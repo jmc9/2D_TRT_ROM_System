@@ -14,7 +14,7 @@ import shutil
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def exec_decompsrc(decomp_perphs, f_file, drop, exec_dir, eps):
+def exec_decompsrc(decomp_perphs, f_file, drop, exec_dir, eps=1e-12):
 
     #make all preparations for execution of DecompSrc
     exec_prep(decomp_perphs, f_file, eps)

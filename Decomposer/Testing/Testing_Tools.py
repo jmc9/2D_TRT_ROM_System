@@ -10,6 +10,7 @@
 #
 import numpy as np
 from Test_Functions import expf
+from Test_Functions import ak_nonlf
 from IO_Functions import output_f as outf
 from DecompSrc_Handling import exec_decompsrc as ds_exec
 from DecompProc_Handling import exec_decompproc as dp_exec
@@ -38,7 +39,7 @@ class peripherals():
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Run_Test(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[],[]], shp=['cvec', 'none'], scale=[], shift=[], eps=1e-12):
+def Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[],[]], shp=['cvec', 'none'], scale=[], shift=[], eps=1e-12):
 
     #
     tp = []
@@ -77,6 +78,23 @@ def Run_Test(exec_dir, decomp_perphs, proc_perphs, drop, alpha=[.1], mesh=[[],[]
 
     #
     ds_exec(decomp_perphs, outfile, drop, exec_dir, eps)
+    dp_exec(proc_perphs, decomp_perphs.out, outfile, drop, exec_dir)
+
+    return
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Run_Test_nak(exec_dir, decomp_perphs, proc_perphs, drop, tp, xp):
+    #
+    f, fgrids = ak_nonlf(tp, xp)
+
+    #
+    outfile = 'test.h5'
+    outf(f, fgrids, outfile)
+
+    #
+    ds_exec(decomp_perphs, outfile, drop, exec_dir)
     dp_exec(proc_perphs, decomp_perphs.out, outfile, drop, exec_dir)
 
     return

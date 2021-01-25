@@ -16,6 +16,25 @@ import Grid_Handling as gh
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
+def ak_nonlf(tp, xp):
+
+    grids = gh.grids()
+    grids.t = gh.grid_calc(gp=tp)
+    grids.x = gh.grid_calc(gp=xp)
+
+    f = np.zeros(grids.t.len * grids.x.len)
+    p = 0
+    for t in grids.t.pts:
+        for x in grids.x.pts:
+            f[p] = (1. - x) * math.cos( 3. * math.pi * t * ( x + 1. ) ) * math.exp( -( 1. + x ) * t )
+            p += 1
+    f = np.reshape(f, (grids.t.len, grids.x.len))
+
+    return f, grids
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
 def expf(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none', scale=[], shift=[]):
 
     #checking inputs for errors
@@ -44,6 +63,7 @@ def expf(alpha, tp=[], xp=[], yp=[], xshp='cvec', yshp='none', scale=[], shift=[
 
     #
     w = w_gen(grids.x.pts, xshp, N_a, grids.y.pts, yshp, scale, shift)
+    # print(np.resize(w,(N_a,grids.x.len)))
 
     fdim = tuple(grids.dlist_tr())
     flen = grids.all.len

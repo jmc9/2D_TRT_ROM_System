@@ -11,6 +11,8 @@
 #generic python tools
 import getopt, sys #handles user inputs from command line
 import os
+import numpy as np
+import math
 
 import Testing_Tools as tt
 import ToolBox as tb
@@ -39,53 +41,174 @@ def Decomp_Tester(exec_dir, decomp_dir, proc_dir, testdir='testdir'):
 
     #----------------------------------------------------------------------------------------------------#
     #                                               Test 1                                               #
-    # Simple test on basic calculations                                                                  #
-    # single small exponential growth term in 1D with single grid point in space                         #
+    # Single exponential with one grid point in space                                                    #
     #----------------------------------------------------------------------------------------------------#
-    test1_drop = tb.dirset('Test_1', testdir)
-    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test1_drop, [.1], [], 'cvec')
+    test_drop = tb.dirset('Test_1', testdir)
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, test_drop, [.1], [], 'cvec')
 
     #----------------------------------------------------------------------------------------------------#
     #                                               Test 2                                               #
-    # multiple (5) exponential growth terms in 1D                                                        #
+    # multiple exponentials in 1D                                                                        #
     # each exponential is attached to a unit vector in space (i.e. w_1=[0 1 0 0 0])                      #
     #----------------------------------------------------------------------------------------------------#
-    test2_drop = tb.dirset('Test_2', testdir)
-    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test2_drop, [.1, .2, .3, .4, .5], [], 'cvec')
+    test_drop = tb.dirset('Test_2', testdir)
+
+    #Test 2-a
+    #all positive exponentials
+    subtest_drop = tb.dirset('Test_2-a', test_drop)
+    evals = [.1, .2, .3, .4, .5]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 2-b
+    #all negative exponentials
+    subtest_drop = tb.dirset('Test_2-b', test_drop)
+    evals = [-.1, -.2, -.3, -.4, -.5]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 2-c
+    #all negative exponentials
+    subtest_drop = tb.dirset('Test_2-c', test_drop)
+    evals = [.1, .2, .3, .4, .5, -.1, -.2, -.3, -.4, -.5]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
 
     #----------------------------------------------------------------------------------------------------#
     #                                               Test 3                                               #
-    # an exact copy of Test 2, but with exponential decay instead og growth                              #
+    # Multiple exponentials of the same value                                                            #
     #----------------------------------------------------------------------------------------------------#
-    test3_drop = tb.dirset('Test_3', testdir)
-    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test3_drop, [-.1, -.2, -.3, -.4, -.5], [], 'cvec')
+    test_drop = tb.dirset('Test_3', testdir)
+
+    #Test 3-a
+    #5 eigenvalues attached to unit vectors in space
+    subtest_drop = tb.dirset('Test_3-a', test_drop)
+    evals = [.1, .1, .1, .1, .1]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 3-b
+    #5 eigenvalues attached to constant vectors in space
+    subtest_drop = tb.dirset('Test_3-b', test_drop)
+    evals = [.1, .1, .1, .1, .1]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'const')
+
+    #Test 3-c
+    #5 eigenvalues attached to varying vectors in space
+    subtest_drop = tb.dirset('Test_3-c', test_drop)
+    evals = [.1, .1, .1, .1, .1]
+    xshp = ['lin', 'cvec', 'const', 'cvec', 'lin']
+    shift = [0., 0., 0., 0., -2.]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], [xshp,'none'], shift=shift)
 
     #----------------------------------------------------------------------------------------------------#
     #                                               Test 4                                               #
-    # now combines exponential growth and decay in 1D                                                    #
-    # each exponential is attached to a unit vector in space (i.e. w_1=[0 1 0 0])                        #
+    # Extreme eigenvalues                                                                                #
     #----------------------------------------------------------------------------------------------------#
-    test4_drop = tb.dirset('Test_4', testdir)
-    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test4_drop, [.1, -.1, .2, -.2], [], 'cvec')
+    test_drop = tb.dirset('Test_4', testdir)
+
+    #Test 4-a
+    #single positive eigenvalue
+    subtest_drop = tb.dirset('Test_4-a', test_drop)
+    evals = [100.]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 4-b
+    #single negative eigenvalue
+    subtest_drop = tb.dirset('Test_4-b', test_drop)
+    evals = [-100.]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 4-c
+    #single positive tiny eigenvalue
+    subtest_drop = tb.dirset('Test_4-c', test_drop)
+    evals = [1e-10]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 4-d
+    #single negative tiny eigenvalue
+    subtest_drop = tb.dirset('Test_4-d', test_drop)
+    evals = [-1e-10]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 4-e
+    #combined extreme positive and negative eigenvalues
+    subtest_drop = tb.dirset('Test_4-e', test_drop)
+    evals = [100., -100.]
+    tp = [0., .5, 1., 1.5]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [tp,[],[]], 'cvec', eps=-1.)
+
+    #Test 4-f
+    #combined tiny positive and negative eigenvalues
+    subtest_drop = tb.dirset('Test_4-f', test_drop)
+    evals = [1e-10, -1e-10]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec', eps=-1.)
+
+    #Test 4-g
+    #combined extreme positive eigenvalue with several reasonable values
+    subtest_drop = tb.dirset('Test_4-g', test_drop)
+    evals = [100., .1, .2, -.1, -.2]
+    tp = np.linspace(0.,1.,10)
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [tp,[],[]], 'cvec', eps=-1.)
+
+    #Test 4-h
+    #combined extreme negative eigenvalue with several reasonable values
+    subtest_drop = tb.dirset('Test_4-h', test_drop)
+    evals = [-100., .1, .2, -.1, -.2]
+    tp = np.linspace(0.,1.,10)
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [tp,[],[]], 'cvec')
+
+    #Test 4-i
+    #single positive tiny eigenvalue with several reasonable values
+    subtest_drop = tb.dirset('Test_4-i', test_drop)
+    evals = [1e-10, .1, .2, -.1, -.2]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 4-j
+    #single negative tiny eigenvalue with several reasonable values
+    subtest_drop = tb.dirset('Test_4-j', test_drop)
+    evals = [-1e-10, .1, .2, -.1, -.2]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
 
     #----------------------------------------------------------------------------------------------------#
     #                                               Test 5                                               #
-    # The same test as Test 4 but in 2D geometry                                                         #
-    # instead of 4 grid points along the x-axis, --                                                      #
-    # -- there are 2 grid points along each of the x- and y- axes                                        #
-    # each exponential is attached to a unit vector in 2D space (i.e. w_(1,0)=[ [0 1] [0 0] ])           #
+    # Clustered eigenvalues                                                                              #
     #----------------------------------------------------------------------------------------------------#
-    test5_drop = tb.dirset('Test_5', testdir)
-    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test5_drop, [.1, -.1, .2, -.2], [[],[0.,1.],[0.,1.]], ['cvec', 'cvec'])
+    test_drop = tb.dirset('Test_5', testdir)
+
+    #Test 5-a
+    #single cluster of eigenvalues
+    subtest_drop = tb.dirset('Test_5-a', test_drop)
+    # evals = [.1, .1+1e-5, .1+2e-5]
+    evals = [.1, .1+1e-4, .1+2e-4]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
+
+    #Test 5-b
+    #two clusters of eigenvalues
+    subtest_drop = tb.dirset('Test_5-b', test_drop)
+    evals = [.1, .1+1e-4, .1+2e-4, -.3, -.3-1e-4, -.3-2e-4]
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [], 'cvec')
 
     #----------------------------------------------------------------------------------------------------#
     #                                               Test 6                                               #
-    # 2D geometry test with eigenvectors that are linear in the y-direction                              #
-    # The x- and y- dimensions are now also different (non-square domain)                                #
-    # There exist more grid points in space then there are eigenvalues                                   #
+    # Many distinct eigenvalues                                                                          #
     #----------------------------------------------------------------------------------------------------#
-    test6_drop = tb.dirset('Test_6', testdir)
-    tt.Run_Test(exec_dir, decomp_perphs, proc_perphs, test6_drop, [.1, .3, -.2, -.4], [[],[],[0.,1.,2.,3.,4.,5.,6.,7.,8.,9.]], ['cvec', 'lin'])
+    test_drop = tb.dirset('Test_6', testdir)
+
+    #Test 6-a
+    subtest_drop = tb.dirset('Test_6-a', test_drop)
+    evals = np.linspace(-5., 5., 50)
+    tp = np.linspace(0., 5., 101)
+    xp = np.linspace(0., 1., 50)
+    tt.Run_Test_exp(exec_dir, decomp_perphs, proc_perphs, subtest_drop, evals, [tp, xp, []], 'cvec')
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                               Test 7                                               #
+    #----------------------------------------------------------------------------------------------------#
+    test_drop = tb.dirset('Test_7', testdir)
+
+    #Test 7-a
+    subtest_drop = tb.dirset('Test_7-a', test_drop)
+    tp = np.linspace(1., math.pi, 51)
+    xp = np.linspace(-1., 1., 101)
+
+    tt.Run_Test_nak(exec_dir, decomp_perphs, proc_perphs, subtest_drop, tp, xp)
 
 #==================================================================================================================================#
 #

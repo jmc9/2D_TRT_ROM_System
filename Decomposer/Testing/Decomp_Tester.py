@@ -16,6 +16,8 @@ import math
 
 import Testing_Tools as tt
 import ToolBox as tb
+import Test_Functions as tf
+
 
 #==================================================================================================================================#
 #
@@ -209,6 +211,39 @@ def Decomp_Tester(exec_dir, decomp_dir, proc_dir, testdir='testdir'):
     xp = np.linspace(-1., 1., 101)
 
     tt.Run_Test_nak(exec_dir, decomp_perphs, proc_perphs, subtest_drop, tp, xp)
+
+
+    #----------------------------------------------------------------------------------------------------#
+    #                                               Test 8                                               #
+    # A suite of tests that uses data from the 1D TRT code                                               #
+    # both grey and multigroup QD factors in 1D are used                                                 #
+    # several groups are done independently, followed by groupwise and full-phase space DMD              #
+    #----------------------------------------------------------------------------------------------------#
+    test_drop = tb.dirset('Test_8', testdir)
+
+    #
+    subtest_drop = tb.dirset('Test_8-a', test_drop)
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, test_drop, 'QD_factors.out', 'f')
+
+    #
+    subtest_drop = tb.dirset('Test_8-b', test_drop)
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors.out', 'f_g02')
+
+    #
+    subtest_drop = tb.dirset('Test_8-c', test_drop)
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors.out', 'f_g08')
+
+    #
+    subtest_drop = tb.dirset('Test_8-e', test_drop)
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors.out', 'f_g17')
+
+    #
+    subtest_drop = tb.dirset('Test_8-f', test_drop)
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors.out', 'f', 'yes', 'DMDg')
+
+    #
+    subtest_drop = tb.dirset('Test_8-g', test_drop)
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors.out', 'f', 'yes', 'DMD')
 
 #==================================================================================================================================#
 #

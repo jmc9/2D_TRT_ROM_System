@@ -14,10 +14,10 @@ import shutil
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def exec_decompsrc(decomp_perphs, f_file, drop, exec_dir, eps=1e-12):
+def exec_decompsrc(decomp_perphs, f_file, drop, exec_dir, eps=1e-12, dcmp_type='DMD'):
 
     #make all preparations for execution of DecompSrc
-    exec_prep(decomp_perphs, f_file, eps)
+    exec_prep(decomp_perphs, f_file, eps, dcmp_type)
 
     #execute DecompSrc
     call_decompsrc(decomp_perphs, exec_dir)
@@ -46,9 +46,9 @@ def write_inpf(decomp_perphs, f_file, f_name='f', dcmp_type='DMD', svd_eps=1e-12
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def exec_prep(decomp_perphs, f_file, eps):
+def exec_prep(decomp_perphs, f_file, eps, dcmp_type='DMD'):
     #create input file for DecompSrc
-    write_inpf(decomp_perphs, f_file, svd_eps=eps)
+    write_inpf(decomp_perphs, f_file, dcmp_type=dcmp_type, svd_eps=eps)
 
     #move required files for DecompSrc operation into DecompSrc directory from Testing directory
     shutil.move(decomp_perphs.inp, os.path.join(decomp_perphs.path, decomp_perphs.inp))

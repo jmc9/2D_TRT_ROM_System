@@ -15,9 +15,9 @@ import numpy as np
 #==================================================================================================================================#
 class grid():
 
-    len = 0
-    pts = []
-    bnd = []
+    # len = 0
+    # pts = []
+    # bnd = []
 
     def __init__(self, pts=[], bnd=[]):
         self.pts = pts
@@ -35,17 +35,21 @@ class grid():
 #==================================================================================================================================#
 class grids():
 
-    t = grid()
-    y = grid()
-    x = grid()
+    # t = grid([],[])
+    # g = grid([],[])
+    # y = grid([],[])
+    # x = grid([],[])
+    #
+    # xy  = grid()
+    # all = grid()
 
-    xy  = grid()
-    all = grid()
-
-    def __init__(self, t=grid(), y=grid(), x=grid()):
-        self.t = t
-        self.y = y
-        self.x = x
+    def __init__(self):
+        self.t = grid()
+        self.g = grid()
+        self.y = grid()
+        self.x = grid()
+        self.xy = grid()
+        all = grid()
         return
 
     def get_bnd(self, name):
@@ -56,6 +60,7 @@ class grids():
 
     def get_len(self, name):
         if   name == 't': return self.t.len
+        elif name == 'g': return self.g.len
         elif name == 'y': return self.y.len
         elif name == 'x': return self.x.len
         else: return 0

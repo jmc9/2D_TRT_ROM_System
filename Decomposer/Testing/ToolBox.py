@@ -41,3 +41,20 @@ def dirset(dir, path=''):
         os.mkdir(dir)
 
     return dir
+
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def File_Find(file, key):
+    for line in file:
+        if (line.strip()): #disregarding blank lines
+            input = line.split() #delimiting input line by space
+
+            if input[0] == key:
+                arg = input[1]
+                file.seek(0)
+                return arg
+
+    print('{} not found'.format(key))
+    quit()

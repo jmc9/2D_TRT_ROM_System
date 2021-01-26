@@ -27,6 +27,10 @@ def output_f(f, grids, outfile):
         nc_dims.append( dset.createDimension( dn, grids.get_len(n) ) ) #create dimension named 'dn' with length = grids.get_len(n)
         nc_grids.append( dset.createVariable( gn, 'f8', dn ) ) #create grid variable named 'gn' with dimension 'dn'
 
+    if grids.g.len != 0:
+        dnames.insert(1, 'N_g')
+        nc_dims.append( dset.createDimension( 'N_g', grids.g.len ) )
+
     #write grid bounds and grid data to datafile
     for (g, n) in zip(nc_grids, names):
         g.bnds = grids.get_bnd(n)

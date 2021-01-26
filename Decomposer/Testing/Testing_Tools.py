@@ -11,6 +11,7 @@
 import numpy as np
 from Test_Functions import expf
 from Test_Functions import ak_nonlf
+from Test_Functions import trt_1df
 from IO_Functions import output_f as outf
 from DecompSrc_Handling import exec_decompsrc as ds_exec
 from DecompProc_Handling import exec_decompproc as dp_exec
@@ -98,3 +99,18 @@ def Run_Test_nak(exec_dir, decomp_perphs, proc_perphs, drop, tp, xp):
     dp_exec(proc_perphs, decomp_perphs.out, outfile, drop, exec_dir)
 
     return
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, drop, file_name, data_name, mg_opt='', dcmp_type='DMD'):
+    #
+    f, fgrids = trt_1df(file_name, data_name, mg_opt)
+
+    #
+    outfile = 'test.h5'
+    outf(f, fgrids, outfile)
+
+    #
+    ds_exec(decomp_perphs, outfile, drop, exec_dir, dcmp_type=dcmp_type)
+    dp_exec(proc_perphs, decomp_perphs.out, outfile, drop, exec_dir)

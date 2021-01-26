@@ -12,6 +12,39 @@ import numpy as np
 import math
 
 import Grid_Handling as gh
+from TRT_1D_Handling import Read_TRT as read_trt
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def trt_1df(file_name, data_name, mg_opt=''):
+    f, N_t, N_x, tlen, xlen = read_trt(file_name, data_name, mg_opt)
+
+    fdims = np.shape(f)
+    if len(fdims) == 2:
+        (ft, fx) = fdims
+    elif len(fdims) == 3:
+        (ft, fg, fx) = fdims
+    tp = np.linspace(0., tlen, N_t)
+
+    dx = xlen/float(N_x)
+    if (fx == N_x):
+        xp = np.linspace(0.+dx/2., xlen-dx/2., fx)
+    elif (fx == (N_x+1)):
+        xp = np.linspace(0., xlen, fx)
+    elif (fx == (N_x+2)):
+        xp = np.zeros(fx)
+        xp[1:N_x+1] = np.linspace(0.+dx/2., xlen-dx/2., N_x)
+        xp[0] = 0.
+        xp[fx-1] = xlen
+
+    grids = gh.grids()
+    grids.t = gh.grid_calc(gp=tp)
+    grids.x = gh.grid_calc(gp=xp)
+    if len(fdims) == 3: grids.g.len = fg
+    else: grids.g.len = 0
+
+    return f, grids
 
 #==================================================================================================================================#
 #

@@ -161,7 +161,7 @@ def Dat_Parms(dset,Dcmp_Data):
         dlen = 1
         for j in range(1,N_dims):
             dlen = dlen * Prob_Data[i].dims[j].len
-        Prob_Data[i].dat = np.zeros([Prob_Data[i].dims[0].len, dlen])
+        Prob_Data[i].dat = np.zeros((Prob_Data[i].dims[0].len, dlen))
         if N_dims == 4:
             for t in range(Prob_Data[i].dims[0].len):
                 Prob_Data[i].dat[t] = tb.Flatten3D(dat[t])

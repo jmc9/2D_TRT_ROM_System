@@ -66,6 +66,15 @@ def heatmap2d(arr: np.ndarray,name,xp,yp,drop,units=[],bnds=[],c='inferno',title
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
+def lineplot_grouped(name,xp,N_g,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',title=''):
+    N_x = len(xp)
+    dat = np.reshape(arr,(N_g,N_x))
+    for g in range(N_g):
+        lineplot(name+'_'+str(g+1),xp,dat[g],drop,legend,yscale,xlabel,ylabel,marker,legloc,title)
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
 def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',title=''):
     if hasattr(arr[0],'__len__'):
         sets = len(arr)

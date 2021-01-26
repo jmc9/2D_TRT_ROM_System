@@ -40,7 +40,9 @@ def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
             dcmp.dat = dmdr.Read_DMD(dset,dcmp.name,dcmp.clen,dcmp.rank)
 
             if dcmp.opt[0] == 0:
-                dmdr.Plot_DMD(dcmp,dir,plt_modes)
+                if dcmp.type == 'DMD': plt_modes = np.arange(dcmp.dat.N_modes)
+                else: plt_modes = [np.arange(nmodes) for nmodes in dcmp.dat.N_modes]
+                # dmdr.Plot_DMD(dcmp,dir,plt_modes)
 
                 if len(Prob_Data) != 0:
                     if Prob_Data[i].opt[0] == 0:
@@ -48,7 +50,7 @@ def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
 
                         len1 = len(Prob_Data[i].dat)
                         len2 = len(Prob_Data[i].dat[0])
-                        edat = np.zeros([len1, len2],dtype=np.complex_)
+                        edat = np.zeros([len1, len2],dtype='complex')
                         for j in range(len1):
                             edat[j] = dmdr.Expand(dcmp, coef, j)
                         recon[i] = copy.deepcopy(edat)

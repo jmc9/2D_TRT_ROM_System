@@ -15,10 +15,6 @@ import numpy as np
 #==================================================================================================================================#
 class grid():
 
-    # len = 0
-    # pts = []
-    # bnd = []
-
     def __init__(self, pts=[], bnd=[]):
         self.pts = pts
         self.len = len(pts)
@@ -35,21 +31,13 @@ class grid():
 #==================================================================================================================================#
 class grids():
 
-    # t = grid([],[])
-    # g = grid([],[])
-    # y = grid([],[])
-    # x = grid([],[])
-    #
-    # xy  = grid()
-    # all = grid()
-
     def __init__(self):
         self.t = grid()
         self.g = grid()
         self.y = grid()
         self.x = grid()
         self.xy = grid()
-        all = grid()
+        self.all = grid()
         return
 
     def get_bnd(self, name):

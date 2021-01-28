@@ -18,14 +18,14 @@ from TRT_1D_Handling import Read_TRT as read_trt
 #
 #==================================================================================================================================#
 def trt_1df(file_name, data_name, mg_opt=''):
-    f, N_t, N_x, tlen, xlen = read_trt(file_name, data_name, mg_opt)
+    f, N_t, start, N_x, tlen, xlen = read_trt(file_name, data_name, mg_opt)
 
     fdims = np.shape(f)
     if len(fdims) == 2:
         (ft, fx) = fdims
     elif len(fdims) == 3:
         (ft, fg, fx) = fdims
-    tp = np.linspace(0., tlen, N_t)
+    tp = np.linspace(start, tlen, N_t)
 
     dx = xlen/float(N_x)
     if (fx == N_x):

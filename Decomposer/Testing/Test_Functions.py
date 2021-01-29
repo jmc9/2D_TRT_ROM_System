@@ -13,6 +13,28 @@ import math
 
 import Grid_Handling as gh
 from TRT_1D_Handling import Read_TRT as read_trt
+from TRT_2D_Handling import Data_Select as trt2d_dat
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def trt_2df(file_name, data_name, tstart, tend, group=0):
+    f, tp, yp, xp = trt2d_dat(file_name, data_name, tstart, tend, group)
+
+    grids = gh.grids()
+
+    fdims = np.shape(f)
+    if len(fdims) == 3:
+        (ft, fy, fx) = fdims
+    elif len(fdims) == 4:
+        (ft, fg, fy, fx) = fdims
+        grids.g.len = fg
+
+    grids.t = gh.grid_calc(gp=tp)
+    grids.y = gh.grid_calc(gp=yp)
+    grids.x = gh.grid_calc(gp=xp)
+
+    return f, grids
 
 #==================================================================================================================================#
 #

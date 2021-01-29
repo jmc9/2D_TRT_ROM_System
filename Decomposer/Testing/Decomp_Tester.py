@@ -244,22 +244,22 @@ def Decomp_Tester(exec_dir, decomp_dir, proc_dir, testdir='testdir'):
     #
     #full dataset
     subsub_drop = tb.dirset('Test_8-c-1', subtest_drop)
-    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors.out', 'f', 'yes', 'DMDg')
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'MG_QD_factors.out', 'f', 'yes', 'DMDg')
     #
     #only from 1-6 ns
     subsub_drop = tb.dirset('Test_8-c-2', subtest_drop)
-    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors_t1-6.out', 'f', 'yes', 'DMDg')
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'MG_QD_factors_t1-6.out', 'f', 'yes', 'DMDg')
 
     #full phase-space decomposition of multigroup QD factors
     subtest_drop = tb.dirset('Test_8-d', test_drop)
     #
     #full dataset
     subsub_drop = tb.dirset('Test_8-d-1', subtest_drop)
-    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors.out', 'f', 'yes', 'DMD')
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'MG_QD_factors.out', 'f', 'yes', 'DMD')
     #
     #only from 1-6 ns
     subsub_drop = tb.dirset('Test_8-d-2', subtest_drop)
-    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'MG_QD_factors_t1-6.out', 'f', 'yes', 'DMD')
+    tt.Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'MG_QD_factors_t1-6.out', 'f', 'yes', 'DMD')
 
     #----------------------------------------------------------------------------------------------------#
     #                                               Test 9                                               #
@@ -290,22 +290,22 @@ def Decomp_Tester(exec_dir, decomp_dir, proc_dir, testdir='testdir'):
     #
     #full dataset
     subsub_drop = tb.dirset('Test_9-b-1', subtest_drop)
-    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'fom_2d.h5', 'fg_avg_xx', dcmp_type='DMDg')
+    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'fom_2d.h5', 'fg_avg_xx', dcmp_type='DMDg')
     #
     #only from 1-6 ns
     subsub_drop = tb.dirset('Test_9-b-2', subtest_drop)
-    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'fom_2d.h5', 'fg_avg_xx', tstart=.1, tend=.6, dcmp_type='DMDg')
+    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'fom_2d.h5', 'fg_avg_xx', tstart=.1, tend=.6, dcmp_type='DMDg')
 
     #full phase-space decomposition of multigroup QD factors
     subtest_drop = tb.dirset('Test_9-c', test_drop)
     #
     #full dataset
     subsub_drop = tb.dirset('Test_9-c-1', subtest_drop)
-    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'fom_2d.h5', 'fg_avg_xx', dcmp_type='DMD')
+    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'fom_2d.h5', 'fg_avg_xx', dcmp_type='DMD')
     #
     #only from 1-6 ns
     subsub_drop = tb.dirset('Test_9-c-2', subtest_drop)
-    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subtest_drop, 'fom_2d.h5', 'fg_avg_xx', tstart=.1, tend=.6, dcmp_type='DMD')
+    tt.Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, subsub_drop, 'fom_2d.h5', 'fg_avg_xx', tstart=.1, tend=.6, dcmp_type='DMD')
 
 #==================================================================================================================================#
 #

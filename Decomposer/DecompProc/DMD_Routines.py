@@ -323,12 +323,14 @@ def DMD_Sort(DMD_Data):
         N_g = len(DMD_Data.dat.N_modes)
         evl_p = 0
         evc_p = 0
+        evcr_p = 0
         for g in range(N_g):
 
             l = DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
             el = DMD_Data.dat.expval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
 
             w = DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
+            wr = DMD_Data.dat.r_evec[evcr_p : evcr_p + DMD_Data.dat.N_modes[g]**2]
 
             for j in range(DMD_Data.dat.N_modes[g]):
                 max = math.sqrt( l[j].real**2 + l[j].imag**2 )
@@ -346,23 +348,32 @@ def DMD_Sort(DMD_Data):
                     p = j * DMD_Data.clen
                     evc = copy.copy(w[p : p + DMD_Data.clen])
 
+                    p1 = j * DMD_Data.dat.N_modes[g]
+                    evcr = copy.copy(wr[p1 : p1 + DMD_Data.dat.N_modes[g]])
+
                     l[j] = l[loc]
                     el[j] = el[loc]
 
                     p2 = loc * DMD_Data.clen
                     w[p : p + DMD_Data.clen] = copy.copy(w[p2 : p2 + DMD_Data.clen])
 
+                    p3 = loc * DMD_Data.dat.N_modes[g]
+                    wr[p1 : p1 + DMD_Data.dat.N_modes[g]] = copy.copy(wr[p3 : p3 + DMD_Data.dat.N_modes[g]])
+
                     l[loc] = evl
                     el[loc] = expvl
 
                     w[p2 : p2 + DMD_Data.clen] = copy.copy(evc)
+                    wr[p3 : p3 + DMD_Data.dat.N_modes[g]] = copy.copy(evcr)
 
             DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = l
             DMD_Data.dat.expval[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = el
             DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = w
+            DMD_Data.dat.r_evec[evcr_p : evcr_p + DMD_Data.dat.N_modes[g]**2] = wr
 
             evl_p += DMD_Data.dat.N_modes[g]
             evc_p += DMD_Data.clen * DMD_Data.dat.N_modes[g]
+            evcr_p += DMD_Data.dat.N_modes[g]**2
 
     else:
         for j in range(DMD_Data.dat.N_modes):
@@ -379,19 +390,24 @@ def DMD_Sort(DMD_Data):
                 expvl = DMD_Data.dat.expval[j]
 
                 p = j * DMD_Data.clen
-                evc = np.zeros(DMD_Data.clen, dtype='complex')
-                for q in range(DMD_Data.clen): evc[q] = DMD_Data.dat.evec[p + q]
+                evc = copy.copy(DMD_Data.dat.evec[p : p + DMD_Data.clen])
+
+                p1 = j * DMD_Data.dat.N_modes
+                evcr = copy.copy(DMD_Data.dat.r_evec[p1 : p1 + DMD_Data.dat.N_modes])
 
                 DMD_Data.dat.eval[j] = DMD_Data.dat.eval[loc]
                 DMD_Data.dat.expval[j] = DMD_Data.dat.expval[loc]
 
                 p2 = loc * DMD_Data.clen
                 DMD_Data.dat.evec[p : p + DMD_Data.clen] = DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen]
+                p3 = loc * DMD_Data.dat.N_modes
+                DMD_Data.dat.r_evec[p1 : p1 + DMD_Data.dat.N_modes] = DMD_Data.dat.r_evec[p3 : p3 + DMD_Data.dat.N_modes]
 
                 DMD_Data.dat.eval[loc] = evl
                 DMD_Data.dat.expval[loc] = expvl
 
                 DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen] = evc
+                DMD_Data.dat.r_evec[p3 : p3 + DMD_Data.dat.N_modes] = evcr
 
     return DMD_Data
 

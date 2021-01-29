@@ -40,6 +40,7 @@ def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
             dcmp.dat = dmdr.Read_DMD(dset,dcmp.name,dcmp.clen,dcmp.rank)
 
             if dcmp.opt[0] == 0:
+                dmdr.DMD_Sort(dcmp)
                 if dcmp.type == 'DMD': plt_modes = np.arange(dcmp.dat.N_modes)
                 else: plt_modes = [np.arange(nmodes) for nmodes in dcmp.dat.N_modes]
                 # dmdr.Plot_DMD(dcmp,dir,plt_modes)

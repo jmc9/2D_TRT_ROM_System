@@ -24,7 +24,7 @@ def Input(infile,proc_dir_,plotdir_):
 
     tb.FileCheck(infile) #check if input file exists
 
-    (proc_dir,plotdir,dset,dset_dat,dcmp_data) = Default_Inps() #load default inputs
+    (proc_dir, plotdir, dset, dset_dat, dcmp_data, trunc_eps, trunc_opt) = Default_Inps() #load default inputs
 
     #if proc_dir, plotdir previously specified - use values
     if not proc_dir_ == '': proc_dir = proc_dir_
@@ -37,21 +37,25 @@ def Input(infile,proc_dir_,plotdir_):
         if (line.strip()): #disregarding blank lines
             input = line.split() #delimiting input line by space
 
-            if input[0] == 'proc_dir': proc_dir = input[1]
+            if input[0] ==   'proc_dir' : proc_dir  = input[1]
 
-            elif input[0] == 'plotdir': plotdir = input[1]
+            elif input[0] == 'plotdir'  : plotdir   = input[1]
 
-            elif input[0] == 'dset': dset = input[1]
+            elif input[0] == 'dset'     : dset      = input[1]
 
-            elif input[0] == 'dset_dat': dset_dat = input[1]
+            elif input[0] == 'dset_dat' : dset_dat  = input[1]
 
             elif input[0] == 'dcmp_data': dcmp_data = input[1:]
+
+            elif input[0] == 'trunc_eps': trunc_eps = float(input[1])
+
+            elif input[0] == 'trunc_opt': trunc_opt = int(input[1])
 
     Check_Inps(dset) #checking for invalid inputs
 
     dcmp_data = Data_Defaults(dcmp_data)
 
-    return (proc_dir,plotdir,dset,dset_dat,dcmp_data)
+    return (proc_dir, plotdir, dset, dset_dat, dcmp_data, trunc_eps, trunc_opt)
 
 #==================================================================================================================================#
 #
@@ -62,8 +66,10 @@ def Default_Inps():
     dset      = 'dcmp_out.h5'
     dset_dat  = ''
     dcmp_data = 'QDf'
+    trunc_eps = 1.
+    trunc_opt = 2
 
-    return (proc_dir,plotdir,dset,dset_dat,dcmp_data)
+    return (proc_dir, plotdir, dset, dset_dat, dcmp_data, trunc_eps, trunc_opt)
 
 #==================================================================================================================================#
 #

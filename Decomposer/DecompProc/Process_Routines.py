@@ -24,8 +24,9 @@ import ToolBox as tb
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
+def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
     recon = []
+    n_trunc = []
 
     N_data = len(Dcmp_Data)
     for i in range(N_data):
@@ -40,26 +41,26 @@ def Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir):
             dcmp.dat = dmdr.Read_DMD(dset,dcmp.name,dcmp.clen,dcmp.rank)
 
             if dcmp.opt[0] == 0:
-                dmdr.DMD_Sort(dcmp)
+                n_trunc.append( dmdr.DMD_Sort(dcmp, trunc_eps) )
                 if dcmp.type == 'DMD': plt_modes = np.arange(dcmp.dat.N_modes)
                 else: plt_modes = [np.arange(nmodes) for nmodes in dcmp.dat.N_modes]
                 # dmdr.Plot_DMD(dcmp,dir,plt_modes)
 
                 if len(Prob_Data) != 0:
                     if Prob_Data[i].opt[0] == 0:
-                        coef = dmdr.Coef_Calc(dcmp,Prob_Data[i].dat[0])
+                        coef = dmdr.Coef_Calc(dcmp, Prob_Data[i].dat[0], n_trunc[i], trunc_opt)
 
                         len1 = len(Prob_Data[i].dat)
                         len2 = len(Prob_Data[i].dat[0])
                         edat = np.zeros([len1, len2],dtype='complex')
                         for j in range(len1):
-                            edat[j] = dmdr.Expand(dcmp, coef, j)
+                            edat[j] = dmdr.Expand(dcmp, coef, j, n_trunc[i], trunc_opt)
                         recon[i] = copy.deepcopy(edat)
 
             else:
                 dmdr.Plot_DMD(dcmp,dir,plt_modes,evecs=False)
 
-    return recon
+    return recon, n_trunc
 
 #==================================================================================================================================#
 #
@@ -92,7 +93,7 @@ def Error_Calc(recon, Prob_Data):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Output(recon, err, Prob_Data):
+def Output(recon, err, Prob_Data, n_trunc):
     dset = ncds('proc_summary.h5','w') #opening specified dataset
 
     #if there is no data, abort - otherwise save number of data
@@ -133,6 +134,8 @@ def Output(recon, err, Prob_Data):
 
                 nc_2err = dset.createVariable("{}_Err_2".format(dname), "f8", (dims[0].name) )
 
+                nc_trunc = dset.createVariable("{}_n_trunc".format(dname), "f8", ())
+
                 #--Move err, recon data into temporary arrays--
                 err_ = err[i]
                 recon_ = recon[i]
@@ -171,6 +174,7 @@ def Output(recon, err, Prob_Data):
                 # 3 grids + 3 dimensions means data is structured like f[time][space(y)][space(x)]
                 if ngrids == 3:
                     nc_2err = dset.createVariable("{}_Err_2".format(dname), "f8", (dims[0].name) )
+                    nc_trunc = dset.createVariable("{}_n_trunc".format(dname), "f8", ())
 
                     err2 = np.zeros(dims[0].len)
                     for j in range(dims[0].len):
@@ -183,6 +187,11 @@ def Output(recon, err, Prob_Data):
                 # 2 grids + 3 dimensions means data is structured like f[time][group][space(x)]
                 elif ngrids == 2:
                     nc_2err = dset.createVariable("{}_Err_2_".format(dname), "f8", (dims[0].name, dims[1].name) )
+
+                    if isinstance(n_trunc[i],(list, np.ndarray)):
+                        nc_trunc = dset.createVariable("{}_n_trunc".format(dname), "f8", (dims[1].name))
+                    else:
+                        nc_trunc = dset.createVariable("{}_n_trunc".format(dname), "f8", ())
 
                     err2 = np.zeros((dims[0].len, dims[1].len))
                     for j in range(dims[0].len):
@@ -216,6 +225,7 @@ def Output(recon, err, Prob_Data):
                 # 4 grids + 4 dimensions means data is structured like f[time][space(z)][space(y)][space(x)]
                 if ngrids == 4:
                     nc_2err = dset.createVariable("{}_Err_2".format(dname), "f8", (dims[0].name, dims[1].name) )
+                    nc_trunc = dset.createVariable("{}_n_trunc".format(dname), "f8", ())
 
                     # err2 = np.zeros((dims[0].len), dtype='complex')
                     err2 = np.zeros((dims[0].len))
@@ -230,6 +240,11 @@ def Output(recon, err, Prob_Data):
                 # 3 grids + 4 dimensions means data is structured like f[time][group][space(y)][space(x)]
                 elif ngrids == 3:
                     nc_2err = dset.createVariable("{}_Err_2".format(dname), "f8", (dims[0].name, dims[1].name) )
+
+                    if isinstance(n_trunc[i],(list, np.ndarray)):
+                        nc_trunc = dset.createVariable("{}_n_trunc".format(dname), "f8", (dims[1].name))
+                    else:
+                        nc_trunc = dset.createVariable("{}_n_trunc".format(dname), "f8", ())
 
                     # err2 = np.zeros((dims[0].len, dims[1].len), dtype='complex')
                     err2 = np.zeros((dims[0].len, dims[1].len))
@@ -271,6 +286,8 @@ def Output(recon, err, Prob_Data):
             #writing recon data over whole phase space
             nc_recon_r[:] = recon_.real
             nc_recon_i[:] = recon_.imag
+
+            nc_trunc[:] = n_trunc[i]
 
             #creating, recording the maximal absolute error across all grid points
             nc_err_max = dset.createVariable("{}_Err_max".format(dname), "f8", ())

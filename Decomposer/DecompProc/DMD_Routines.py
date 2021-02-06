@@ -317,14 +317,16 @@ def Read_Vecs(dset,name,Nmodes,vlen,uvcn='Umat',tlen=0):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def DMD_Sort(DMD_Data):
+def DMD_Sort(DMD_Data, trunc_eps):
 
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
         N_g = len(DMD_Data.dat.N_modes)
+        n_trunc = np.zeros(N_g, dtype='int')
         evl_p = 0
         evc_p = 0
         evcr_p = 0
         for g in range(N_g):
+            n_trunc[g] = int(trunc_eps * DMD_Data.dat.N_modes[g])
 
             l = DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
             el = DMD_Data.dat.expval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
@@ -376,6 +378,7 @@ def DMD_Sort(DMD_Data):
             evcr_p += DMD_Data.dat.N_modes[g]**2
 
     else:
+        n_trunc = int( trunc_eps * DMD_Data.dat.N_modes )
         for j in range(DMD_Data.dat.N_modes):
             max = math.sqrt( DMD_Data.dat.eval[j].real**2 + DMD_Data.dat.eval[j].imag**2 )
             loc = j
@@ -409,17 +412,22 @@ def DMD_Sort(DMD_Data):
                 DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen] = evc
                 DMD_Data.dat.r_evec[p3 : p3 + DMD_Data.dat.N_modes] = evcr
 
-    return DMD_Data
+    return n_trunc
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Coef_Calc(DMD_Data,init):
+def Coef_Calc(DMD_Data, init, n_trunc, trunc_opt):
 
     b = []
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
         nm = len(DMD_Data.dat.N_modes)
-        b = np.zeros(sum(DMD_Data.dat.N_modes), dtype='complex')
+
+        if (trunc_opt == 1):
+            b = np.zeros(sum(n_trunc), dtype='complex')
+        else:
+            b = np.zeros(sum(DMD_Data.dat.N_modes), dtype='complex')
+
         pb = 0
         pw = 0
         pu = 0
@@ -436,9 +444,16 @@ def Coef_Calc(DMD_Data,init):
             p2 = p1 + DMD_Data.clen
             init_ = np.array(init[p1 : p2], dtype='complex')
 
-            b[pb : pb + DMD_Data.dat.N_modes[n]] = np.linalg.solve(w, np.dot(ut, init_) )
+            if ((trunc_opt == 1) and (n_trunc[n] != DMD_Data.dat.N_modes[n])):
+                b[pb : pb + n_trunc[n]], b1, b2, b3 = np.linalg.lstsq(w[:, 0:n_trunc[n]], np.dot(ut, init_), rcond=-1 )
+            else:
+                b[pb : pb + DMD_Data.dat.N_modes[n]] = np.linalg.solve(w, np.dot(ut, init_) )
 
-            pb += DMD_Data.dat.N_modes[n]
+            if (trunc_opt == 1):
+                pb += n_trunc[n]
+            else:
+                pb += DMD_Data.dat.N_modes[n]
+
             pw += DMD_Data.dat.N_modes[n]**2
             pu += DMD_Data.dat.N_modes[n] * DMD_Data.clen
 
@@ -447,14 +462,18 @@ def Coef_Calc(DMD_Data,init):
         ut = np.reshape(DMD_Data.dat.uvec, (DMD_Data.dat.N_modes, DMD_Data.clen))
         ut = np.array(ut, dtype='complex')
         init_ = np.array(init, dtype='complex')
-        b = np.linalg.solve(w, np.dot(ut, init_) )
+
+        if ((trunc_opt == 1) and (n_trunc[n] != DMD_Data.dat.N_modes[n])):
+            b, b1, b2, b3 = np.linalg.lstsq(w[:, 0:n_trunc], np.dot(ut, init_), rcond=-1 )
+        else:
+            b = np.linalg.solve(w, np.dot(ut, init_) )
 
     return b
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Expand(DMD_Data, Coef, t):
+def Expand(DMD_Data, Coef, t, n_trunc, trunc_opt):
 
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
         nm = len(DMD_Data.dat.N_modes)
@@ -463,22 +482,27 @@ def Expand(DMD_Data, Coef, t):
         p1 = 0
         p2 = 0
         p3 = 0
+        p4 = 0
         for n in range(nm):
             p3 = n * DMD_Data.clen
-            for i in range(DMD_Data.dat.N_modes[n]):
+            for i in range(n_trunc[n]):
                 l = DMD_Data.dat.eval[p1]
                 for j in range(DMD_Data.clen):
-                    Expn[p3] = Expn[p3] + Coef[p1] * DMD_Data.dat.evec[p2] * l**t
+                    if (trunc_opt == 1): Expn[p3] = Expn[p3] + Coef[p4] * DMD_Data.dat.evec[p2] * l**t
+                    else: Expn[p3] = Expn[p3] + Coef[p1] * DMD_Data.dat.evec[p2] * l**t
                     p2 += 1
                     p3 += 1
                 p3 -= DMD_Data.clen
                 p1 += 1
+                p4 += 1
+            p2 += (DMD_Data.dat.N_modes[n] - n_trunc[n]) * DMD_Data.clen
+            p1 += (DMD_Data.dat.N_modes[n] - n_trunc[n])
 
     else:
         Expn = np.zeros(DMD_Data.clen, dtype='complex')
 
         p = 0
-        for i in range(DMD_Data.dat.N_modes):
+        for i in range(n_trunc):
             l = DMD_Data.dat.eval[i]
             for j in range(DMD_Data.clen):
                 Expn[j] = Expn[j] + Coef[i] * DMD_Data.dat.evec[p] * l**t

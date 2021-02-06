@@ -34,7 +34,7 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
     #                              READING INPUTS                               #
     #                                                                           #
     #===========================================================================#
-    (proc_dir,plotdir,dset,dset_dat,data_names) = inp.Input(infile,proc_dir,plotdir)
+    (proc_dir, plotdir, dset, dset_dat, data_names, trunc_eps, trunc_opt) = inp.Input(infile,proc_dir,plotdir)
     tb.dirset(proc_dir)
     plotdir = proc_dir+'/'+plotdir
     tb.dirset(plotdir)
@@ -67,10 +67,9 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
     #                              PROCESSING DATA                              #
     #                                                                           #
     #===========================================================================#
-    plt_modes = [0]
-    recon = pr.Process_Data(dset,Dcmp_Data,Prob_Data,plt_modes,plotdir)
-    err = pr.Error_Calc(recon,Prob_Data)
-    pr.Output(recon, err, Prob_Data)
+    recon, n_trunc = pr.Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt)
+    err = pr.Error_Calc(recon, Prob_Data)
+    pr.Output(recon, err, Prob_Data, n_trunc)
     os.system('cp proc_summary.h5 {}'.format(proc_dir))
 
     dset.close() #closing dataset file

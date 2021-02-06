@@ -69,8 +69,7 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
     #===========================================================================#
     recon, n_trunc = pr.Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt)
     err = pr.Error_Calc(recon, Prob_Data)
-    pr.Output(recon, err, Prob_Data, n_trunc)
-    os.system('cp proc_summary.h5 {}'.format(proc_dir))
+    pr.Output(recon, err, Prob_Data, n_trunc, proc_dir)
 
     dset.close() #closing dataset file
     print('success!')

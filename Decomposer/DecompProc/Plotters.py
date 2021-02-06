@@ -114,7 +114,7 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',yl
             leg = legend[i]
             ax.plot(tp,arr[i],label=leg,linewidth=.75,marker=marker[i])
 
-    if legend != '':
+    if isinstance(legend,(list,np.ndarray)):
         ax.legend()
         plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
         # plt.legend(bbox_to_anchor=(1.2, 1), loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
@@ -130,7 +130,7 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',yl
 
     ax.set_yscale(yscale)
     plt.grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--')
-    plt.grid(which = 'minor', axis = 'y', color = 'lightgrey', linestyle = ':', linewidth=.75)
+    # plt.grid(which = 'minor', axis = 'y', color = 'lightgrey', linestyle = ':', linewidth=.75)
 
     plt.savefig(drop+'/'+name+'.pdf') #saving the figure
     plt.close(fig) #closing out figure

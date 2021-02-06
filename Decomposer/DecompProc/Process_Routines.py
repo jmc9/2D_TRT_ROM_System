@@ -257,7 +257,7 @@ def Output(recon, err, Prob_Data, n_trunc):
 
                 #----Calculate 2-norm of err (with 2 grids)----
                 # 2 grids + 4 dimensions means data is structured like f[time][group_1][group_2][space(x)]
-                if ngrids == 2:
+                elif ngrids == 2:
                     nc_2err = dset.createVariable("{}_Err_2".format(dname), "f8", (dims[0].name, dims[1].name) )
 
                     err2 = np.zeros((dims[0].len, dims[1].len, dims[2].len))
@@ -294,7 +294,7 @@ def Output(recon, err, Prob_Data, n_trunc):
             nc_err_max[:] = np.amax(np.absolute(err_))
 
             #if the error 2-norm was not calculated, then err2 = []
-            if len(err2) != 0:
+            if (len(err) != 0):
                 nc_2err[:] = err2
 
                 #creating, recording the maximal absolute error in 2-norm across all grid points

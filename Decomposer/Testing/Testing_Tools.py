@@ -119,7 +119,7 @@ def Run_Test_1dtrt(exec_dir, decomp_perphs, proc_perphs, drop, file_name, data_n
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, drop, file_name, data_name, tstart=0., tend=.6, dcmp_type='DMD', group=0):
+def Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, drop, file_name, data_name, tstart=0., tend=.6, dcmp_type='DMD', group=0, trunc_eps=1., trunc_opt=2, eps=1e-12):
     #
     f, fgrids = trt_2df(file_name, data_name, tstart, tend, group)
 
@@ -128,5 +128,5 @@ def Run_Test_2dtrt(exec_dir, decomp_perphs, proc_perphs, drop, file_name, data_n
     outf(f, fgrids, outfile)
 
     #
-    ds_exec(decomp_perphs, outfile, drop, exec_dir, dcmp_type=dcmp_type)
-    dp_exec(proc_perphs, decomp_perphs.out, outfile, drop, exec_dir)
+    ds_exec(decomp_perphs, outfile, drop, exec_dir, dcmp_type=dcmp_type, eps=eps)
+    dp_exec(proc_perphs, decomp_perphs.out, outfile, drop, exec_dir, trunc_eps=trunc_eps, trunc_opt=trunc_opt)

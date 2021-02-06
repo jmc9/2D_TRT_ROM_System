@@ -14,10 +14,10 @@ import shutil
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def exec_decompproc(proc_perphs, decomp_outfile, f_file, drop, exec_dir):
+def exec_decompproc(proc_perphs, decomp_outfile, f_file, drop, exec_dir, trunc_eps=1., trunc_opt=2):
 
     #make all preparations for execution of DecompProc
-    exec_prep(proc_perphs, decomp_outfile, f_file, drop)
+    exec_prep(proc_perphs, decomp_outfile, f_file, drop, trunc_eps, trunc_opt)
 
     #execute DecompProc
     call_decompproc(proc_perphs, exec_dir)
@@ -30,11 +30,14 @@ def exec_decompproc(proc_perphs, decomp_outfile, f_file, drop, exec_dir):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def write_inpf(proc_perphs, decomp_outfile, f_file, f_name='f'):
+def write_inpf(proc_perphs, decomp_outfile, f_file, f_name='f', trunc_eps=1., trunc_opt=2):
     file = open(proc_perphs.inp, 'w')
     file.write('dset {}\n'.format(decomp_outfile))
     file.write('dset_dat {}\n'.format(f_file))
     file.write('dcmp_data {}\n'.format(f_name))
+    file.write('dcmp_data {}\n'.format(f_name))
+    file.write('trunc_eps {}\n'.format(trunc_eps))
+    file.write('trunc_opt {}\n'.format(trunc_opt))
     file.close()
 
     return
@@ -42,9 +45,9 @@ def write_inpf(proc_perphs, decomp_outfile, f_file, f_name='f'):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def exec_prep(proc_perphs, decomp_outfile, f_file, drop):
+def exec_prep(proc_perphs, decomp_outfile, f_file, drop, trunc_eps=1., trunc_opt=2):
     #create input file for DecompSrc
-    write_inpf(proc_perphs, decomp_outfile, f_file)
+    write_inpf(proc_perphs, decomp_outfile, f_file, trunc_eps=trunc_eps, trunc_opt=trunc_opt)
 
     #copy required files for DecompSrc operation into DecompSrc directory
     shutil.move( proc_perphs.inp, os.path.join(proc_perphs.path, proc_perphs.inp) )

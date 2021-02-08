@@ -177,16 +177,17 @@ int Def_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims,
   for (size_t i=0; i<N_data; i++){
 
     int id, id2;
-    err = nc_def_var(ncid, Dcmp_data[i].name, NC_DOUBLE, 0, &id2, &id); Handle_Err(err,loc);
-    err = nc_put_att_int(ncid, id, "N_dims", NC_INT, 1, (int*)&Dcmp_data[i].ndims); Handle_Err(err,loc);
-    for (size_t j=0; j<Dcmp_data[i].ndims; j++){
-      char buf[10];
-      memset(buf,0,10);
-      sprintf(buf,"dim%ld",j);
-      err = nc_put_att_text(ncid, id, buf, 10, dims[Dcmp_data[i].dimids[j]].name); Handle_Err(err,loc);
-    }
 
     if (Dcmp_data[i].opt[0] == 0){
+
+      err = nc_def_var(ncid, Dcmp_data[i].name, NC_DOUBLE, 0, &id2, &id); Handle_Err(err,loc);
+      err = nc_put_att_int(ncid, id, "N_dims", NC_INT, 1, (int*)&Dcmp_data[i].ndims); Handle_Err(err,loc);
+      for (size_t j=0; j<Dcmp_data[i].ndims; j++){
+        char buf[10];
+        memset(buf,0,10);
+        sprintf(buf,"dim%ld",j);
+        err = nc_put_att_text(ncid, id, buf, 10, dims[Dcmp_data[i].dimids[j]].name); Handle_Err(err,loc);
+      }
 
       err = nc_put_att_int(ncid, id, "N_grids", NC_INT, 1, (int*)&Dcmp_data[i].ngrids); Handle_Err(err,loc);
       for (size_t j=0; j<Dcmp_data[i].ngrids; j++){
@@ -195,6 +196,35 @@ int Def_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims,
         sprintf(buf,"grid%ld",j);
         err = nc_put_att_text(ncid, id, buf, 10, Grids[Dcmp_data[i].gridids[j]].name); Handle_Err(err,loc);
       }
+
+    }
+    else if (Dcmp_data[i].opt[0] == 1){
+
+      int Ndims = (int)Dcmp_data[i].ndims - Dcmp_data[i].opt[1] + 1 ;
+      err = nc_def_var(ncid, Dcmp_data[i].name, NC_DOUBLE, 0, &id2, &id); Handle_Err(err,loc);
+      err = nc_put_att_int(ncid, id, "N_dims", NC_INT, 1, &Ndims); Handle_Err(err,loc);
+      for (size_t j=0; j<(size_t)(Ndims-1); j++){
+        char buf[10];
+        memset(buf,0,10);
+        sprintf(buf,"dim%ld",j);
+        err = nc_put_att_text(ncid, id, buf, 10, dims[Dcmp_data[i].dimids[j]].name); Handle_Err(err,loc);
+      }
+      //
+      char buf2[15];
+      memset(buf2,0,15);
+      sprintf(buf2,"stack_dim%ld",i);
+      size_t stack_len = 0;
+      for (size_t j=(size_t)(Ndims-1); j<(size_t)(Ndims + Dcmp_data[i].opt[1] - 1); ++j){
+        stack_len += dims[Dcmp_data[i].dimids[j]].len;
+      }
+      err = nc_def_dim(ncid,buf2,stack_len,&id2); Handle_Err(err,loc);
+      //
+      char buf[10];
+      memset(buf,0,10);
+      sprintf(buf,"dim%d",(Ndims-1));
+      err = nc_put_att_text(ncid, id, buf, 15, buf2); Handle_Err(err,loc);
+
+      err = nc_put_att_text(ncid, id, "stack_dat", 50, Dcmp_data[i].cdat); Handle_Err(err,loc);
 
     }
 
@@ -590,7 +620,7 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
   size_t p = 0;
   for (size_t i=0; i<N_data; i++){
     printf("Decomposing %s\n",Dcmp_data[i].name);
-    
+
     delt = Grids[Dcmp_data[i].gridids[0]].dat[1] - Grids[Dcmp_data[i].gridids[0]].dat[0];
 
     /*------------------------------------------------------------/

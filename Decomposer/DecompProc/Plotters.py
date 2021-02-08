@@ -75,7 +75,7 @@ def lineplot_grouped(name,xp,N_g,arr: np.ndarray,drop,legend='',yscale='linear',
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',title=''):
+def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',title='',line='-'):
     if hasattr(arr[0],'__len__'):
         sets = len(arr)
 
@@ -108,7 +108,7 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',yl
     # plt.subplots_adjust(left=0.15,bottom=0.15,right=.85,top=.95)
 
     if sets == 0:
-        ax.plot(tp,arr,marker=marker)
+        ax.plot(tp,arr,line,marker=marker)
     else:
         for i in range(sets):
             leg = legend[i]

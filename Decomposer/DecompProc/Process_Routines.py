@@ -20,6 +20,7 @@ from netCDF4 import Dataset as ncds
 
 #local tools
 import DMD_Routines as dmdr
+import POD_Routines as podr
 import ToolBox as tb
 import Plotters as pltr
 
@@ -61,6 +62,26 @@ def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
 
             else:
                 dmdr.Plot_DMD(dcmp,dir,plt_modes,evecs=False)
+
+        elif (dcmp.type in ['POD','PODg']):
+            (dcmp.rank, dcmp.clen) = podr.Read_Dims(dset,dcmp.name)
+            dcmp.dat = podr.Read_POD(dset, dcmp.name, dcmp.clen, dcmp.rank, 1e-12)
+
+            if dcmp.opt[0] == 0:
+                n_trunc.append( dcmp.dat.t_rank )
+                if dcmp.type == 'POD': plt_modes = np.arange(dcmp.dat.t_rank)
+                else: plt_modes = [np.arange(t_rank) for t_rank in dcmp.dat.t_rank]
+
+                podr.Plot_POD(dcmp, dir, plt_modes)
+
+                len1 = len(Prob_Data[i].dat)
+                len2 = len(Prob_Data[i].dat[0])
+                edat = np.zeros([len1, len2])
+                if len(Prob_Data) != 0:
+                    if Prob_Data[i].opt[0] == 0:
+                        for j in range(len1):
+                            edat[j] = podr.Expand(dcmp, j)
+                        recon[i] = copy.deepcopy(edat)
 
     return recon, n_trunc
 

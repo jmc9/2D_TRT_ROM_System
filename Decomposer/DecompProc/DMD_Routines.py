@@ -467,6 +467,10 @@ def Coef_Calc(DMD_Data, init, n_trunc, trunc_opt):
             b, b1, b2, b3 = np.linalg.lstsq(w[:, 0:n_trunc], np.dot(ut, init_), rcond=-1 )
         else:
             b = np.linalg.solve(w, np.dot(ut, init_) )
+            # for i in range(DMD_Data.dat.N_modes):
+            #     for j in range(DMD_Data.dat.N_modes):
+            #         w[i, j] = w[i, j] * DMD_Data.dat.eval[j]**5
+            # b = np.linalg.solve(w, np.dot(ut, init_) )
 
     return b
 

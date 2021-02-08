@@ -196,11 +196,6 @@ def Plot_POD(POD_Data, dir, plt_modes, svals=True, uvecs=True, vvecs=True):
         tb.dirset(uvec_dir)
         Plot_Uvecs(POD_Data, uvec_dir, plt_modes)
 
-    # if evals:
-    #     eval_dir = dir+'/Eigenvalues'
-    #     tb.dirset(eval_dir)
-    #     Plot_DMD_evals(dat_,eval_dir)
-
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
@@ -227,9 +222,6 @@ def Plot_Svals(POD_Data, drop):
 def Plot_Uvecs(POD_Data, dir, plt_modes):
     N_grids = len(POD_Data.grids)
     N_dims  = len(POD_Data.dims)
-    # plt_modes = POD_Data.dat.t_rank
-    # print(plt_modes)
-
 
     if hasattr(POD_Data.dat.t_rank,'__len__'):
         N_g = POD_Data.dims[1].len

@@ -26,7 +26,6 @@ from Classes import DMD
 def Plot_DMD(DMD_Data,dir,plt_modes=[0,1,2],evecs=True,evals=True):
 
     dat_ = copy.deepcopy(DMD_Data) #have to copy the DMD data object like this to avoid copying to dat_ by reference
-    DMD_Sort(dat_) #sorting eigenvalues/eigenvectors by magnitude of eigenvalues
 
     if evecs:
         evec_dir = dir+'/Eigenvectors'

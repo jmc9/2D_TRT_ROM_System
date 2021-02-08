@@ -36,21 +36,31 @@ def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
         dcmp = Dcmp_Data[i]
         recon.append([])
 
+        print()
+        print('Processing the {} of {}'.format(dcmp.type, dcmp.name))
+
         dir = '{}/{}'.format(plotdir,dcmp.name)
         tb.dirset(dir)
 
         if (dcmp.type in ['DMD','DMDg']):
+
             (dcmp.rank, dcmp.clen) = dmdr.Read_Dims(dset,dcmp.name)
             dcmp.dat = dmdr.Read_DMD(dset,dcmp.name,dcmp.clen,dcmp.rank)
 
-            if dcmp.opt[0] == 0:
+            if dcmp.opt[0] in [0,1]:
                 n_trunc.append( dmdr.DMD_Sort(dcmp, trunc_eps) )
                 if dcmp.type == 'DMD': plt_modes = np.arange(dcmp.dat.N_modes)
                 else: plt_modes = [np.arange(nmodes) for nmodes in dcmp.dat.N_modes]
-                # dmdr.Plot_DMD(dcmp,dir,plt_modes)
+
+                print('Plotting eigenvalues and eigenmodes...')
+                if dcmp.opt[0] == 0:
+                    dmdr.Plot_DMD(dcmp, dir, plt_modes, evecs=False)
+                elif dcmp.opt[0] == 1:
+                    dmdr.Plot_DMD(dcmp, dir, plt_modes, evecs=False)
 
                 if len(Prob_Data) != 0:
-                    if Prob_Data[i].opt[0] == 0:
+                    if Prob_Data[i].opt[0] in [0,1]:
+                        print('Reconstructing training data...')
                         coef = dmdr.Coef_Calc(dcmp, Prob_Data[i].dat[0], n_trunc[i], trunc_opt)
 
                         len1 = len(Prob_Data[i].dat)
@@ -65,23 +75,32 @@ def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
 
         elif (dcmp.type in ['POD','PODg']):
             (dcmp.rank, dcmp.clen) = podr.Read_Dims(dset,dcmp.name)
-            dcmp.dat = podr.Read_POD(dset, dcmp.name, dcmp.clen, dcmp.rank, 1e-12)
+            dcmp.dat = podr.Read_POD(dset, dcmp.name, dcmp.clen, dcmp.rank, 1e-8)
 
-            if dcmp.opt[0] == 0:
+            if dcmp.opt[0] in [0,1]:
                 n_trunc.append( dcmp.dat.t_rank )
                 if dcmp.type == 'POD': plt_modes = np.arange(dcmp.dat.t_rank)
                 else: plt_modes = [np.arange(t_rank) for t_rank in dcmp.dat.t_rank]
 
-                podr.Plot_POD(dcmp, dir, plt_modes)
+                print('Plotting singular values and vectors...')
+                if dcmp.opt[0] == 0:
+                    podr.Plot_POD(dcmp, dir, plt_modes, uvecs=False)
+                elif dcmp.opt[0] == 1:
+                    podr.Plot_POD(dcmp, dir, plt_modes, uvecs=False)
 
                 len1 = len(Prob_Data[i].dat)
                 len2 = len(Prob_Data[i].dat[0])
                 edat = np.zeros([len1, len2])
                 if len(Prob_Data) != 0:
-                    if Prob_Data[i].opt[0] == 0:
+                    if Prob_Data[i].opt[0] in [0,1]:
+                        print('Reconstructing training data...')
                         for j in range(len1):
                             edat[j] = podr.Expand(dcmp, j)
                         recon[i] = copy.deepcopy(edat)
+
+            else:
+                n_trunc.append( dcmp.dat.t_rank )
+                podr.Plot_POD(dcmp, dir, [], uvecs=False, vvecs=False)
 
     return recon, n_trunc
 
@@ -97,11 +116,13 @@ def Error_Calc(recon, Prob_Data):
     else:
         return err
 
+    print()
     for j in range(N_data):
         err.append([]) #appending blank array first -> stays consistent with N_data and allows easy flag for uncalculated errors
 
-        #straightforward error calculations for opt[0] = 0 (standard data array)
-        if Prob_Data[j].opt[0] == 0:
+        #straightforward error calculations for opt[0] = 0,1 (standard data array)
+        if Prob_Data[j].opt[0] in [0,1]:
+            print('Calculating errors of {} decomposition from training data...'.format(Prob_Data[j].name))
             tlen = len(Prob_Data[j].dat)
             clen = len(Prob_Data[j].dat[0])
 
@@ -116,8 +137,8 @@ def Error_Calc(recon, Prob_Data):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def errplot(proc_dir, xp, err2_abs, err2_rel, err_inf_abs, err_inf_rel, xlabel=''):
-    drop = proc_dir+'/err_plots'
+def errplot(plot_dir, xp, err2_abs, err2_rel, err_inf_abs, err_inf_rel, xlabel=''):
+    drop = plot_dir+'/err_plots'
     tb.dirset(drop)
 
     plotdat = np.transpose(err2_abs)
@@ -161,24 +182,22 @@ def errplot_single(drop, err, xp, name, xlabel=''):
 #
 #==================================================================================================================================#
 def Output(recon, err, Prob_Data, n_trunc, proc_dir):
-    dset = ncds('proc_summary.h5','w') #opening specified dataset
-
     #if there is no data, abort - otherwise save number of data
     if len(Prob_Data) != 0:
         N_data = len(Prob_Data)
     else:
         return
 
-    #need np arrays to isolate real/imag components later
-    err = np.array(err)
-    recon = np.array(recon)
-
-    dims = []
-    all_dims = []
     d = 0
+    print()
     for i in range(N_data):
+        print('Outputting data and plotting errors for {}...'.format(Prob_Data[i].name))
         dlocs = []
-        if Prob_Data[i].opt[0] == 0:
+        dat_drop = '{}/{}'.format(proc_dir,Prob_Data[i].name)
+        dset = ncds('proc_summary.h5','w') #opening specified dataset
+
+        if Prob_Data[i].opt[0] in [0,1]:
+            all_dims = []
             ndims = len(Prob_Data[i].dims)
             ngrids = len(Prob_Data[i].grids)
             dname = Prob_Data[i].name
@@ -225,7 +244,7 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
                         err2_rel[j] = err2_abs[j] / tb.norm(pdat_[j],2)
                         err_inf_rel[j] = err_inf_abs[j] / tb.norm(pdat_[j],0)
 
-                    errplot(proc_dir, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
+                    errplot(dat_drop, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
 
                 #---skipping 2-norm if there are not 2 grids---
                 # with 2 dimensions, anything other than 2 grids either doesn't make sense or doesn't allow -
@@ -273,7 +292,7 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
                         err2_rel[j] = err2_abs[j] / tb.norm(pdat_[j],2)
                         err_inf_rel[j] = err_inf_abs[j] / tb.norm(pdat_[j],0)
 
-                    errplot(proc_dir, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
+                    errplot(dat_drop, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
 
                 #----Calculate 2-norm of err (with 2 grids)----
                 # 2 grids + 3 dimensions means data is structured like f[time][group][space(x)]
@@ -300,7 +319,7 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
                             err2_rel[j][k] = err2_abs[j][k] / tb.norm(pdat_[j][k],2)
                             err_inf_rel[j][k] = err_inf_abs[j][k] / tb.norm(pdat_[j][k],0)
 
-                    errplot(proc_dir, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
+                    errplot(dat_drop, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
 
                 #---skipping 2-norm if there are not 2 or 3 grids---
                 # with 3 dimensions, anything other than 2 or 3 grids either doesn't make sense or doesn't allow -
@@ -348,7 +367,7 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
                         err2_rel[j] = err2_abs[j] / tb.norm(pdat_[j],2)
                         err_inf_rel[j] = err_inf_abs[j] / tb.norm(pdat_[j],0)
 
-                    errplot(proc_dir, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
+                    errplot(dat_drop, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
 
                 #----Calculate 2-norm of err (with 3 grids)----
                 # 3 grids + 4 dimensions means data is structured like f[time][group][space(y)][space(x)]
@@ -375,8 +394,7 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
                             err2_rel[j][k] = err2_abs[j][k] / tb.norm(pdat_[j][k],2)
                             err_inf_rel[j][k] = err_inf_abs[j][k] / tb.norm(pdat_[j][k],0)
 
-                    errplot(proc_dir, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
-                    # errplot(proc_dir, Prob_Data[i].grids[0].crds*10., err2_abs, err2_rel, err_inf_abs, err_inf_rel, xlabel='ns')
+                    errplot(dat_drop, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
 
                 #----Calculate 2-norm of err (with 2 grids)----
                 # 2 grids + 4 dimensions means data is structured like f[time][group_1][group_2][space(x)]
@@ -421,7 +439,10 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
             nc_recon_r[:] = recon_.real
             nc_recon_i[:] = recon_.imag
 
-            nc_trunc[:] = n_trunc[i]
+            try:
+                nc_trunc[:] = n_trunc[i]
+            except:
+                pass
 
             #if the error 2-norm was not calculated, then err2 = []
             if (len(err2_abs) != 0):
@@ -444,7 +465,7 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
                 nc_2err_rel_max = dset.createVariable("{}_Err_2_max_rel".format(dname), "f8", ())
                 nc_2err_rel_max[:] = np.amax(np.absolute(err2_rel))
 
-    dset.close()
-    os.system('cp proc_summary.h5 {}'.format(proc_dir))
+        dset.close()
+        os.system('cp proc_summary.h5 {}'.format(dat_drop))
 
     return

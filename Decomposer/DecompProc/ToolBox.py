@@ -12,6 +12,7 @@
 import os
 import math
 import numpy as np
+import copy
 
 #==================================================================================================================================#
 #
@@ -110,6 +111,34 @@ def pow10(num):
         coef = 0.
 
     return (exp, coef)
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def stack_data(stack_dat_):
+    shp = np.asarray(np.shape(stack_dat_))
+    ns = shp[0]
+    sdim = shp[len(shp)-1]
+    dlen = np.prod(shp[1:-1])
+    shift = (ns-1)*sdim
+
+    stack_dat = []
+    for k in range(ns):
+        stack_dat.append(stack_dat_[k].flatten())
+
+    dat = np.zeros(dlen*ns*sdim)
+
+    p_stk = 0
+    p_dat = np.linspace(0, (ns-1)*sdim, ns, dtype=int)
+    for i in range(dlen):
+        for j in range(sdim):
+            for k in range(ns):
+                dat[p_dat[k]] = stack_dat[k][p_stk]
+                p_dat[k] += 1
+            p_stk += 1
+        p_dat += shift
+
+    return dat
 
 #==================================================================================================================================#
 #

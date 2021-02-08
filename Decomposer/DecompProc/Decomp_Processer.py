@@ -36,8 +36,6 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
     #===========================================================================#
     (proc_dir, plotdir, dset, dset_dat, data_names, trunc_eps, trunc_opt) = inp.Input(infile,proc_dir,plotdir)
     tb.dirset(proc_dir)
-    plotdir = proc_dir+'/'+plotdir
-    tb.dirset(plotdir)
 
     #===========================================================================#
     #                                                                           #
@@ -67,7 +65,7 @@ def Dcmp_Proc(infile,proc_dir,plotdir):
     #                              PROCESSING DATA                              #
     #                                                                           #
     #===========================================================================#
-    recon, n_trunc = pr.Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt)
+    recon, n_trunc = pr.Process_Data(dset, Dcmp_Data, Prob_Data, proc_dir, trunc_eps, trunc_opt)
     err = pr.Error_Calc(recon, Prob_Data)
     pr.Output(recon, err, Prob_Data, n_trunc, proc_dir)
 

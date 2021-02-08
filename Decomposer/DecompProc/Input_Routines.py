@@ -94,9 +94,9 @@ def Dcmp_Parms(dset,data_names):
             ncdat = dset[data_names[i]]
 
         except:
-                print("Error! {} either does not exist, or has no attribute block".format(data_names[i]))
-                print("- Henceforth ignoring {} in visualization".format(data_names[i]))
-                continue
+            print("Error! {} either does not exist, or has no attribute block".format(data_names[i]))
+            print("- Henceforth ignoring {} in visualization".format(data_names[i]))
+            continue
 
         Dcmp_Data.append(Data(data_names[i])) #allocating element of Dcmp_Data as Data object
 
@@ -123,8 +123,14 @@ def Dcmp_Parms(dset,data_names):
                 Dcmp_Data[p].grids.append( Grid(bnds,grid) )
 
         except:
-            Dcmp_Data[p].opt = [1]
+            try:
+                stack_dat = getattr(ncdat, 'stack_dat')
+                Dcmp_Data[p].opt = [1, stack_dat]
 
+            except:
+                Dcmp_Data[p].opt = [2]
+
+        print('Collected {} Decomposition'.format(Dcmp_Data[p].name))
         p+=1
 
     if not Dcmp_Data:
@@ -145,56 +151,52 @@ def Dat_Parms(dset,Dcmp_Data):
 
         Prob_Data.append(Data(Dcmp_Data[i].name)) #allocating element of Dcmp_Data as Data object
 
-        #checking if dataset exists in datafile
-        try:
-            ncdat = dset[Dcmp_Data[i].name]
+        if Dcmp_Data[i].opt[0] == 0:
+            dnames = [Dcmp_Data[i].name]
+        elif Dcmp_Data[i].opt[0] == 1:
+            dnames = Dcmp_Data[i].opt[1].split(',')
+        else:
+            print('Input_Routines/Dat_Parms, unrecognized Dcmp_data.opt ({})'.format(Dcmp_Data[i].opt[0]))
+            quit()
 
+        try:
+            ncdat = [dset[name] for name in dnames]
         except:
+            print('no sir')
             Prob_Data[i].opt = [-1]
             continue
 
-        Prob_Data[i].opt = [0]
+        Prob_Data[i].opt = Dcmp_Data[i].opt
+        Prob_Data[i].dims = Dcmp_Data[i].dims
 
-        #collecting dimensions of dataset
-        dnames = ncdat.dimensions
-        N_dims = len(dnames)
-        Prob_Data[i].dims = []
-        for j in range(N_dims):
-            Prob_Data[i].dims.append( Dimension( name = dnames[j], len = dset.dimensions[dnames[j]].size ) )
-
-        #
-        dat = ncdat[:]
         dlen = 1
-        for j in range(1,N_dims):
-            dlen = dlen * Prob_Data[i].dims[j].len
-        Prob_Data[i].dat = np.zeros((Prob_Data[i].dims[0].len, dlen))
-        if N_dims == 4:
-            for t in range(Prob_Data[i].dims[0].len):
-                Prob_Data[i].dat[t] = tb.Flatten3D(dat[t])
-        elif N_dims == 3:
-            for t in range(Prob_Data[i].dims[0].len):
-                Prob_Data[i].dat[t] = tb.Flatten2D(dat[t])
-        elif N_dims == 2:
-            for t in range(Prob_Data[i].dims[0].len):
-                Prob_Data[i].dat[t] = dat[t]
-        elif N_dims > 4:
-            print('cannot flatted data of dimensionality greater than 4 right now!')
-            quit()
+        for d in Prob_Data[i].dims[1:]: dlen *= d.len
+        if Prob_Data[i].opt[0] == 0:
+            dat = np.array(ncdat[0][:]).reshape(Prob_Data[i].dims[0].len, dlen)
 
-        #collecting grids on which the dataset resides
-        try:
-            N_grids = getattr(ncdat, 'N_grids')
+        elif Prob_Data[i].opt[0] == 1:
+            stack_dat = [np.array(ncd[:]) for ncd in ncdat]
+            dat = tb.stack_data(stack_dat).reshape(Prob_Data[i].dims[0].len, dlen)
 
-        except:
-            Prob_Data[i].opt = [1]
+        Prob_Data[i].dat = dat
 
-        if Prob_Data[i].opt == [0]:
+        if Prob_Data[i].opt[0] == 0:
+            N_grids = getattr(ncdat[0], 'N_grids')
             Prob_Data[i].grids = []
             for j in range(N_grids):
-                gname = getattr( ncdat, 'grid{}'.format(j) )
+                gname = getattr( ncdat[0], 'grid{}'.format(j) )
                 grid = dset[gname][:]
                 bnds = dset[gname].bnds
                 Prob_Data[i].grids.append( Grid(bnds,grid) )
+
+        elif Prob_Data[i].opt[0] == 1:
+            grid1 = np.linspace(0., 1., Prob_Data[i].dims[ 0 ].len)
+            bnds1 = [0., 1.]
+            grid2 = np.linspace(0., 1., Prob_Data[i].dims[ len(Prob_Data[i].dims) - 1 ].len)
+            bnds2 = [0., 1.]
+            Prob_Data[i].grids = [ Grid(bnds1,grid1), Grid(bnds2,grid2) ]
+
+        print('Collected {} Training Data'.format(Prob_Data[i].name))
 
     if not Prob_Data:
         print("Error! None of the data input for processing was found, terminating program")

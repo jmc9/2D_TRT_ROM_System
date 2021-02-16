@@ -17,7 +17,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
   Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
   QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type,Direc_Diff,&
-  xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts)
+  xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,DMD_Type)
 
   INTEGER,INTENT(OUT):: outID
   INTEGER,INTENT(OUT):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -33,7 +33,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   INTEGER,INTENT(IN):: I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
   INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out, E_out, F_out, D_out
   INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out, PODgsum, Direc_Diff
-  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc, POD_Type
+  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc, POD_Type,DMD_Type
   LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, kapE_dT_flag
 
   INTEGER:: Status
@@ -108,6 +108,11 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
 
     Status = nf90_put_att(outID,NF90_GLOBAL,'POD_err',POD_err)
     CALL HANDLE_ERR(Status)
+
+  ELSE IF (run_type .EQ. 'mg_dmd') THEN
+    Status = nf90_put_att(outID,NF90_GLOBAL,'DMD_Type',DMD_Type)
+    CALL HANDLE_ERR(Status)
+
   END IF
 
   Status = nf90_put_att(outID,NF90_GLOBAL,'use_grey',use_grey)

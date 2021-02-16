@@ -13,7 +13,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
   quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
-  Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts)
+  Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type)
 
   IMPLICIT NONE
 
@@ -36,6 +36,10 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   REAL*8,INTENT(OUT):: POD_err
   INTEGER,INTENT(OUT):: PODgsum, Direc_Diff
   CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
+
+  INTEGER,INTENT(OUT):: N_DMD_dsets
+  CHARACTER(100),INTENT(OUT):: DMD_Type
+  CHARACTER(100),INTENT(OUT),ALLOCATABLE:: DMD_dsets(:)
 
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:), xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
@@ -79,6 +83,13 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
     CALL INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
 
     IF (POD_Type .EQ. 'fg') THEN
+      maxit_RTE = 1
+    END IF
+
+  ELSE IF (run_type .EQ. 'mg_dmd') THEN
+    CALL INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,N_DMD_dsets)
+
+    IF (DMD_Type .EQ. 'fg') THEN
       maxit_RTE = 1
     END IF
 
@@ -237,7 +248,7 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,run_type,restart_infile,use_grey,Res_Calc,Tes
       ELSE IF (trim(key) .EQ. 'run_type') THEN
         READ(args(1),*) run_type
         IF ( ALL(run_type .NE. &
-        (/'mlqd     ','tr_no_qd ','mg_pod   ','gr_pod   ','p1       ','p13      ','diff     ','fld      '/)) ) THEN
+        (/'mlqd     ','tr_no_qd ','mg_pod   ','mg_dmd   ','gr_pod   ','p1       ','p13      ','diff     ','fld      '/)) ) THEN
           STOP 'unrecognized run_type (source - subroutine INPUT_RUN_STATE :: module INPUTS)'
         END IF
 
@@ -638,7 +649,7 @@ SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
 
       ELSE IF (trim(key) .EQ. 'gsum') THEN
         READ(args(1),*) PODgsum
-        IF (ALL(PODgsum .NE. (/0,1/))) STOP 'POD_Type must be 0 or 1'
+        IF (ALL(PODgsum .NE. (/0,1/))) STOP 'gsum must be 0 or 1'
 
       ELSE IF (trim(key) .EQ. 'POD_err') THEN
         READ(args(1),*) POD_err
@@ -655,6 +666,73 @@ SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
   END DO
 
 END SUBROUTINE INPUT_POD_OPTS
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,N_dsets)
+
+  IMPLICIT NONE
+
+  !INPUT VARIABLES
+  INTEGER,INTENT(IN):: inpunit
+
+  !OUTPUT VARIABLES
+  INTEGER,INTENT(OUT):: N_dsets
+  CHARACTER(100),INTENT(OUT):: DMD_Type
+  CHARACTER(100),INTENT(OUT),ALLOCATABLE:: DMD_dsets(:)
+
+  !LOCAL VARIABLES
+  CHARACTER(1000):: line
+  CHARACTER(100):: key
+  CHARACTER(100):: block
+  CHARACTER(100),DIMENSION(5):: args
+  INTEGER:: io, io2, block_found, i
+
+  !DEFAULT VALUES
+  N_dsets = 0
+  DMD_Type = 'fg'
+
+  block = '[DMD_OPTS]'
+  CALL LOCATE_BLOCK(inpunit,block,block_found)
+
+  IF (block_found .EQ. 0) STOP '[DMD_OPTS] block was not located in input file'
+
+  DO
+    READ(inpunit,'(A)',IOSTAT=io) line
+
+    IF (io .GT. 0) THEN !io > 0 means bad read
+      STOP 'Something went wrong reading general.inp'
+
+    ELSE IF (io .LT. 0) THEN !io < 0 signals end of file
+      EXIT
+
+    ELSE !checking which key is specified and putting argument in correct variable
+      READ(line,*,IOSTAT=io2) key, args !reading in key/argument pairs
+
+      IF (key(1:1) .EQ. '[') THEN
+        EXIT
+
+      ELSE IF (trim(key) .EQ. 'datasets') THEN
+        READ(args(1),*) N_dsets
+        ALLOCATE(DMD_dsets(N_dsets))
+        DO i=1,N_dsets
+          READ(args(i+1),*) DMD_dsets(i)
+        END DO
+
+      ELSE IF (trim(key) .EQ. 'DMD_type') THEN
+        READ(args(1),*) DMD_Type
+        IF ( ALL(DMD_type .NE. (/'fg','Ig'/)) ) THEN
+          STOP 'unrecognized DMD_type (source - subroutine INPUT_DMD_OPTS :: module INPUTS)'
+        END IF
+
+      END IF
+
+    END IF
+
+  END DO
+
+END SUBROUTINE INPUT_DMD_OPTS
 
 !==================================================================================================================================!
 !

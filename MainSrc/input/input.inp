@@ -1,0 +1,77 @@
+[RUN_STATE]
+	run_type mlqd ![mlqd, mg_pod, mg_dmd, gr_pod, diff, fld, p1, p13, tr_no_qd]
+	*restart restart.out
+	use_grey		1
+	res_calc		0
+	Test			FC
+	
+[SOLVER_OPTS]
+	maxit_RTE 	150 [INT>0]
+	maxit_MLOQD 6 [INT>0]
+	maxit_GLOQD	10 [INT>0]
+	kapE_dT		on	[on, off]
+	chi			0.7d0
+	theta		1d0
+	conv_ho		1d-12
+	conv_lo		1d-13
+	conv_gr		1d-14 1d-15
+	conv_type	2	[1(global), 2(local), 3(max/min)]
+	quad		abu36 [abu36, abu20, 1d_test]
+	threads		17
+	enrgy_strc	JCP	[JCP, NE795, ONE_GROUP, custom]
+	comp_unit	1d13 [REAL>1]
+	line_src	2d0 [REAL>1] ['off' if want to turn line search off]
+	E_low_bnd	off
+	T_low_bnd	off
+	
+[POD_OPTS]
+	dataset outf_new.h5
+	gsum 1
+	POD_err 1d-16
+	POD_type fg
+	direc_diff 0
+	
+[DMD_OPTS]
+	datasets 1 qdf_dmd.h5
+	DMD_type fg
+ 	
+[PARAMETERS]
+	xlen      6d0 cm 	!slab length (x-direction)
+	ylen      6d0 cm 	!slab length (y-direction)
+	x_cells   10  		!spatial cells along x-axis
+	y_cells   10  		!spatial cells along y-axis
+	tlen      1.4d-2 sh   !temporal length
+	delt      2d-3 sh   !time step length
+	bc_type   0 0 0 0   !L B R T
+	bcT_left  1d3 ev    !left boundary temp
+	bcT_upper 0d0 ev    !upper boundary temp
+	bcT_right 0d0 ev    !right boundary temp
+	bcT_lower 0d0 ev    !lower boundary temp
+	Tini      1d0 ev 	!initial temp
+	
+[OUTPUT_OPTS]
+	outfile fom.h5
+	out_freq 1
+	I_out 0
+	D_out 1
+	fg_out 1
+	old_parms_out 1
+	HO_Eg_out 1
+	HO_E_out 1
+	HO_Fg_out 1
+	HO_F_out 1
+ 	Eg_out 1
+	MGQD_E_out 1
+	Fg_out 1
+	MGQD_F_out 1
+	E_out 1
+	F_out 1
+	its_out 1
+	conv_out 1
+	kap_out 1
+	Src_out 1
+	restart_freq 0
+	restart_outfile restart.out
+	
+	
+	

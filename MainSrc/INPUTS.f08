@@ -13,7 +13,8 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
   quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
-  Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type)
+  Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
+  Start_Time)
 
   IMPLICIT NONE
 
@@ -22,6 +23,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
 
   !OUTPUT VARIABLES
   REAL*8,INTENT(INOUT):: comp_unit
+  REAL*8,INTENT(OUT):: Start_Time
 
   INTEGER,INTENT(OUT):: use_grey
   CHARACTER(100),INTENT(OUT):: run_type, restart_infile, Test
@@ -45,8 +47,8 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:), xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
   INTEGER,INTENT(OUT):: N_x, N_y, N_t, BC_Type(:)
 
-  CHARACTER(100),INTENT(OUT):: outfile
-  INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+  CHARACTER(100),INTENT(OUT):: outfile, restart_outfile
+  INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, restart_freq
   INTEGER,INTENT(OUT):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
   INTEGER,INTENT(OUT):: E_out, F_out, D_out
   INTEGER,INTENT(OUT):: old_parms_out, its_out, conv_out, kap_out, Src_out
@@ -71,6 +73,11 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   END IF
 
   CALL INPUT_RUN_STATE(inpunit,run_type,restart_infile,use_grey,Res_Calc,Test)
+  IF (restart_infile .NE. '') THEN
+    CALL RESTART_TIME_IN(Start_Time, restart_infile)
+  ELSE
+    Start_Time = 0d0
+  END IF
 
   CALL INPUT_SOLVER_OPTS(inpunit,chi,conv_ho,conv_lo,conv_gr1,conv_gr2,comp_unit,line_src,maxit_RTE,maxit_MLOQD,&
     maxit_GLOQD,conv_type,threads,kapE_dT_flag,enrgy_strc,quadrature,E_Bound_Low,T_Bound_Low,Use_Line_Search,&
@@ -104,7 +111,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   ALLOCATE(Dely(N_y))
   Delx = xlen/REAL(N_x,8)
   Dely = ylen/REAL(N_y,8)
-  N_t = NINT(tlen/delt)
+  N_t = NINT( (tlen-Start_Time) /delt )
   Cv=0.5917d0*ar*(bcT_left)**3*((1.38d-16)**4*(11600d0**4)*erg**4)
 
   ALLOCATE(xpts_avg(N_x), xpts_edgV(N_x+1))
@@ -126,7 +133,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   DO i=2,N_y
     ypts_avg(i) = ypts_avg(i-1) + (Dely(i) + Dely(i-1))/2d0
   END DO
-  tpts(1) = Delt
+  tpts(1) = Start_Time + Delt
   DO i=2,N_t
     tpts(i) = tpts(i-1) + Delt
   END DO
@@ -138,7 +145,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   CALL INPUT_QUAD(quadrature,N_m,Omega_x,Omega_y,quad_weight)
 
   CALL INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
-    MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
+    MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,restart_outfile,restart_freq)
 
   CLOSE ( inpunit, STATUS='KEEP')
 
@@ -1016,7 +1023,7 @@ END SUBROUTINE INPUT_PARAMETERS
 !==================================================================================================================================!
 
 SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
-  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out)
+  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,restart_outfile,restart_freq)
 
   IMPLICIT NONE
 
@@ -1024,11 +1031,12 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
   INTEGER,INTENT(IN):: inpunit
 
   !OUTPUT VARIABLES
-  CHARACTER(100),INTENT(OUT):: outfile
+  CHARACTER(100),INTENT(OUT):: outfile, restart_outfile
   INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
   INTEGER,INTENT(OUT):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
   INTEGER,INTENT(OUT):: E_out, F_out, D_out
   INTEGER,INTENT(OUT):: old_parms_out, its_out, conv_out, kap_out, Src_out
+  INTEGER,INTENT(OUT):: restart_freq
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
@@ -1039,6 +1047,7 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
 
   !DEFAULT VALUES
   outfile = 'output.h5'
+  restart_outfile = 'restart.out'
   out_freq  = 1
   I_out     = 1
   HO_Eg_out = 1
@@ -1058,6 +1067,7 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
   conv_out = 1
   kap_out  = 1
   Src_out  = 1
+  restart_freq = 1
 
   block = '[OUTPUT_OPTS]'
   CALL LOCATE_BLOCK(inpunit,block,block_found)
@@ -1082,6 +1092,9 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
       ELSE IF (trim(key) .EQ. 'outfile') THEN
         READ(args(1),*) outfile
 
+      ELSE IF (trim(key) .EQ. 'restart_outfile') THEN
+        READ(args(1),*) restart_outfile
+
       ELSE IF (trim(key) .EQ. 'out_freq') THEN
         READ(args(1),*) out_freq
         IF (ALL(out_freq .NE. (/0,1/))) THEN
@@ -1091,6 +1104,9 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
           WRITE(*,'(A)') 'Setting out_freq to 0'
           out_freq = 0
         END IF
+
+      ELSE IF (trim(key) .EQ. 'restart_freq') THEN
+        READ(args(1),*) restart_freq
 
       ELSE IF (trim(key) .EQ. 'I_out') THEN
         READ(args(1),*) I_out
@@ -1443,7 +1459,6 @@ END SUBROUTINE INPUT_QUAD
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-
 SUBROUTINE INPUT_TEST_TYPE(Test,N_x,N_y,Delx,Dely,xlen,ylen,Mat,Kappa_Mult)
 
   IMPLICIT NONE
@@ -1498,5 +1513,89 @@ SUBROUTINE INPUT_TEST_TYPE(Test,N_x,N_y,Delx,Dely,xlen,ylen,Mat,Kappa_Mult)
   END IF
 
 END SUBROUTINE INPUT_TEST_TYPE
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE RESTART_IN(Time, Temp, I_crn, fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_edgV_xy, fg_edgH_yy, fg_edgH_xy, RT_Src, MGQD_Src,&
+  GQD_Src, E_avg, Eg_avg, Eg_edgV, Eg_edgH, Fxg_edgV, Fyg_edgH, KapE_Bar, KapE, KapR, Cg_L, Cg_B, Cg_R, Cg_T, restart_infile)
+
+  REAL*8,INTENT(OUT):: Time, Temp(:,:), I_crn(:,:,:,:), RT_Src(:,:,:,:)
+  REAL*8,INTENT(OUT):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:), fg_edgV_xx(:,:,:)
+  REAL*8,INTENT(OUT):: fg_edgV_xy(:,:,:), fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
+  REAL*8,INTENT(OUT):: MGQD_Src(:,:,:), GQD_Src(:,:), E_avg(:,:), Eg_avg(:,:,:)
+  REAL*8,INTENT(OUT):: Eg_edgV(:,:,:), Eg_edgH(:,:,:), Fxg_edgV(:,:,:)
+  REAL*8,INTENT(OUT):: Fyg_edgH(:,:,:), KapE_Bar(:,:), KapE(:,:,:), KapR(:,:,:)
+  REAL*8,INTENT(OUT):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
+  ! REAL*8,INTENT(OUT):: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
+  CHARACTER(100),INTENT(IN):: restart_infile
+  INTEGER:: resf_unit = 308
+  INTEGER:: err
+
+  OPEN(UNIT=resf_unit,FILE=restart_infile,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=err)
+  !   making sure file exists/opens, if not tells user
+  IF (err .NE. 0) THEN
+      WRITE(*,'(3A)') 'The file, ',restart_infile,', could not open properly.'
+      STOP
+  END IF
+
+  READ(resf_unit) Time
+  READ(resf_unit) Temp
+  READ(resf_unit) I_crn
+  READ(resf_unit) fg_avg_xx
+  READ(resf_unit) fg_avg_yy
+  READ(resf_unit) fg_edgV_xx
+  READ(resf_unit) fg_edgV_xy
+  READ(resf_unit) fg_edgH_yy
+  READ(resf_unit) fg_edgH_xy
+  READ(resf_unit) RT_Src
+  READ(resf_unit) MGQD_Src
+  READ(resf_unit) GQD_Src
+  READ(resf_unit) E_avg
+  READ(resf_unit) Eg_avg
+  READ(resf_unit) Eg_edgV
+  READ(resf_unit) Eg_edgH
+  READ(resf_unit) Fxg_edgV
+  READ(resf_unit) Fyg_edgH
+  READ(resf_unit) KapE_Bar
+  READ(resf_unit) KapE
+  READ(resf_unit) KapR
+  READ(resf_unit) Cg_L
+  READ(resf_unit) Cg_B
+  READ(resf_unit) Cg_R
+  READ(resf_unit) Cg_T
+
+  ! READ(resf_unit) Eg_in_L
+  ! READ(resf_unit) Eg_in_B
+  ! READ(resf_unit) Eg_in_R
+  ! READ(resf_unit) Eg_in_T
+
+  CLOSE ( resf_unit, STATUS='KEEP')
+
+END SUBROUTINE RESTART_IN
+
+SUBROUTINE RESTART_TIME_IN(Time, restart_infile)
+
+  REAL*8,INTENT(OUT):: Time
+  CHARACTER(100),INTENT(IN):: restart_infile
+  INTEGER:: resf_unit = 308
+  INTEGER:: err
+
+  OPEN(UNIT=resf_unit,FILE=restart_infile,FORM='UNFORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=err)
+  !   making sure file exists/opens, if not tells user
+  IF (err .NE. 0) THEN
+      WRITE(*,'(3A)') 'The file, ',restart_infile,', could not open properly.'
+      STOP
+  END IF
+
+  READ(resf_unit) Time
+
+  CLOSE ( resf_unit, STATUS='KEEP')
+
+END SUBROUTINE RESTART_TIME_IN
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
 
 END MODULE INPUTS

@@ -303,8 +303,10 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,K
   line_src,E_Bound_Low,T_Bound_Low,Eps1,Eps2,Maxits,MGQD_It,Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag,GQD_Kits)
 
   !OUTPUTS
-  REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:), Temp(:,:), KapE_Bar(:,:)
-  REAL*8,INTENT(OUT):: Fx_edgV(:,:), Fy_edgH(:,:), Q_bar(:,:), KapE_Bar_dT(:,:)
+  REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
+  REAL*8,INTENT(INOUT):: Fx_edgV(:,:), Fy_edgH(:,:)
+  REAL*8,INTENT(INOUT):: Temp(:,:), KapE_Bar(:,:)
+  REAL*8,INTENT(OUT):: Q_bar(:,:), KapE_Bar_dT(:,:)
   INTEGER,INTENT(OUT):: Its, GQD_Kits(*)
   REAL*8,ALLOCATABLE,INTENT(OUT):: Deltas(:,:), dresiduals(:,:)
 

@@ -38,11 +38,11 @@ program main
     INTEGER:: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, N_m, threads
     INTEGER:: N_x, N_y, N_t, N_g
     INTEGER:: BC_Type(4)
-    INTEGER:: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+    INTEGER:: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, restart_freq
     INTEGER:: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
     INTEGER:: E_out, F_out, D_out
     INTEGER:: old_parms_out, its_out, conv_out, kap_out, Src_out
-    CHARACTER(100):: run_type, restart_infile, outfile, Test
+    CHARACTER(100):: run_type, restart_infile, outfile, Test, restart_outfile
     CHARACTER(100):: enrgy_strc, quadrature
     CHARACTER(100):: POD_Type, POD_dset, DMD_Type
     CHARACTER(100),ALLOCATABLE:: DMD_dsets(:)
@@ -84,7 +84,8 @@ program main
       Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
       MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
       quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
-      Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type)
+      Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
+      Start_Time)
 
     CALL OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,&
       MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,c_ID,h_ID,pi_ID,erg_ID,Comp_Unit_ID,cv_ID,&
@@ -94,10 +95,8 @@ program main
       Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
       QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type,Direc_Diff,&
       xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,DMD_Type)
-    STOP
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    Start_Time=0d0
     CALL TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tlen,Theta,Start_Time,c,cV,h,pi,Kap0,&
       erg,Comp_Unit,Conv_ho,Conv_lo,Conv_gr1,Conv_gr2,bcT_left,bcT_bottom,bcT_right,bcT_top,Tini,chi,line_src,E_Bound_Low,&
       T_Bound_Low,use_grey,Conv_Type,Maxit_RTE,Threads,BC_Type,Maxit_MLOQD,Maxit_GLOQD,N_x,N_y,N_m,N_g,&
@@ -105,7 +104,7 @@ program main
       N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
       Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
       E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen,&
-      Direc_Diff,Mat,Kappa_Mult)
+      Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile)
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     CALL NF_CLOSE_FILE(outID)

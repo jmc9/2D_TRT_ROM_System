@@ -1129,5 +1129,60 @@ END SUBROUTINE
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+SUBROUTINE RESTART_OUT(Time, Temp, I_crn, fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_edgV_xy, fg_edgH_yy, fg_edgH_xy, RT_Src,&
+  MGQD_Src,GQD_Src, E_avg, Eg_avg, Eg_edgV, Eg_edgH, Fxg_edgV, Fyg_edgH, KapE_Bar, KapE, KapR, Cg_L, Cg_B, Cg_R, Cg_T,&
+  restart_outfile, resf_unit)
+
+  REAL*8,INTENT(IN):: Time, Temp(:,:), I_crn(:,:,:,:), RT_Src(:,:,:,:)
+  REAL*8,INTENT(IN):: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:), fg_edgV_xx(:,:,:)
+  REAL*8,INTENT(IN):: fg_edgV_xy(:,:,:), fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
+  REAL*8,INTENT(IN):: MGQD_Src(:,:,:), GQD_Src(:,:), E_avg(:,:), Eg_avg(:,:,:)
+  REAL*8,INTENT(IN):: Eg_edgV(:,:,:), Eg_edgH(:,:,:), Fxg_edgV(:,:,:)
+  REAL*8,INTENT(IN):: Fyg_edgH(:,:,:), KapE_Bar(:,:), KapE(:,:,:), KapR(:,:,:)
+  REAL*8,INTENT(IN):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
+  CHARACTER(100),INTENT(IN):: restart_outfile
+  INTEGER,INTENT(IN):: resf_unit
+  INTEGER:: err
+
+  OPEN(UNIT=resf_unit,FILE=restart_outfile,FORM='UNFORMATTED',STATUS='REPLACE',ACTION='WRITE',IOSTAT=err)
+  !   making sure file exists/opens, if not tells user
+  IF (err .NE. 0) THEN
+      WRITE(*,'(3A)') 'The file, ',restart_outfile,', could not open properly.'
+      STOP
+  END IF
+
+  WRITE(resf_unit) Time
+  WRITE(resf_unit) Temp
+  WRITE(resf_unit) I_crn
+  WRITE(resf_unit) fg_avg_xx
+  WRITE(resf_unit) fg_avg_yy
+  WRITE(resf_unit) fg_edgV_xx
+  WRITE(resf_unit) fg_edgV_xy
+  WRITE(resf_unit) fg_edgH_yy
+  WRITE(resf_unit) fg_edgH_xy
+  WRITE(resf_unit) RT_Src
+  WRITE(resf_unit) MGQD_Src
+  WRITE(resf_unit) GQD_Src
+  WRITE(resf_unit) E_avg
+  WRITE(resf_unit) Eg_avg
+  WRITE(resf_unit) Eg_edgV
+  WRITE(resf_unit) Eg_edgH
+  WRITE(resf_unit) Fxg_edgV
+  WRITE(resf_unit) Fyg_edgH
+  WRITE(resf_unit) KapE_Bar
+  WRITE(resf_unit) KapE
+  WRITE(resf_unit) KapR
+  WRITE(resf_unit) Cg_L
+  WRITE(resf_unit) Cg_B
+  WRITE(resf_unit) Cg_R
+  WRITE(resf_unit) Cg_T
+
+  CLOSE ( resf_unit, STATUS='KEEP')
+
+END SUBROUTINE RESTART_OUT
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
 
 END MODULE OUTPUTS

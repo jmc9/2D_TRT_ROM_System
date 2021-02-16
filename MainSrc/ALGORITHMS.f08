@@ -6,6 +6,7 @@ MODULE ALGORITHMS
   USE MLOQD_SOLVES
   USE GLOQD_SOLVES
   USE OUTPUTS
+  USE INPUTS
   USE INITIALIZERS
   USE netcdf
   USE NCDF_IO
@@ -26,7 +27,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
   Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
   E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen,&
-  Direc_Diff,Mat,Kappa_Mult)
+  Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:), Kappa_Mult(:)
@@ -39,13 +40,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, PODgsum, Direc_Diff, Mat(:,:)
   INTEGER,INTENT(IN):: use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
   LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search, kapE_dT_flag
-  CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dset
+  CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dset, restart_outfile, restart_infile
 
   !----------------Output File ID's------------------!
   INTEGER,INTENT(IN):: outID
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
   INTEGER,INTENT(IN):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID, MGQD_ResTypes_ID, Boundaries_ID
-  INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
+  INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, restart_freq
   INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
   INTEGER,INTENT(IN):: E_out, F_out, D_out
   INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out
@@ -174,6 +175,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER,ALLOCATABLE:: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
   INTEGER,ALLOCATABLE:: TMap(:)
 
+  INTEGER:: resf_unit = 307
+
   !===========================================================================!
   !                                                                           !
   !     INITIALIZING ARRAYS                                                   !
@@ -208,6 +211,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   IF (Res_Calc) THEN
     ALLOCATE(RT_Residual(4,N_g,5),RT_ResLoc_x(4,N_g,5),RT_ResLoc_y(4,N_g,5))
     ALLOCATE(MGQD_Residual(N_g,5,5),MGQD_BC_Residual(N_g,4))
+  END IF
+
+  IF (restart_infile .NE. '') THEN
+    CALL RESTART_IN(Time, Temp, I_crn, fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_edgV_xy, fg_edgH_yy, fg_edgH_xy, RT_Src, MGQD_Src,&
+      GQD_Src, E_avg, Eg_avg, Eg_edgV, Eg_edgH, Fxg_edgV, Fyg_edgH, KapE_Bar, KapE, KapR, Cg_L, Cg_B, Cg_R, Cg_T, restart_infile)
   END IF
 
   !===========================================================================!
@@ -258,6 +266,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     dr_MB_ID,dr_MR_ID,dr_MT_ID,rrank_BCg_ID,rrank_fg_avg_xx_ID,rrank_fg_edgV_xx_ID,rrank_fg_avg_yy_ID,rrank_fg_edgH_yy_ID,&
     rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID)
 
+  !===========================================================================!
+  !                                                                           !
+  !     CONFIGURING ALGORITHM BASED ON 'run_type'                             !
+  !                                                                           !
+  !===========================================================================!
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
     HO_Form = 0
@@ -494,6 +507,12 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
               fg_edgH_xy,KapE,KapR,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,&
               DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
 
+            E_avg = MGQD_E_avg
+            E_edgV = MGQD_E_edgV
+            E_edgH = MGQD_E_edgH
+            Fx_edgV = MGQD_Fx_edgV
+            Fy_edgH = MGQD_Fy_edgH
+
             !solve the nonlinear EGP with newton iterations
             CALL EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,GQD_Src,KapE_Bar_dT,EGP_Its,Deltas,dres,&
               Temp_MGQDold2,KapE_bar_MGQDold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,&
@@ -648,6 +667,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,&
       E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,fg_avg_xx,fg_avg_yy,fg_avg_xy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,DC_xx,&
       DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DB_xy,DR_xy,DT_xy,G_old,Pold_L,Pold_B,Pold_R,Pold_T,Gold_hat,Rhat_old,PL,PB,PR,PT)
+
+    !Creating, writing restart file on each 'restart_freq'-th time step
+    IF (restart_freq .GT. 0) THEN
+      IF (MOD(t, restart_freq) .EQ. 0) CALL RESTART_OUT(Time, Temp, I_crn, fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_edgV_xy,&
+        fg_edgH_yy, fg_edgH_xy, RT_Src, MGQD_Src, GQD_Src, E_avg, Eg_avg, Eg_edgV, Eg_edgH, Fxg_edgV, Fyg_edgH, KapE_Bar,&
+        KapE, KapR,Cg_L, Cg_B, Cg_R, Cg_T,restart_outfile, resf_unit)
+    END IF
 
     IF (Time .GE. tlen) EXIT
   END DO

@@ -47,6 +47,8 @@ int MatMul_cDouble(double complex *c, double complex *a, double complex *b, cons
 
 int EIG_Calc(double *a, size_t len, double complex *wmat, double complex *lambda);
 
+int cGaussElim(const size_t n, double complex *a, double complex *b);
+
 /* ----- LOCAL DEFINITIONS ----- */
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -297,6 +299,76 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 /*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
+int Coef_Calc(double complex **b, const double *data, double complex *wmat_tild, double *umat, const size_t N_t, const size_t N_g, const size_t clen,
+  const size_t rank, const size_t g, const size_t xr)
+{
+  int err;
+  int p;
+
+  //a0 holds the fist data-vector
+  double complex *a0 = (double complex *)malloc(sizeof(double complex)*clen);
+
+  if(N_g>0){
+    //reforming the datamatrix to isolate a single group
+    double *a = (double *)malloc(sizeof(double)*N_t*clen);
+    err = gdat_reform(N_t,N_g,clen,g,data,a);
+
+    p = 0;
+    //copying first column of A to a0
+    for(size_t i=0; i<clen; i++){
+      a0[p] = a[p] + 0.*I;
+      ++p;
+    }
+    free(a);
+
+  }
+  else{
+    p = 0;
+    //copying first column of A to a0
+    for(size_t i=0; i<clen; i++){
+      a0[p] = data[p] + 0.*I;
+      ++p;
+    }
+
+  }
+
+  //transposing umat -> umat_T
+  size_t ulen = clen*xr;
+  double *umat_T= (double *)malloc(sizeof(double)*ulen);
+  err = Transpose_Double(umat, umat_T, clen, xr);
+
+  //cumat_T holds umat_T in complex space
+  p = 0;
+  double complex *cumat_T = (double complex *)malloc(sizeof(double complex)*ulen);
+  for(size_t i=0; i<ulen; i++){
+    cumat_T[p] = umat_T[p] + 0.*I;
+    ++p;
+  }
+
+  //calculating U^T * a0, storing in b
+  *b = (double complex *)malloc(sizeof(double complex)*xr);
+  err = MatMul_cDouble(*b,cumat_T,a0,xr,1,clen);
+  free(cumat_T);
+
+  //making a copy of wmat_tild since cGaussElim will destroy the matrix it is given
+  size_t wlen = xr*xr;
+  double complex *w = (double complex *)malloc(sizeof(double complex)*wlen);
+  p = 0;
+  for(size_t i=0; i<wlen; i++){
+    w[p] = wmat_tild[p];
+    ++p;
+  }
+
+  //solving W * x = U^T * a0 for x, storing solution in b
+  err = cGaussElim(xr, w, *b);
+  free(w);
+
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
 int Generate_DMD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
   const size_t rank, const double svd_eps, Data *Decomp, const double delt)
 {
@@ -304,7 +376,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   int *N_modes;
   char loc[13] = "Generate_DMD";
   char buf[25], pname[25], drop[25];
-  double complex *wmat, *lambda, *wmat_tild;
+  double complex *wmat, *lambda, *wmat_tild, *b;
   double *temp, *temp2, *umat;
 
   size_t startp[3], countp[3], xr;
@@ -324,8 +396,11 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     for(size_t g=0; g<N_g; g++){
       printf("    -- Start DMD on group %lu\n",g+1);
 
-      //find the POD modes and singular values of a given groupwise datamatrix
+      //Perform the DMD algorithm, calculate DMD eigenpairs, reduced eigenvectors and left singular values of first orbital data matrix (X)
       err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr);
+
+      //Calculate coefficients of DMD expansion fit to the training data
+      err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, 0, xr);
 
       temp = (double *)malloc(sizeof(double)*xr);
       temp2 = (double *)malloc(sizeof(double)*xr);
@@ -360,6 +435,15 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       //write DMD eigenvalue (imaginary component) vector to outfile
       err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp); Handle_Err(err,loc);
       err = nc_put_vars(ncid_out,Decomp[5].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
+
+      for (size_t i=0; i<xr; i++){
+        temp[i] = creal(b[i]);
+        temp2[i] = cimag(b[i]);
+      }
+
+      //write DMD expansion coefficients (real & imaginary components) vector to outfile
+      err = nc_put_vars(ncid_out,Decomp[9].id,startp,countp,stridep,temp); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[10].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
       strcpy(pname,dname); sprintf(buf,"_g%lu",g+1); strcat(pname,buf);
       // //plot the singular values
@@ -417,7 +501,11 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   else{
     printf("    -- Start DMD on full phase space\n");
 
+    //Perform the DMD algorithm, calculate DMD eigenpairs, reduced eigenvectors and left singular values of first orbital data matrix (X)
     err = DMD_Calc(data,N_t,N_g,clen,rank,0,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr);
+
+    //Calculate coefficients of DMD expansion fit to the training data
+    err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, 0, xr);
 
     temp = (double *)malloc(sizeof(double)*xr);
     temp2 = (double *)malloc(sizeof(double)*xr);
@@ -451,6 +539,15 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     //write DMD eigenvalue (imaginary component) vector to outfile
     err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp); Handle_Err(err,loc);
     err = nc_put_vars(ncid_out,Decomp[5].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
+
+    for (size_t i=0; i<xr; i++){
+      temp[i] = creal(b[i]);
+      temp2[i] = cimag(b[i]);
+    }
+
+    //write DMD expansion coefficients (real & imaginary components) vector to outfile
+    err = nc_put_vars(ncid_out,Decomp[9].id,startp,countp,stridep,temp); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[10].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
     strcpy(pname,dname);
     // //plot the singular values

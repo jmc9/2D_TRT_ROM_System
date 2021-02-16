@@ -30,6 +30,25 @@
     _a > _b ? _a : _b; })
 
 /*================================================================================================================================*/
+/* Solves the linear system Ax=b in complex space
+   WARNING:: the input matrix (a) and right hand side vector (b) will both be destroyed
+             -- make copies before calling this function if they need to be preserved
+   The solution (x) is output in the vector b
+
+   n is the dimension of the system
+   a is assumed column major
+*/
+/*================================================================================================================================*/
+int cGaussElim(const size_t n, double complex *a, double complex *b)
+{
+  int err;
+  int *ipiv = (int *)malloc(sizeof(int)*n);
+  err = LAPACKE_zgesv(LAPACK_COL_MAJOR, (int)n, 1, a, (int)n, ipiv, b, (int)n);
+  if (err!=0){printf("zgesv failed!");}
+  return err;
+}
+
+/*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
 int SVD_Calc(double *dat, const size_t N_t, const size_t clen, double *umat, double *sig, double *vtmat)

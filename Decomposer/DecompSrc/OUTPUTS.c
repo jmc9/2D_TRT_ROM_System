@@ -339,7 +339,7 @@ int Def_DMD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_
   if (gsum == 1){ ndims = 2; p1 = 0; p2 = 1;}
   else{ ndims = 3; p1 = 1; p2 = 2;}
 
-  for (size_t i=0; i<9; i++){
+  for (size_t i=0; i<11; i++){
     Decomp[i].ndims = ndims;
     Decomp[i].dimids = (int *)malloc(sizeof(int)*ndims);
     Decomp[i].dimids[0] = N_g_ID;
@@ -399,6 +399,18 @@ int Def_DMD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_
   strcat(Decomp[8].name,dname);
   err = nc_def_var(ncid,Decomp[8].name,NC_DOUBLE,(int)ndims,Decomp[8].dimids,&Decomp[8].id); Handle_Err(err,loc);
 
+  Decomp[9].dimids[p1] = rank_ID;
+  memset(Decomp[9].name,0,50);
+  strcpy(Decomp[9].name,"b_real_");
+  strcat(Decomp[9].name,dname);
+  err = nc_def_var(ncid,Decomp[9].name,NC_DOUBLE,(int)ndims-1,Decomp[9].dimids,&Decomp[9].id); Handle_Err(err,loc);
+
+  Decomp[10].dimids[p1] = rank_ID;
+  memset(Decomp[10].name,0,50);
+  strcpy(Decomp[10].name,"b_imag_");
+  strcat(Decomp[10].name,dname);
+  err = nc_def_var(ncid,Decomp[10].name,NC_DOUBLE,(int)ndims-1,Decomp[10].dimids,&Decomp[10].id); Handle_Err(err,loc);
+
   return 0;
 
 }
@@ -447,16 +459,18 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcm
                           ID[5] = eL_imag (DMD exponentials = ln(L)/Delta t , imaginary component),
                           ID[6] = Wtild_real (reduced DMD modes/ eigenvectors, real component),
                           ID[7] = Wtild_imag (reduced DMD modes/ eigenvectors, imaginary component),
-                          ID[8] = Umat (left singular vectors of first orbital data matrix X)
+                          ID[8] = Umat (left singular vectors of first orbital data matrix X),
+                          ID[9] = b_real (DMD expansion coefficients, real component),
+                          ID[10] = b_imag (DMD expansion coefficients, imaginary component)
   */
   else if (dcmp_type == 1){ //decompose with the DMD
 
-    *Decomp = (Data*)malloc(sizeof(Data)*N_data*9);
+    *Decomp = (Data*)malloc(sizeof(Data)*N_data*11);
     size_t p = 0;
     for (size_t i=0; i<N_data; i++){
       err = Def_DMD_Vars(ncid, Dcmp_data[i].name, rank[dcdims[i][1]].id, clen[dcdims[i][0]].id,
         dims[0].id, dims[1].id, gsum, &(*Decomp)[p]);
-      p = p + 9;
+      p = p + 11;
 
     }
 
@@ -740,7 +754,7 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
       p = p + 4;
     }
     else if (dcmp_type == 1){
-      p = p + 9;
+      p = p + 11;
     }
 
   }

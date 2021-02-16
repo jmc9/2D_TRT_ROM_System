@@ -466,9 +466,17 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   CALL NF_DEF_VAR(F_in_T_ID,outID,(/N_x_ID,N_t_ID/),'F_in_T','Double')
 
   CALL NF_DEF_VAR(Cg_L_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Cg_L','Double')
+  Status = nf90_put_att(outID,Cg_L_ID,'N_grids',1)
+  Status = nf90_put_att(outID,Cg_L_ID,'grid0','tpts')
   CALL NF_DEF_VAR(Cg_B_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Cg_B','Double')
+  Status = nf90_put_att(outID,Cg_B_ID,'N_grids',1)
+  Status = nf90_put_att(outID,Cg_B_ID,'grid0','tpts')
   CALL NF_DEF_VAR(Cg_R_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Cg_R','Double')
+  Status = nf90_put_att(outID,Cg_R_ID,'N_grids',1)
+  Status = nf90_put_att(outID,Cg_R_ID,'grid0','tpts')
   CALL NF_DEF_VAR(Cg_T_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Cg_T','Double')
+  Status = nf90_put_att(outID,Cg_T_ID,'N_grids',1)
+  Status = nf90_put_att(outID,Cg_T_ID,'grid0','tpts')
 
   CALL NF_DEF_VAR(Eg_in_L_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Eg_in_L','Double')
   CALL NF_DEF_VAR(Eg_in_B_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Eg_in_B','Double')

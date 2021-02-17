@@ -1527,7 +1527,6 @@ SUBROUTINE RESTART_IN(Time, Temp, I_crn, fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_ed
   REAL*8,INTENT(OUT):: Eg_edgV(:,:,:), Eg_edgH(:,:,:), Fxg_edgV(:,:,:)
   REAL*8,INTENT(OUT):: Fyg_edgH(:,:,:), KapE_Bar(:,:), KapE(:,:,:), KapR(:,:,:)
   REAL*8,INTENT(OUT):: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
-  ! REAL*8,INTENT(OUT):: Eg_in_L(:,:), Eg_in_B(:,:), Eg_in_R(:,:), Eg_in_T(:,:)
   CHARACTER(100),INTENT(IN):: restart_infile
   INTEGER:: resf_unit = 308
   INTEGER:: err
@@ -1564,11 +1563,6 @@ SUBROUTINE RESTART_IN(Time, Temp, I_crn, fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_ed
   READ(resf_unit) Cg_B
   READ(resf_unit) Cg_R
   READ(resf_unit) Cg_T
-
-  ! READ(resf_unit) Eg_in_L
-  ! READ(resf_unit) Eg_in_B
-  ! READ(resf_unit) Eg_in_R
-  ! READ(resf_unit) Eg_in_T
 
   CLOSE ( resf_unit, STATUS='KEEP')
 

@@ -84,6 +84,63 @@ int Lambda_Plot(const char *pname, const double *lambda_r, const double *lambda_
 }
 
 /*================================================================================================================================*/
+/* Omega_Calc finds:
+                        omega = ln( lambda ) / ( Delta t )
+   where lambda is assumed imaginary (i.e. lambda = a + ib, a and b may be negative)
+
+   omega is found by transforming ln( a + ib ) = ln( r * exp( i * theta ) ) = ln(r) + i * theta
+   where r = sqrt( a^2 + b^2 )
+         theta = arctan( |b| / |a| )
+*/
+/*================================================================================================================================*/
+int Omega_Calc(double complex **omega, double complex *lambda, const size_t xr, const double delt)
+{
+  int err = 0;
+
+  double pi = 4.*atan(1.);
+  *omega = (double complex *)malloc(sizeof(double complex)*xr);
+
+  for (size_t i=0; i<xr; i++){
+    double clam = cimag(lambda[i]);
+    double rlam = creal(lambda[i]);
+
+    //finding trivial cases (real or imaginary component are zero)
+    if (clam == 0.){
+      (*omega)[i] = log(fabs(rlam))/delt + 0.*I;
+      continue;
+    }
+    else if (rlam == 0.){
+      if (clam > 0.){
+        (*omega)[i] = ( log(fabs(clam)) + (pi / 2.)*I )/delt;
+      }
+      else{
+        (*omega)[i] = ( log(fabs(clam)) + (3.*pi / 2.)*I )/delt;
+      }
+      continue;
+    }
+
+    //both components nonzero, calculate omega as normal
+    double theta = atan( fabs(clam) / fabs(rlam) );
+    double radius = sqrt( pow(rlam, 2) + pow(clam, 2) );
+    if ((rlam > 0.)&&(clam > 0.)){ //first quadrant
+      theta = theta;
+    }
+    else if ((rlam < 0.)&&(clam > 0.)){ //second quadrant
+      theta = pi - theta;
+    }
+    else if ((rlam < 0.)&&(clam < 0.)){ //third quadrant
+      theta += pi;
+    }
+    else if ((rlam > 0.)&&(clam < 0.)){ //fourth quadrant
+      theta = 2.*pi - theta;
+    }
+    (*omega)[i] = ( log(radius) + theta*I )/delt;
+  }
+
+  return err;
+}
+
+/*================================================================================================================================*/
 /**/
 /*================================================================================================================================*/
 int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_t clen, const size_t rank, const size_t g,
@@ -376,7 +433,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   int *N_modes;
   char loc[13] = "Generate_DMD";
   char buf[25], pname[25], drop[25];
-  double complex *wmat, *lambda, *wmat_tild, *b;
+  double complex *wmat, *lambda, *wmat_tild, *b, *omega;
   double *temp, *temp2, *umat;
 
   size_t startp[3], countp[3], xr;
@@ -387,6 +444,11 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   strcpy(drop,dname); strcat(drop,"/"); //creating path to directory
 
   //checking type of dataset to perform POD on
+  /*------------------------------------------------------------
+  /                                                            /
+  /                       GROUPWISE DMD                        /
+  /                                                            /
+  ------------------------------------------------------------*/
   if(N_g > 0){ //if N_g>0, then a multigroup dataset has been detected
     printf("    -- groupwise decomposition detected\n");
 
@@ -400,48 +462,39 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr);
 
       //Calculate coefficients of DMD expansion fit to the training data
-      err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, 0, xr);
+      err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, g, xr);
 
+      //seperating real/imaginary components of DMD eigenvalues for output
       temp = (double *)malloc(sizeof(double)*xr);
       temp2 = (double *)malloc(sizeof(double)*xr);
       for (size_t i=0; i<xr; i++){
         temp[i] = creal(lambda[i]);
-        if (temp[i] != 0.){
-          temp2[i] = log(temp[i])/delt;
-        }
-        else{
-          temp2[i] = 0.;
-        }
+        temp2[i] = cimag(lambda[i]);
       }
-
-      //write singular value vector to outfile
+      //write DMD eigenvalues to outfile
       startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
       countp[0] = 1; countp[1] = xr; countp[2] = 0;
       stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
       err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-      err = nc_put_vars(ncid_out,Decomp[4].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
+      err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
-      // temp2 = (double *)malloc(sizeof(double)*xr);
+      //calculating exponential eigenvalues (omegas)
+      err = Omega_Calc(&omega, lambda, xr, delt);
+      //seperating real/imaginary components of exponential eigenvalues (omegas) for output
       for (size_t i=0; i<xr; i++){
-        temp[i] = cimag(lambda[i]);
-        if (temp[i] != 0.){
-          temp2[i] = log(temp[i])/delt;
-        }
-        else{
-          temp2[i] = 0.;
-        }
+        temp[i] = creal(omega[i]);
+        temp2[i] = cimag(omega[i]);
       }
-
-      //write DMD eigenvalue (imaginary component) vector to outfile
-      err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp); Handle_Err(err,loc);
+      //write DMD exponential eigenvalues to outfile
+      err = nc_put_vars(ncid_out,Decomp[4].id,startp,countp,stridep,temp); Handle_Err(err,loc);
       err = nc_put_vars(ncid_out,Decomp[5].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
+      //seperating real/imaginary components of DMD expansion coefficients for output
       for (size_t i=0; i<xr; i++){
         temp[i] = creal(b[i]);
         temp2[i] = cimag(b[i]);
       }
-
-      //write DMD expansion coefficients (real & imaginary components) vector to outfile
+      //write DMD expansion coefficients vector to outfile
       err = nc_put_vars(ncid_out,Decomp[9].id,startp,countp,stridep,temp); Handle_Err(err,loc);
       err = nc_put_vars(ncid_out,Decomp[10].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
@@ -498,6 +551,11 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     free(N_modes);
 
   }
+  /*------------------------------------------------------------
+  /                                                            /
+  /                  FULL PHASE-SPACE DMD                      /
+  /                                                            /
+  ------------------------------------------------------------*/
   else{
     printf("    -- Start DMD on full phase space\n");
 
@@ -507,44 +565,36 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     //Calculate coefficients of DMD expansion fit to the training data
     err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, 0, xr);
 
+    //seperating real/imaginary components of DMD eigenvalues for output
     temp = (double *)malloc(sizeof(double)*xr);
     temp2 = (double *)malloc(sizeof(double)*xr);
     for (size_t i=0; i<xr; i++){
       temp[i] = creal(lambda[i]);
-      if (temp[i] != 0.){
-        temp2[i] = log(temp[i])/delt;
-      }
-      else{
-        temp2[i] = 0.;
-      }
+      temp2[i] = cimag(lambda[i]);
     }
-
-    //write DMD eigenvalue (real component) vector to outfile
+    //write DMD eigenvalues vector to outfile
     startp[0] = 0; startp[1] = 0; startp[2] = 0;
     countp[0] = xr; countp[1] = 0; countp[2] = 0;
     stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
     err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-    err = nc_put_vars(ncid_out,Decomp[4].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
+    //calculating exponential eigenvalues (omegas)
+    err = Omega_Calc(&omega, lambda, xr, delt);
+    //seperating real/imaginary components of exponential eigenvalues (omegas) for output
     for (size_t i=0; i<xr; i++){
-      temp[i] = cimag(lambda[i]);
-      if (temp[i] != 0.){
-        temp2[i] = log(temp[i])/delt;
-      }
-      else{
-        temp2[i] = 0.;
-      }
+      temp[i] = creal(omega[i]);
+      temp2[i] = cimag(omega[i]);
     }
-
-    //write DMD eigenvalue (imaginary component) vector to outfile
-    err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp); Handle_Err(err,loc);
+    //write DMD exponential eigenvalues vector to outfile
+    err = nc_put_vars(ncid_out,Decomp[4].id,startp,countp,stridep,temp); Handle_Err(err,loc);
     err = nc_put_vars(ncid_out,Decomp[5].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
+    //seperating real/imaginary components of DMD expansion coefficients for output
     for (size_t i=0; i<xr; i++){
       temp[i] = creal(b[i]);
       temp2[i] = cimag(b[i]);
     }
-
     //write DMD expansion coefficients (real & imaginary components) vector to outfile
     err = nc_put_vars(ncid_out,Decomp[9].id,startp,countp,stridep,temp); Handle_Err(err,loc);
     err = nc_put_vars(ncid_out,Decomp[10].id,startp,countp,stridep,temp2); Handle_Err(err,loc);

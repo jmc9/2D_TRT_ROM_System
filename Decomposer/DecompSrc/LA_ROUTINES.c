@@ -45,6 +45,46 @@ int cGaussElim(const size_t n, double complex *a, double complex *b)
   int *ipiv = (int *)malloc(sizeof(int)*n);
   err = LAPACKE_zgesv(LAPACK_COL_MAJOR, (int)n, 1, a, (int)n, ipiv, b, (int)n);
   if (err!=0){printf("zgesv failed!");}
+  free(ipiv);
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int SVD_Calc_cmplx(double complex *dat, const size_t N_t, const size_t clen, double complex *umat, double *sig, double complex *vtmat)
+{
+  int err;
+  double *work;
+  char jobu[2], jobvt[2];
+  size_t Lwork, pv, pa;
+
+  //allocating workspace for dgesvd
+  Lwork = max(3*min(clen,N_t)+max(clen,N_t),5*min(clen,N_t));
+  Lwork = max((size_t)1,Lwork);
+  work = (double *)malloc(sizeof(double )*Lwork);
+
+  //options for dgesvd
+  strcpy(jobu,"S"); strcpy(jobvt,"O");
+
+  //finding the SVD of the data matrix (dat) with the LAPACKE package
+  err = LAPACKE_zgesvd(LAPACK_COL_MAJOR,*jobu,*jobvt,(int)clen,(int)N_t,dat,(int)clen,sig,umat,(int)clen,vtmat,(int)N_t,work);
+  if (err!=0){printf("SVD failed!");}
+
+  //copying V^t onto vtmat
+  pv = 0;
+  for (size_t j=0; j<N_t; j++){
+    pa = j*clen;
+    for (size_t i=0; i<min(N_t,clen); i++){
+      vtmat[pv] = dat[pa];
+      pv++;
+      pa++;
+    }
+  }
+
+  //deallocating local arrays
+  free(work);
+
   return err;
 }
 
@@ -265,6 +305,26 @@ int Transpose_Double(double *a, double *b, const size_t a_rows, const size_t a_c
     pa = j;
     for(size_t i=0; i<a_cols; i++){
       b[pb] = a[pa];
+      pb++;
+      pa = pa + a_rows;
+    }
+  }
+
+  return err;
+}
+
+/*================================================================================================================================*/
+/**/
+/*================================================================================================================================*/
+int Transpose_Double_cmplx(double complex *a, double complex *b, const size_t a_rows, const size_t a_cols)
+{
+  int err = 0;
+  size_t pa = 0;
+  size_t pb = 0;
+  for(size_t j=0; j<a_rows; j++){
+    pa = j;
+    for(size_t i=0; i<a_cols; i++){
+      b[pb] = creal(a[pa]) - cimag(a[pa])*I;
       pb++;
       pa = pa + a_rows;
     }

@@ -35,11 +35,15 @@ int Make_Dir(const char *dir);
 /* ----- FROM LA_ROUTINES.c ----- */
 int SVD_Calc(double *dat, const size_t N_t, const size_t clen, double *umat, double *sig, double *vtmat);
 
+int SVD_Calc_cmplx(double complex *dat, const size_t N_t, const size_t clen, double complex *umat, double *sig, double complex *vtmat);
+
 size_t SVD_Rank_Calc(const size_t frank, const double svd_eps, const int opt, const double *s);
 
 int gdat_reform(const size_t N_t, const size_t N_g, const size_t clen, const size_t g, const double *gdat, double *vec);
 
 int Transpose_Double(double *a, double *b, const size_t a_rows, const size_t a_cols);
+
+int Transpose_Double_cmplx(double complex *a, double complex *b, const size_t a_rows, const size_t a_cols);
 
 int MatMul_Double(double *c, double *a, double *b, const size_t rows, const size_t cols, const size_t mdim);
 
@@ -106,7 +110,12 @@ int Omega_Calc(double complex **omega, double complex *lambda, const size_t xr, 
 
     //finding trivial cases (real or imaginary component are zero)
     if (clam == 0.){
-      (*omega)[i] = log(fabs(rlam))/delt + 0.*I;
+      if (rlam>0.){
+        (*omega)[i] = log(fabs(rlam))/delt + 0.*I;
+      }
+      else if (rlam<0.){
+        (*omega)[i] = (log(fabs(rlam)) + pi*I)/delt;
+      }
       continue;
     }
     else if (rlam == 0.){
@@ -144,7 +153,8 @@ int Omega_Calc(double complex **omega, double complex *lambda, const size_t xr, 
 /**/
 /*================================================================================================================================*/
 int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_t clen, const size_t rank, const size_t g,
-   const double svd_eps, double complex **wmat, double complex **lambda, double complex **wmat_tild, double **umat, size_t *N_modes)
+   const double svd_eps, double complex **wmat, double complex **lambda, double complex **wmat_tild, double **umat, size_t *N_modes,
+   double **cvec, double complex **wmat_proj)
 {
   double *x, *y;
   double *xu, *xs, *xvt, *xv, *a;
@@ -152,11 +162,17 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   int err;
   size_t px, py, pa, xr;
 
+  *cvec = (double *)malloc(sizeof(double)*clen);
+
   //checking whether a multigroup data-matrix is being used or not
   if(N_g>0){ //if the datamatrix is multigroup, must either isolate one group or form a large multigroup matrix
     //reforming the datamatrix to isolate a single group
     a = (double *)malloc(sizeof(double)*N_t*clen);
     err = gdat_reform(N_t,N_g,clen,g,data,a);
+
+    for(size_t i=0; i<clen; i++){
+      (*cvec)[i] = 0.;
+    }
 
     x = (double *)malloc(sizeof(double)*(N_t-1)*clen);
     y = (double *)malloc(sizeof(double)*(N_t-1)*clen);
@@ -164,7 +180,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     px = 0; py = 0; pa = 0;
     //copying first column of A to X
     for(size_t i=0; i<clen; i++){
-      x[px] = a[pa];
+      x[px] = a[pa] - (*cvec)[i];
       px++;
       pa++;
     }
@@ -172,8 +188,8 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     //copying columns 2 through N_t-1 of A to X and Y
     for(size_t t=1; t<(N_t-1); t++){
       for(size_t i=0; i<clen; i++){
-        x[px] = a[pa];
-        y[py] = a[pa];
+        x[px] = a[pa] - (*cvec)[i];
+        y[py] = a[pa] - (*cvec)[i];
         px++;
         py++;
         pa++;
@@ -182,7 +198,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 
     //copying last column of A to Y
     for(size_t i=0; i<clen; i++){
-      y[py] = a[pa];
+      y[py] = a[pa] - (*cvec)[i];
       py++;
       pa++;
     }
@@ -192,13 +208,17 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   }
   else{ //if the datamatrix is not multigroup, can immediately procede with finding the SVD
 
+    for(size_t i=0; i<clen; i++){
+      (*cvec)[i] = 0.;
+    }
+
     x = (double *)malloc(sizeof(double)*(N_t-1)*clen);
     y = (double *)malloc(sizeof(double)*(N_t-1)*clen);
 
     px = 0; py = 0; pa = 0;
     //copying first column of A to X
     for(size_t i=0; i<clen; i++){
-      x[px] = data[pa];
+      x[px] = data[pa] - (*cvec)[i];
       px++;
       pa++;
     }
@@ -206,8 +226,8 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     //copying columns 2 through N_t-1 of A to X and Y
     for(size_t t=1; t<(N_t-1); t++){
       for(size_t i=0; i<clen; i++){
-        x[px] = data[pa];
-        y[py] = data[pa];
+        x[px] = data[pa] - (*cvec)[i];
+        y[py] = data[pa] - (*cvec)[i];
         px++;
         py++;
         pa++;
@@ -216,7 +236,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 
     //copying last column of A to Y
     for(size_t i=0; i<clen; i++){
-      y[py] = data[pa];
+      y[py] = data[pa] - (*cvec)[i];
       py++;
       pa++;
     }
@@ -290,6 +310,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 
   //allocating DMD arrays
   *wmat = (double complex *)malloc(sizeof(double complex)*clen*xr);
+  *wmat_proj = (double complex *)malloc(sizeof(double complex)*clen*xr);
   *lambda = (double complex *)malloc(sizeof(double complex)*xr);
   *wmat_tild = (double complex *)malloc(sizeof(double complex)*xr*xr);
   *umat = (double *)malloc(sizeof(double)*clen*xr);
@@ -348,6 +369,15 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     }
   }
 
+  size_t ulen = clen*xr;
+  double complex *uc = (double complex*)malloc(sizeof(double complex)*ulen);
+  for (size_t i=0; i<ulen;){
+    uc[i] = (*umat)[i] + 0.*I;
+    ++i;
+  }
+  err = MatMul_cDouble(*wmat_proj,uc,*wmat_tild,clen,xr,xr);
+  free(uc);
+
   *N_modes = xr;
 
   return err;
@@ -357,7 +387,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 /**/
 /*================================================================================================================================*/
 int Coef_Calc(double complex **b, const double *data, double complex *wmat_tild, double *umat, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const size_t g, const size_t xr)
+  const size_t rank, const size_t g, const size_t xr, double complex *lambda, double *cvec, double complex *wmat)
 {
   int err;
   int p;
@@ -370,21 +400,17 @@ int Coef_Calc(double complex **b, const double *data, double complex *wmat_tild,
     double *a = (double *)malloc(sizeof(double)*N_t*clen);
     err = gdat_reform(N_t,N_g,clen,g,data,a);
 
-    p = 0;
     //copying first column of A to a0
     for(size_t i=0; i<clen; i++){
-      a0[p] = a[p] + 0.*I;
-      ++p;
+      a0[i] = a[i] + 0.*I;
     }
     free(a);
 
   }
   else{
-    p = 0;
     //copying first column of A to a0
     for(size_t i=0; i<clen; i++){
-      a0[p] = data[p] + 0.*I;
-      ++p;
+      a0[i] = data[i] - cvec[i] + 0.*I;
     }
 
   }
@@ -395,11 +421,9 @@ int Coef_Calc(double complex **b, const double *data, double complex *wmat_tild,
   err = Transpose_Double(umat, umat_T, clen, xr);
 
   //cumat_T holds umat_T in complex space
-  p = 0;
   double complex *cumat_T = (double complex *)malloc(sizeof(double complex)*ulen);
   for(size_t i=0; i<ulen; i++){
-    cumat_T[p] = umat_T[p] + 0.*I;
-    ++p;
+    cumat_T[i] = umat_T[i] + 0.*I;
   }
 
   //calculating U^T * a0, storing in b
@@ -410,14 +434,14 @@ int Coef_Calc(double complex **b, const double *data, double complex *wmat_tild,
   //making a copy of wmat_tild since cGaussElim will destroy the matrix it is given
   size_t wlen = xr*xr;
   double complex *w = (double complex *)malloc(sizeof(double complex)*wlen);
-  p = 0;
+
   for(size_t i=0; i<wlen; i++){
-    w[p] = wmat_tild[p];
-    ++p;
+    w[i] = wmat_tild[i];
   }
 
   //solving W * x = U^T * a0 for x, storing solution in b
   err = cGaussElim(xr, w, *b);
+
   free(w);
 
   return err;
@@ -433,10 +457,11 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   int *N_modes;
   char loc[13] = "Generate_DMD";
   char buf[25], pname[25], drop[25];
-  double complex *wmat, *lambda, *wmat_tild, *b, *omega;
-  double *temp, *temp2, *umat;
+  double complex *wmat, *lambda, *wmat_tild, *b, *omega, *wmat_proj;
+  double *temp, *temp2, *umat, *cvec;
+  size_t nc_p1, nc_p2;
 
-  size_t startp[3], countp[3], xr;
+  size_t startp[3], countp[3], xr, gcount;
   ptrdiff_t stridep[3];
 
   //creating directory to put plots
@@ -444,127 +469,48 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
   strcpy(drop,dname); strcat(drop,"/"); //creating path to directory
 
   //checking type of dataset to perform POD on
-  /*------------------------------------------------------------
-  /                                                            /
-  /                       GROUPWISE DMD                        /
-  /                                                            /
-  ------------------------------------------------------------*/
   if(N_g > 0){ //if N_g>0, then a multigroup dataset has been detected
     printf("    -- groupwise decomposition detected\n");
 
     N_modes = (int *)malloc(sizeof(int)*N_g);
 
-    //loop over energy groups
-    for(size_t g=0; g<N_g; g++){
-      printf("    -- Start DMD on group %lu\n",g+1);
+    gcount = N_g;
 
-      //Perform the DMD algorithm, calculate DMD eigenpairs, reduced eigenvectors and left singular values of first orbital data matrix (X)
-      err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr);
-
-      //Calculate coefficients of DMD expansion fit to the training data
-      err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, g, xr);
-
-      //seperating real/imaginary components of DMD eigenvalues for output
-      temp = (double *)malloc(sizeof(double)*xr);
-      temp2 = (double *)malloc(sizeof(double)*xr);
-      for (size_t i=0; i<xr; i++){
-        temp[i] = creal(lambda[i]);
-        temp2[i] = cimag(lambda[i]);
-      }
-      //write DMD eigenvalues to outfile
-      startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
-      countp[0] = 1; countp[1] = xr; countp[2] = 0;
-      stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
-      err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-      err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
-
-      //calculating exponential eigenvalues (omegas)
-      err = Omega_Calc(&omega, lambda, xr, delt);
-      //seperating real/imaginary components of exponential eigenvalues (omegas) for output
-      for (size_t i=0; i<xr; i++){
-        temp[i] = creal(omega[i]);
-        temp2[i] = cimag(omega[i]);
-      }
-      //write DMD exponential eigenvalues to outfile
-      err = nc_put_vars(ncid_out,Decomp[4].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-      err = nc_put_vars(ncid_out,Decomp[5].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
-
-      //seperating real/imaginary components of DMD expansion coefficients for output
-      for (size_t i=0; i<xr; i++){
-        temp[i] = creal(b[i]);
-        temp2[i] = cimag(b[i]);
-      }
-      //write DMD expansion coefficients vector to outfile
-      err = nc_put_vars(ncid_out,Decomp[9].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-      err = nc_put_vars(ncid_out,Decomp[10].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
-
-      strcpy(pname,dname); sprintf(buf,"_g%lu",g+1); strcat(pname,buf);
-      // //plot the singular values
-      // err = Lambda_Plot(pname,temp,temp2,(int)xr,drop);
-
-      free(lambda); free(temp); free(temp2);
-      temp = (double *)malloc(sizeof(double)*xr*clen);
-      temp2 = (double *)malloc(sizeof(double)*xr*clen);
-      for (size_t i=0; i<xr*clen; i++){
-        temp[i] = creal(wmat[i]);
-        temp2[i] = cimag(wmat[i]);
-      }
-
-      //write left singular vector matrix to outfile
-      startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
-      countp[0] = 1; countp[1] = xr; countp[2] = clen;
-      stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
-      err = nc_put_vars(ncid_out,Decomp[2].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-      //write DMD mode matrix (imaginary component) to outfile
-      err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
-
-      //write umat
-      err = nc_put_vars(ncid_out,Decomp[8].id,startp,countp,stridep,umat); Handle_Err(err,loc);
-
-      //deallocating arrays
-      free(wmat); free(umat); free(temp); free(temp2);
-
-      temp = (double *)malloc(sizeof(double)*xr*xr);
-      temp2 = (double *)malloc(sizeof(double)*xr*xr);
-      for (size_t i=0; i<xr*xr; i++){
-        temp[i] = creal(wmat_tild[i]);
-        temp2[i] = cimag(wmat_tild[i]);
-      }
-
-      //write reduced DMD mode matrix (real component) to outfile
-      startp[0] = (size_t)g; startp[1] = 0; startp[2] = 0;
-      countp[0] = 1; countp[1] = xr; countp[2] = xr;
-      stridep[0] = 1; stridep[1] = 1; stridep[2] = 1;
-      err = nc_put_vars(ncid_out,Decomp[6].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-      //write reduced DMD mode matrix (imaginary component) to outfile
-      err = nc_put_vars(ncid_out,Decomp[7].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
-
-      //deallocating arrays
-      free(wmat_tild); free(temp); free(temp2);
-
-      N_modes[g] = (int)xr;
-
-    } //end g loop
-
-    memset(pname,0,25); strcpy(pname,"N_modes_"); strcat(pname,dname);
-    err = nc_put_att_int(ncid_out,NC_GLOBAL,pname,NC_INT,N_g,N_modes); Handle_Err(err,loc);
-    free(N_modes);
+    nc_p1=1; nc_p2=2;
+    startp[0] = 0; startp[1] = 0; startp[2] = 0;
+    countp[0] = 1; countp[1] = 0; countp[2] = 0;
+    stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
 
   }
-  /*------------------------------------------------------------
-  /                                                            /
-  /                  FULL PHASE-SPACE DMD                      /
-  /                                                            /
-  ------------------------------------------------------------*/
   else{
     printf("    -- Start DMD on full phase space\n");
 
+    N_modes = (int *)malloc(sizeof(int)*1);
+
+    gcount = 1;
+
+    nc_p1=0; nc_p2=1;
+    startp[0] = 0; startp[1] = 0; startp[2] = 0;
+    countp[0] = 0; countp[1] = 0; countp[2] = 0;
+    stridep[0] = 0; stridep[1] = 0; stridep[2] = 0;
+
+  }
+
+  for (size_t g=0; g<gcount; g++){
+    startp[0] = g;
+
     //Perform the DMD algorithm, calculate DMD eigenpairs, reduced eigenvectors and left singular values of first orbital data matrix (X)
-    err = DMD_Calc(data,N_t,N_g,clen,rank,0,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr);
+    err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr,&cvec,&wmat_proj);
 
     //Calculate coefficients of DMD expansion fit to the training data
-    err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, 0, xr);
+    err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, g, xr, lambda, cvec, wmat);
 
+    //calculating exponential eigenvalues (omegas)
+    err = Omega_Calc(&omega, lambda, xr, delt);
+
+    /*--------------------------------------
+         OUTPUT DMD eigenvalues
+    --------------------------------------*/
     //seperating real/imaginary components of DMD eigenvalues for output
     temp = (double *)malloc(sizeof(double)*xr);
     temp2 = (double *)malloc(sizeof(double)*xr);
@@ -572,83 +518,120 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
       temp[i] = creal(lambda[i]);
       temp2[i] = cimag(lambda[i]);
     }
-    //write DMD eigenvalues vector to outfile
-    startp[0] = 0; startp[1] = 0; startp[2] = 0;
-    countp[0] = xr; countp[1] = 0; countp[2] = 0;
-    stridep[0] = 1; stridep[1] = 0; stridep[2] = 0;
+    free(lambda);
+    //setting parameters for NCDF file write
+    startp[nc_p1] = 0; startp[nc_p2] = 0;
+    countp[nc_p1] = xr; countp[nc_p2] = 0;
+    stridep[nc_p1] = 1; stridep[nc_p2] = 0;
     err = nc_put_vars(ncid_out,Decomp[0].id,startp,countp,stridep,temp); Handle_Err(err,loc);
     err = nc_put_vars(ncid_out,Decomp[1].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
-    //calculating exponential eigenvalues (omegas)
-    err = Omega_Calc(&omega, lambda, xr, delt);
+    /*--------------------------------------
+         OUTPUT DMD eigenvalues (exponential form)
+    --------------------------------------*/
     //seperating real/imaginary components of exponential eigenvalues (omegas) for output
     for (size_t i=0; i<xr; i++){
       temp[i] = creal(omega[i]);
       temp2[i] = cimag(omega[i]);
     }
-    //write DMD exponential eigenvalues vector to outfile
+    free(omega);
+    //using the same NCDF write parameters defined above
     err = nc_put_vars(ncid_out,Decomp[4].id,startp,countp,stridep,temp); Handle_Err(err,loc);
     err = nc_put_vars(ncid_out,Decomp[5].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
+    /*--------------------------------------
+         OUTPUT DMD expansion coefficients
+    --------------------------------------*/
     //seperating real/imaginary components of DMD expansion coefficients for output
     for (size_t i=0; i<xr; i++){
       temp[i] = creal(b[i]);
       temp2[i] = cimag(b[i]);
     }
-    //write DMD expansion coefficients (real & imaginary components) vector to outfile
+    free(b);
+    //using the same NCDF write parameters defined above
     err = nc_put_vars(ncid_out,Decomp[9].id,startp,countp,stridep,temp); Handle_Err(err,loc);
     err = nc_put_vars(ncid_out,Decomp[10].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
-    strcpy(pname,dname);
-    // //plot the singular values
-    // err = Lambda_Plot(pname,temp,temp2,(int)xr,drop);
-
-    free(lambda); free(temp); free(temp2);
+    /*--------------------------------------
+         OUTPUT DMD modes
+    --------------------------------------*/
+    free(temp); free(temp2); //need to re-allocate temp arrays for modes
     temp = (double *)malloc(sizeof(double)*xr*clen);
     temp2 = (double *)malloc(sizeof(double)*xr*clen);
+    //seperating real/imaginary components
     for (size_t i=0; i<xr*clen; i++){
       temp[i] = creal(wmat[i]);
       temp2[i] = cimag(wmat[i]);
     }
-
-    //write DMD mode matrix (real component) to outfile
-    startp[0] = 0; startp[1] = 0; startp[2] = 0;
-    countp[0] = xr; countp[1] = clen; countp[2] = 0;
-    stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+    free(wmat);
+    //setting parameters for NCDF file write
+    startp[nc_p1] = 0; startp[nc_p2] = 0;
+    countp[nc_p1] = xr; countp[nc_p2] = clen;
+    stridep[nc_p1] = 1; stridep[nc_p2] = 1;
     err = nc_put_vars(ncid_out,Decomp[2].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-    //write DMD mode matrix (imaginary component) to outfile
     err = nc_put_vars(ncid_out,Decomp[3].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
-    //write umat
+    /*--------------------------------------
+         OUTPUT DMD projected modes
+    --------------------------------------*/
+    //seperating real/imaginary components for output
+    for (size_t i=0; i<xr*clen; i++){
+      temp[i] = creal(wmat_proj[i]);
+      temp2[i] = cimag(wmat_proj[i]);
+    }
+    free(wmat_proj);
+    //using the same NCDF write parameters defined above
+    err = nc_put_vars(ncid_out,Decomp[12].id,startp,countp,stridep,temp); Handle_Err(err,loc);
+    err = nc_put_vars(ncid_out,Decomp[13].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
+
+    /*--------------------------------------
+         OUTPUT left singular vector matrix of X
+    --------------------------------------*/
+    //using the same NCDF write parameters defined above
     err = nc_put_vars(ncid_out,Decomp[8].id,startp,countp,stridep,umat); Handle_Err(err,loc);
+    free(umat);
 
-    //deallocating arrays
-    free(wmat); free(umat); free(temp); free(temp2);
-
+    /*--------------------------------------
+         OUTPUT DMD reduced modes
+    --------------------------------------*/
+    free(temp); free(temp2); //need to re-allocate temp arrays for reduced modes
     temp = (double *)malloc(sizeof(double)*xr*xr);
     temp2 = (double *)malloc(sizeof(double)*xr*xr);
+    //seperating real/imaginary components for output
     for (size_t i=0; i<xr*xr; i++){
       temp[i] = creal(wmat_tild[i]);
       temp2[i] = cimag(wmat_tild[i]);
     }
-
-    //write reduced DMD mode matrix (real component) to outfile
-    startp[0] = 0; startp[1] = 0; startp[2] = 0;
-    countp[0] = xr; countp[1] = xr; countp[2] = 0;
-    stridep[0] = 1; stridep[1] = 1; stridep[2] = 0;
+    free(wmat_tild);
+    //setting parameters for NCDF file write
+    startp[nc_p1] = 0; startp[nc_p2] = 0;
+    countp[nc_p1] = xr; countp[nc_p2] = xr;
+    stridep[nc_p1] = 1; stridep[nc_p2] = 1;
     err = nc_put_vars(ncid_out,Decomp[6].id,startp,countp,stridep,temp); Handle_Err(err,loc);
-    //write reduced DMD mode matrix (imaginary component) to outfile
     err = nc_put_vars(ncid_out,Decomp[7].id,startp,countp,stridep,temp2); Handle_Err(err,loc);
 
-    //deallocating arrays
-    free(wmat_tild); free(temp); free(temp2);
+    //final deallocation of temp arrays
+    free(temp); free(temp2);
 
-    N_modes = (int *)malloc(sizeof(int)*1);
-    N_modes[0] = (int)xr;
-    memset(pname,0,25); strcpy(pname,"N_modes_"); strcat(pname,dname);
-    err = nc_put_att_int(ncid_out,NC_GLOBAL,pname,NC_INT,1,N_modes); Handle_Err(err,loc);
+    /*--------------------------------------
+         OUTPUT DMD 'centering' vector
+    --------------------------------------*/
+    //setting parameters for NCDF file write
+    startp[nc_p1] = 0; startp[nc_p2] = 0;
+    countp[nc_p1] = clen; countp[nc_p2] = 0;
+    stridep[nc_p1] = 1; stridep[nc_p2] = 0;
+    err = nc_put_vars(ncid_out,Decomp[11].id,startp,countp,stridep,cvec); Handle_Err(err,loc);
+    free(cvec);
+
+    N_modes[g] = (int)xr;
 
   }
+
+  /*--------------------------------------
+       OUTPUT number of calculated DMD modes
+  --------------------------------------*/
+  memset(pname,0,25); strcpy(pname,"N_modes_"); strcat(pname,dname);
+  err = nc_put_att_int(ncid_out,NC_GLOBAL,pname,NC_INT,gcount,N_modes); Handle_Err(err,loc);
 
   return err;
 }

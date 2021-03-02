@@ -339,7 +339,7 @@ int Def_DMD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_
   if (gsum == 1){ ndims = 2; p1 = 0; p2 = 1;}
   else{ ndims = 3; p1 = 1; p2 = 2;}
 
-  for (size_t i=0; i<11; i++){
+  for (size_t i=0; i<14; i++){
     Decomp[i].ndims = ndims;
     Decomp[i].dimids = (int *)malloc(sizeof(int)*ndims);
     Decomp[i].dimids[0] = N_g_ID;
@@ -411,6 +411,24 @@ int Def_DMD_Vars(const int ncid, char *dname, const int rank_ID, const int clen_
   strcat(Decomp[10].name,dname);
   err = nc_def_var(ncid,Decomp[10].name,NC_DOUBLE,(int)ndims-1,Decomp[10].dimids,&Decomp[10].id); Handle_Err(err,loc);
 
+  Decomp[11].dimids[p1] = clen_ID;
+  memset(Decomp[11].name,0,50);
+  strcpy(Decomp[11].name,"C_");
+  strcat(Decomp[11].name,dname);
+  err = nc_def_var(ncid,Decomp[11].name,NC_DOUBLE,(int)ndims-1,Decomp[11].dimids,&Decomp[11].id); Handle_Err(err,loc);
+
+  Decomp[12].dimids[p1] = rank_ID; Decomp[12].dimids[p2] = clen_ID;
+  memset(Decomp[12].name,0,50);
+  strcpy(Decomp[12].name,"Wproj_real_");
+  strcat(Decomp[12].name,dname);
+  err = nc_def_var(ncid,Decomp[12].name,NC_DOUBLE,(int)ndims,Decomp[12].dimids,&Decomp[12].id); Handle_Err(err,loc);
+
+  Decomp[13].dimids[p1] = rank_ID; Decomp[13].dimids[p2] = clen_ID;
+  memset(Decomp[13].name,0,50);
+  strcpy(Decomp[13].name,"Wproj_imag_");
+  strcat(Decomp[13].name,dname);
+  err = nc_def_var(ncid,Decomp[13].name,NC_DOUBLE,(int)ndims,Decomp[13].dimids,&Decomp[13].id); Handle_Err(err,loc);
+
   return 0;
 
 }
@@ -465,12 +483,12 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcm
   */
   else if (dcmp_type == 1){ //decompose with the DMD
 
-    *Decomp = (Data*)malloc(sizeof(Data)*N_data*11);
+    *Decomp = (Data*)malloc(sizeof(Data)*N_data*14);
     size_t p = 0;
     for (size_t i=0; i<N_data; i++){
       err = Def_DMD_Vars(ncid, Dcmp_data[i].name, rank[dcdims[i][1]].id, clen[dcdims[i][0]].id,
         dims[0].id, dims[1].id, gsum, &(*Decomp)[p]);
-      p = p + 11;
+      p = p + 14;
 
     }
 
@@ -754,7 +772,7 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
       p = p + 4;
     }
     else if (dcmp_type == 1){
-      p = p + 11;
+      p = p + 14;
     }
 
   }

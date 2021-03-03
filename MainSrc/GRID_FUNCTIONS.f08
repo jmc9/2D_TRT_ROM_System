@@ -2,6 +2,10 @@ MODULE GRID_FUNCTIONS
 
   IMPLICIT NONE
 
+INTERFACE GENERATE_GRIDS
+  MODULE PROCEDURE GENERATE_GRIDS_XYT, GENERATE_GRIDS_XY, GENERATE_GRIDS_T
+END INTERFACE
+
 CONTAINS
 
 !==================================================================================================================================!
@@ -644,7 +648,7 @@ END SUBROUTINE EXTND_LR_BND
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Start_Time_d,xlen,ylen,Start_Time,dN_x,dN_y,&
+SUBROUTINE GENERATE_GRIDS_XYT(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Start_Time_d,xlen,ylen,Start_Time,dN_x,dN_y,&
   dN_t,N_x,N_y,N_t,Sim_Grid_Avg,Sim_Grid_EdgV,Sim_Grid_EdgH,Sim_Grid_Bnds,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,&
   Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,GMap_xyBnds,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,&
   VMap_xyBnds,TMap)
@@ -660,9 +664,33 @@ SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Star
   INTEGER,ALLOCATABLE,INTENT(OUT):: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
   INTEGER,ALLOCATABLE,INTENT(OUT):: TMap(:)
 
+  CALL GENERATE_GRIDS_XY(Delx_d, Dely_d, Delx, Dely, xlen_d, ylen_d, xlen, ylen, dN_x, dN_y, N_x, N_y,&
+    Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Sim_Grid_Bnds, Dat_Grid_Avg, Dat_Grid_EdgV, Dat_Grid_EdgH,&
+    Dat_Grid_Bnds, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, GMap_xyBnds, VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH,&
+    VMap_xyBnds)
+
+  CALL GENERATE_GRIDS_T(Delt_d, Delt, Start_Time_d, Start_Time, dN_t, N_t, Sim_TGrid, Dat_TGrid, TMap)
+
+END SUBROUTINE GENERATE_GRIDS_XYT
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE GENERATE_GRIDS_XY(Delx_d, Dely_d, Delx, Dely, xlen_d, ylen_d, xlen, ylen, dN_x, dN_y, N_x, N_y,&
+  Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Sim_Grid_Bnds, Dat_Grid_Avg, Dat_Grid_EdgV, Dat_Grid_EdgH,&
+  Dat_Grid_Bnds, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, GMap_xyBnds, VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH,&
+  VMap_xyBnds)
+
+  REAL*8,INTENT(IN):: Delx_d(*), Dely_d(*), Delx(*), Dely(*)
+  REAL*8,INTENT(IN):: xlen_d, ylen_d, xlen, ylen
+  INTEGER,INTENT(IN):: dN_x, dN_y, N_x, N_y
+
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Dat_Grid_Avg(:), Dat_Grid_EdgV(:), Dat_Grid_EdgH(:), Dat_Grid_Bnds(:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:), GMap_xyBnds(:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
+
   REAL*8,ALLOCATABLE:: Delx2(:), Dely2(:)
-  REAL*8:: t1, t2
-  INTEGER:: i, j, k
 
   ALLOCATE(Delx2(dN_x+2),Dely2(dN_y+2))
   Delx2(1) = 0d0
@@ -708,8 +736,21 @@ SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Star
 
   DEALLOCATE(Delx2,Dely2)
 
-!!!!!
-!!!!!
+END SUBROUTINE GENERATE_GRIDS_XY
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE GENERATE_GRIDS_T(Delt_d, Delt, Start_Time_d, Start_Time, dN_t, N_t, Sim_TGrid, Dat_TGrid, TMap)
+
+  REAL*8,INTENT(IN):: Delt_d, Delt
+  REAL*8,INTENT(IN):: Start_Time_d, Start_Time
+  INTEGER,INTENT(IN):: dN_t, N_t
+
+  REAL*8,ALLOCATABLE,INTENT(OUT):: Sim_TGrid(:), Dat_TGrid(:)
+  INTEGER,ALLOCATABLE,INTENT(OUT):: TMap(:)
+
+  INTEGER:: i, j, k
 
   ALLOCATE(TMap(2*N_t),Dat_TGrid(dN_t),Sim_TGrid(N_t))
 
@@ -760,7 +801,7 @@ SUBROUTINE GENERATE_GRIDS(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Star
 
   END DO
 
-END SUBROUTINE GENERATE_GRIDS
+END SUBROUTINE GENERATE_GRIDS_T
 
 !==================================================================================================================================!
 !

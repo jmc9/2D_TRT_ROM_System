@@ -14,7 +14,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
   quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
   Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
-  Start_Time)
+  Start_Time,DMD_dset_times)
 
   IMPLICIT NONE
 
@@ -39,6 +39,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   INTEGER,INTENT(OUT):: PODgsum, Direc_Diff
   CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
 
+  REAL*8,ALLOCATABLE,INTENT(OUT):: DMD_dset_times(:)
   INTEGER,INTENT(OUT):: N_DMD_dsets
   CHARACTER(100),INTENT(OUT):: DMD_Type
   CHARACTER(100),INTENT(OUT),ALLOCATABLE:: DMD_dsets(:)
@@ -94,7 +95,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
     END IF
 
   ELSE IF (run_type .EQ. 'mg_dmd') THEN
-    CALL INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,N_DMD_dsets)
+    CALL INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,DMD_dset_times,N_DMD_dsets)
 
     IF (DMD_Type .EQ. 'fg') THEN
       maxit_RTE = 1
@@ -677,7 +678,7 @@ END SUBROUTINE INPUT_POD_OPTS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,N_dsets)
+SUBROUTINE INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,DMD_dset_times,N_dsets)
 
   IMPLICIT NONE
 
@@ -685,16 +686,18 @@ SUBROUTINE INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,N_dsets)
   INTEGER,INTENT(IN):: inpunit
 
   !OUTPUT VARIABLES
+  REAL*8,ALLOCATABLE,INTENT(OUT):: DMD_dset_times(:)
   INTEGER,INTENT(OUT):: N_dsets
   CHARACTER(100),INTENT(OUT):: DMD_Type
-  CHARACTER(100),INTENT(OUT),ALLOCATABLE:: DMD_dsets(:)
+  CHARACTER(100),ALLOCATABLE,INTENT(OUT):: DMD_dsets(:)
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
   CHARACTER(100):: key
   CHARACTER(100):: block
-  CHARACTER(100),DIMENSION(5):: args
-  INTEGER:: io, io2, block_found, i
+  CHARACTER(100),DIMENSION(3):: args
+  INTEGER:: io, io2, block_found, i, p, l
+  REAL*8:: min
 
   !DEFAULT VALUES
   N_dsets = 0
@@ -720,12 +723,10 @@ SUBROUTINE INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,N_dsets)
       IF (key(1:1) .EQ. '[') THEN
         EXIT
 
-      ELSE IF (trim(key) .EQ. 'datasets') THEN
+      ELSE IF (trim(key) .EQ. 'N_datasets') THEN
         READ(args(1),*) N_dsets
         ALLOCATE(DMD_dsets(N_dsets))
-        DO i=1,N_dsets
-          READ(args(i+1),*) DMD_dsets(i)
-        END DO
+        ALLOCATE(DMD_dset_times(N_dsets+1))
 
       ELSE IF (trim(key) .EQ. 'DMD_type') THEN
         READ(args(1),*) DMD_Type
@@ -738,6 +739,65 @@ SUBROUTINE INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,N_dsets)
     END IF
 
   END DO
+
+  IF (N_dsets .LE. 0) THEN
+    WRITE(*,*) 'INPUTS.f08 :: INPUT_DMD_OPTS - ERROR'
+    WRITE(*,*) 'N_DMD_dsets detected as >= 0!'
+    STOP
+  END IF
+
+  CALL LOCATE_BLOCK(inpunit,block,block_found)
+  p = 1
+  DO
+    READ(inpunit,'(A)',IOSTAT=io) line
+
+    IF (io .GT. 0) THEN !io > 0 means bad read
+      STOP 'Something went wrong reading general.inp'
+
+    ELSE IF (io .LT. 0) THEN !io < 0 signals end of file
+      EXIT
+
+    ELSE !checking which key is specified and putting argument in correct variable
+      READ(line,*,IOSTAT=io2) key, args !reading in key/argument pairs
+
+      IF (key(1:1) .EQ. '[') THEN
+        EXIT
+
+      ELSE IF (trim(key) .EQ. 'dataset') THEN
+        IF (p .GT. N_dsets) THEN
+          WRITE(*,*) 'MODULE: INPUTS - SUBROUTINE: INPUT_DMD_OPTS'
+          WRITE(*,*) '-- Found more datasets than were accounted for!'
+          WRITE(*,*) '-- Check to make sure the input for N_datasets is consistent with the number of input datasets'
+          STOP
+        END IF
+        READ(args(1),*) DMD_dset_times(p)
+        READ(args(2),*) DMD_dsets(p)
+        p = p + 1
+        key = ''
+
+      END IF
+
+    END IF
+
+  END DO
+
+  IF (N_dsets.GT.1) THEN
+    DO i=1,N_dsets
+      min = DMD_dset_times(i)
+      l = i
+      DO p=i+1,N_dsets
+        IF (DMD_dset_times(p) .LT. min) THEN
+          min = DMD_dset_times(p)
+          l = p
+        END IF
+      END DO
+
+      min = DMD_dset_times(i)
+      DMD_dset_times(i) = DMD_dset_times(l)
+      DMD_dset_times(l) = min
+    END DO
+  END IF
+  DMD_dset_times(N_dsets+1) = HUGE(0d0)
 
 END SUBROUTINE INPUT_DMD_OPTS
 

@@ -17,7 +17,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
   Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
   QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type,Direc_Diff,&
-  xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,DMD_Type)
+  xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,DMD_dset_times)
 
   INTEGER,INTENT(OUT):: outID
   INTEGER,INTENT(OUT):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -26,21 +26,22 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
 
   REAL*8,INTENT(IN):: c, h, pi, erg, Comp_Unit, cv
   REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt, Theta
-  REAL*8,INTENT(IN):: xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
+  REAL*8,INTENT(IN):: xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:), DMD_dset_times(:)
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low, POD_err
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: use_grey, maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads, BC_type(:)
   INTEGER,INTENT(IN):: I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
   INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out, E_out, F_out, D_out
-  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out, PODgsum, Direc_Diff
-  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc, POD_Type,DMD_Type
+  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out, PODgsum, Direc_Diff, N_DMD_dsets
+  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc, POD_Type, DMD_Type, DMD_dsets(:)
   LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, kapE_dT_flag
 
   INTEGER:: Status
   INTEGER:: xlen_ID, ylen_ID
   INTEGER:: Delx_ID, Dely_ID, tlen_ID, Delt_ID, BC_type_ID, bcT_left_ID, bcT_bottom_ID, bcT_right_ID, bcT_top_ID, Tini_ID
   INTEGER:: xpts_avg_ID, xpts_edgV_ID, ypts_avg_ID, ypts_edgH_ID, tpts_ID
-  INTEGER:: Z(0)
+  INTEGER:: Z(0), i
+  CHARACTER(50):: buf
 
   !Opening output file
   CALL NF_OPEN_FILE(outID,outfile,'New')
@@ -112,6 +113,18 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   ELSE IF (run_type .EQ. 'mg_dmd') THEN
     Status = nf90_put_att(outID,NF90_GLOBAL,'DMD_Type',DMD_Type)
     CALL HANDLE_ERR(Status)
+
+    Status = nf90_put_att(outID,NF90_GLOBAL,'N_DMD_dsets',N_DMD_dsets)
+    CALL HANDLE_ERR(Status)
+
+    Status = nf90_put_att(outID,NF90_GLOBAL,'DMD_dset_times',DMD_dset_times)
+    CALL HANDLE_ERR(Status)
+
+    DO i=1,N_DMD_dsets
+      write(buf,'(A,I1)') 'DMD_dset',i
+      Status = nf90_put_att(outID,NF90_GLOBAL,buf,DMD_dsets(i))
+      CALL HANDLE_ERR(Status)
+    END DO
 
   END IF
 
@@ -276,7 +289,7 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   CALL NF_DEF_VAR(ypts_edgH_ID,outID,(/N_edgH_ID/),'ypts_edgH','Double')
   Status = nf90_put_att(outID,ypts_edgH_ID,'bnds',(/0d0,ylen/))
   CALL NF_DEF_VAR(tpts_ID,outID,(/N_t_ID/),'tpts','Double')
-  Status = nf90_put_att(outID,tpts_ID,'bnds',(/0d0,tlen/))
+  Status = nf90_put_att(outID,tpts_ID,'bnds',(/tpts(1),tlen/))
 
   !===========================================================================!
   !                                                                           !

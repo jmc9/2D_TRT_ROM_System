@@ -11,6 +11,7 @@ MODULE ALGORITHMS
   USE netcdf
   USE NCDF_IO
   USE POD_ROUTINES
+  USE DMD_ROUTINES
   USE GRID_FUNCTIONS
 
   IMPLICIT NONE
@@ -27,20 +28,21 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
   Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
   E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen,&
-  Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile)
+  Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile,N_DMD_dsets,DMD_dsets,DMD_Type,DMD_dset_times)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:), Kappa_Mult(:)
   REAL*8,INTENT(IN):: Delx(:), Dely(:), Delt, Theta, tlen, xlen, ylen
-  REAL*8,INTENT(IN):: Start_Time
+  REAL*8,INTENT(IN):: Start_Time, DMD_dset_times(:)
   REAL*8,INTENT(IN):: c, cV, h, pi, Kap0, erg
   REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr1, Conv_gr2
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
   REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low, POD_err
-  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, PODgsum, Direc_Diff, Mat(:,:)
+  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, PODgsum, Direc_Diff, Mat(:,:), N_DMD_dsets
   INTEGER,INTENT(IN):: use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
   LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search, kapE_dT_flag
   CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dset, restart_outfile, restart_infile
+  CHARACTER(*),INTENT(IN):: DMD_Type, DMD_dsets(:)
 
   !----------------Output File ID's------------------!
   INTEGER,INTENT(IN):: outID
@@ -147,6 +149,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
   !--------------------------------------------------!
   REAL*8,ALLOCATABLE:: C_BCg(:), S_BCg(:), U_BCg(:), V_BCg(:)
+  COMPLEX*16,ALLOCATABLE:: L_BCg(:), W_BCg(:), B_BCg(:)
   INTEGER,ALLOCATABLE:: rrank_BCg(:)
 
   REAL*8,ALLOCATABLE:: C_fg_avg_xx(:), S_fg_avg_xx(:), U_fg_avg_xx(:), V_fg_avg_xx(:)
@@ -155,6 +158,14 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: C_fg_edgH_yy(:), S_fg_edgH_yy(:), U_fg_edgH_yy(:), V_fg_edgH_yy(:)
   REAL*8,ALLOCATABLE:: C_fg_edgV_xy(:), S_fg_edgV_xy(:), U_fg_edgV_xy(:), V_fg_edgV_xy(:)
   REAL*8,ALLOCATABLE:: C_fg_edgH_xy(:), S_fg_edgH_xy(:), U_fg_edgH_xy(:), V_fg_edgH_xy(:)
+  !
+  COMPLEX*16,ALLOCATABLE:: L_fg_avg_xx(:),  W_fg_avg_xx(:),  B_fg_avg_xx(:)
+  COMPLEX*16,ALLOCATABLE:: L_fg_edgV_xx(:), W_fg_edgV_xx(:), B_fg_edgV_xx(:)
+  COMPLEX*16,ALLOCATABLE:: L_fg_avg_yy(:),  W_fg_avg_yy(:),  B_fg_avg_yy(:)
+  COMPLEX*16,ALLOCATABLE:: L_fg_edgH_yy(:), W_fg_edgH_yy(:), B_fg_edgH_yy(:)
+  COMPLEX*16,ALLOCATABLE:: L_fg_edgV_xy(:), W_fg_edgV_xy(:), B_fg_edgV_xy(:)
+  COMPLEX*16,ALLOCATABLE:: L_fg_edgH_xy(:), W_fg_edgH_xy(:), B_fg_edgH_xy(:)
+  !
   INTEGER,ALLOCATABLE:: rrank_fg_avg_xx(:), rrank_fg_edgV_xx(:), rrank_fg_avg_yy(:), rrank_fg_edgH_yy(:)
   INTEGER,ALLOCATABLE:: rrank_fg_edgV_xy(:), rrank_fg_edgH_xy(:)
 
@@ -163,9 +174,9 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: C_I_edgH(:), S_I_edgH(:), U_I_edgH(:), V_I_edgH(:)
   INTEGER,ALLOCATABLE:: rrank_I_avg(:), rrank_I_edgV(:), rrank_I_edgH(:)
 
-  REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d, Start_Time_d
+  REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d, Start_Time_d, DMD_Time
   REAL*8,ALLOCATABLE:: Delx_d(:), Dely_d(:), bcT_d(:)
-  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, fg_pod_out
+  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, fg_pod_out, DMDgsum, Current_Database
   INTEGER,ALLOCATABLE:: BC_Type_d(:)
 
   REAL*8,ALLOCATABLE:: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
@@ -328,6 +339,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       CALL HANDLE_ERR(Status)
     END IF
 
+  ELSE IF ( run_type .EQ. 'mg_dmd' ) THEN
+    RT_start_Its = 1
+    HO_Form = 3
+    Fdt_Weight = 1d0
+
   ELSE
     WRITE(*,*)
     WRITE(*,*)' ERROR IN ALGORITHMS: Unknown run_type/POD_Type detected'
@@ -342,6 +358,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   !===========================================================================!
   Time = Start_Time
   t = 0
+  Current_Database = 0
   DO
 
     !setting time and t to next time step
@@ -377,6 +394,30 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
     !===========================================================================!
     !                                                                           !
+    !     CHECKING DMD DATABASE TIME RANGES                                     !
+    !     -> LOADING NEW DATABASE WHEN ENTERING SPECIFIED TEMPORAL RANGE        !
+    !                                                                           !
+    !===========================================================================!
+    IF (run_type .EQ. 'mg_dmd') THEN
+      IF (time .GE. DMD_dset_times(Current_Database + 1)) THEN
+        Current_Database = Current_Database + 1
+
+        CALL INPUT_fg_DMD(DMD_dsets(Current_Database), DMDgsum, dN_x, dN_y, dN_g, L_BCg, W_BCg, B_BCg, rrank_BCg,&
+          L_fg_avg_xx, W_fg_avg_xx, B_fg_avg_xx, rrank_fg_avg_xx, L_fg_edgV_xx, W_fg_edgV_xx, B_fg_edgV_xx, rrank_fg_edgV_xx,&
+          L_fg_avg_yy, W_fg_avg_yy, B_fg_avg_yy, rrank_fg_avg_yy, L_fg_edgH_yy, W_fg_edgH_yy, B_fg_edgH_yy, rrank_fg_edgH_yy,&
+          L_fg_edgV_xy, W_fg_edgV_xy, B_fg_edgV_xy, rrank_fg_edgV_xy, L_fg_edgH_xy, W_fg_edgH_xy, B_fg_edgH_xy,&
+          rrank_fg_edgH_xy, xlen_d, ylen_d, Tini_d, Delx_d, Dely_d, bcT_d, BC_Type_d, Start_Time_d)
+
+        CALL GENERATE_GRIDS(Delx_d, Dely_d, Delx, Dely, xlen_d, ylen_d, xlen, ylen, dN_x, dN_y, N_x, N_y,&
+          Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Sim_Grid_Bnds, Dat_Grid_Avg, Dat_Grid_EdgV, Dat_Grid_EdgH,&
+          Dat_Grid_Bnds, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, GMap_xyBnds, VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH,&
+          VMap_xyBnds)
+        ! WRITE(*,*) 'Successfully loaded database ',Current_Database
+      END IF
+    END IF
+
+    !===========================================================================!
+    !                                                                           !
     !     OUTER ITERATION LOOP (RTE ITERATIONS)                                 !
     !                                                                           !
     !===========================================================================!
@@ -393,6 +434,13 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       !the RTE is not necessarily solved all the time
       !only solving the RTE on and after the 2nd outer iteration for the mlqd algorithm
       !for methods that don't use the RTE it is never solved
+      !--------------------------------------------------!
+      !                   HO_FORM = 0                    !
+      !                                                  !
+      !            SOLVING THE FULL-ORDER RTE            !
+      !                                                  !
+      ! (Only solving for iterations after RT_start_Its) !
+      !--------------------------------------------------!
       IF ((HO_Form .EQ. 0).AND.(RT_Its .GE. RT_start_Its)) THEN
 
         !solving the RTE
@@ -429,6 +477,12 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
         !calculating new MGQD boundary factors with the current iterate's intensities
         CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type,Threads)
 
+      !--------------------------------------------------!
+      !                   HO_FORM = 1                    !
+      !                                                  !
+      !    CONSTRUCTING MULTIGROUP QD FACTORS FROM -     !
+      !    - TSVD REPRESENTATION                         !
+      !--------------------------------------------------!
       ELSE IF (HO_Form .EQ. 1) THEN
 
         CALL POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,C_fg_avg_xx,&
@@ -447,10 +501,37 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           fg_edgH_xy = 0d0
         END IF
 
+      !--------------------------------------------------!
+      !                   HO_FORM = 2                    !
+      !                                                  !
+      !          SKIP CALCULATION OF QD FACTORS          !
+      !                                                  !
+      ! (QD factors initialized to 1/3)                  !
+      !--------------------------------------------------!
       ELSE IF (HO_Form .EQ. 2) THEN
 
         ! CONTINUE !do nothing
         ! write(*,*) maxit_RTE
+
+      !--------------------------------------------------!
+      !                   HO_FORM = 3                    !
+      !                                                  !
+      !    CONSTRUCTING MULTIGROUP QD FACTORS FROM -     !
+      !    - DMD EXPANSION                               !
+      !--------------------------------------------------!
+      ELSE IF (HO_Form .EQ. 3) THEN
+        DMD_Time = Time - Start_Time_d
+
+        CALL DMD_RECONSTRUCT_fg(fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_edgV_xy, fg_edgH_yy, fg_edgH_xy,&
+          L_fg_avg_xx, B_fg_avg_xx, W_fg_avg_xx, L_fg_edgV_xx, B_fg_edgV_xx, W_fg_edgV_xx,&
+          L_fg_avg_yy, B_fg_avg_yy, W_fg_avg_yy, L_fg_edgH_yy, B_fg_edgH_yy, W_fg_edgH_yy,&
+          L_fg_edgV_xy, B_fg_edgV_xy, W_fg_edgV_xy, L_fg_edgH_xy, B_fg_edgH_xy, W_fg_edgH_xy,&
+          rrank_fg_avg_xx, rrank_fg_edgV_xx, rrank_fg_avg_yy, rrank_fg_edgH_yy, rrank_fg_edgV_xy, rrank_fg_edgH_xy,&
+          dN_x, dN_y, dN_g, N_x, N_y, N_g, DMD_Time, DMDgsum, Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Dat_Grid_Avg,&
+          Dat_Grid_EdgV, Dat_Grid_EdgH, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH, Threads)
+
+        CALL DMD_RECONSTRUCT_BCg(Cg_L, Cg_B, Cg_R, Cg_T, L_BCg, B_BCg, W_BCg, rrank_BCg, dN_x, dN_y, dN_g, N_x, N_y, N_g,&
+          DMD_Time, DMDgsum, Sim_Grid_Bnds, Dat_Grid_Bnds, GMap_xyBnds, VMap_xyBnds, Threads)
 
       END IF
 
@@ -639,6 +720,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     ELSE IF ( run_type .EQ. 'mlqd' ) THEN
       write(*,*) Time, RT_Its, TR_Tnorm, TR_Enorm
     ELSE IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
+      write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
+    ELSE IF ((run_type .EQ. 'mg_dmd').AND.(DMD_Type .EQ. 'fg')) THEN
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p1/3')) THEN
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm

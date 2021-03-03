@@ -31,7 +31,7 @@ program main
     REAL*8:: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, E_Bound_Low, T_Bound_Low
     REAL*8:: xlen, ylen, Tlen, delt, bcT_left, bcT_right, bcT_top, bcT_bottom, Tini
     REAL*8,ALLOCATABLE:: Delx(:), Dely(:), xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
-    REAL*8,ALLOCATABLE:: out_times(:), Kappa_Mult(:)
+    REAL*8,ALLOCATABLE:: out_times(:), Kappa_Mult(:), DMD_dset_times(:)
     REAL*8,ALLOCATABLE:: nu_g(:)
     INTEGER,ALLOCATABLE:: Mat(:,:)
     INTEGER:: use_grey, PODgsum, Direc_Diff, N_DMD_dsets
@@ -85,7 +85,7 @@ program main
       MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
       quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
       Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
-      Start_Time)
+      Start_Time,DMD_dset_times)
 
     CALL OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,&
       MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,c_ID,h_ID,pi_ID,erg_ID,Comp_Unit_ID,cv_ID,&
@@ -94,7 +94,7 @@ program main
       maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
       Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
       QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type,Direc_Diff,&
-      xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,DMD_Type)
+      xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,DMD_dset_times)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     CALL TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tlen,Theta,Start_Time,c,cV,h,pi,Kap0,&
@@ -104,7 +104,7 @@ program main
       N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
       Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
       E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen,&
-      Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile)
+      Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile,N_DMD_dsets,DMD_dsets,DMD_Type,DMD_dset_times)
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     CALL NF_CLOSE_FILE(outID)

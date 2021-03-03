@@ -27,7 +27,7 @@ import Plotters as pltr
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
+def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt, ODMD=False):
     recon = []
     n_trunc = []
 
@@ -45,10 +45,14 @@ def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
         if (dcmp.type in ['DMD','DMDg']):
 
             (dcmp.rank, dcmp.clen) = dmdr.Read_Dims(dset,dcmp.name)
-            dcmp.dat = dmdr.Read_DMD(dset,dcmp.name,dcmp.clen,dcmp.rank)
+            dcmp.dat, coef, cvec = dmdr.Read_DMD(dset,dcmp.name,dcmp.clen,dcmp.rank)
+
+            if (ODMD):
+                dcmp.dat.eval, dcmp.dat.evec = dmdr.optimized_DMD(dcmp, Prob_Data[i])
+                coef = np.full(dcmp.dat.N_modes, 1.)
 
             if dcmp.opt[0] in [0,1]:
-                n_trunc.append( dmdr.DMD_Sort(dcmp, trunc_eps) )
+                n_trunc.append( dmdr.DMD_Sort(dcmp, coef, trunc_eps, trunc_opt) )
                 if dcmp.type == 'DMD': plt_modes = np.arange(dcmp.dat.N_modes)
                 else: plt_modes = [np.arange(nmodes) for nmodes in dcmp.dat.N_modes]
 
@@ -61,13 +65,12 @@ def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
                 if len(Prob_Data) != 0:
                     if Prob_Data[i].opt[0] in [0,1]:
                         print('Reconstructing training data...')
-                        coef = dmdr.Coef_Calc(dcmp, Prob_Data[i].dat[0], n_trunc[i], trunc_opt)
 
                         len1 = len(Prob_Data[i].dat)
                         len2 = len(Prob_Data[i].dat[0])
                         edat = np.zeros([len1, len2],dtype='complex')
                         for j in range(len1):
-                            edat[j] = dmdr.Expand(dcmp, coef, j, n_trunc[i], trunc_opt)
+                            edat[j] = dmdr.Expand(dcmp, coef, j, n_trunc[i], trunc_opt, trunc_eps, cvec)
                         recon[i] = copy.deepcopy(edat)
 
             else:
@@ -75,7 +78,7 @@ def Process_Data(dset, Dcmp_Data, Prob_Data, plotdir, trunc_eps, trunc_opt):
 
         elif (dcmp.type in ['POD','PODg']):
             (dcmp.rank, dcmp.clen) = podr.Read_Dims(dset,dcmp.name)
-            dcmp.dat = podr.Read_POD(dset, dcmp.name, dcmp.clen, dcmp.rank, 1e-8)
+            dcmp.dat = podr.Read_POD(dset, dcmp.name, dcmp.clen, dcmp.rank, trunc_eps)
 
             if dcmp.opt[0] in [0,1]:
                 n_trunc.append( dcmp.dat.t_rank )

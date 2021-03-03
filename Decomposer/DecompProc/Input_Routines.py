@@ -50,6 +50,7 @@ def Input(infile,proc_dir_,plotdir_):
             elif input[0] == 'trunc_eps': trunc_eps = float(input[1])
 
             elif input[0] == 'trunc_opt': trunc_opt = int(input[1])
+    if ((trunc_opt in [1,2])and(trunc_eps == 0.)): trunc_eps = 1.
 
     Check_Inps(dset) #checking for invalid inputs
 
@@ -66,8 +67,8 @@ def Default_Inps():
     dset      = 'dcmp_out.h5'
     dset_dat  = ''
     dcmp_data = 'QDf'
-    trunc_eps = 1.
-    trunc_opt = 2
+    trunc_eps = 0.
+    trunc_opt = 3
 
     return (proc_dir, plotdir, dset, dset_dat, dcmp_data, trunc_eps, trunc_opt)
 

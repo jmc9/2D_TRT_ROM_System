@@ -13,6 +13,8 @@ import numpy as np
 import math
 import cmath
 import copy
+from scipy.optimize import dual_annealing
+from scipy.optimize import minimize
 
 #local tools
 import Plotters as pltr
@@ -189,14 +191,17 @@ def Read_DMD(dset,name,clen,rank):
     N_modes = getattr(dset,'N_modes_'+name)
 
     Evals = Read_Evals(dset, name, N_modes)
-    Evecs = Read_Evecs(dset, name, N_modes, clen)
+    Evecs = Read_Evecs(dset, name, N_modes, clen, evcn='Wproj')
     Expvals = Read_Expvals(dset, name, N_modes)
     r_Evecs = Read_r_Evecs(dset, name, N_modes, rank)
     Uvecs = Read_Vecs(dset, name, N_modes, clen)
 
+    coefs = Read_Evals(dset, name, N_modes, evn='b')
+    cvec = dset['C_{}'.format(name)][:]
+
     DMD_dat = DMD(N_modes, Evals, Evecs, Expvals, Uvecs, r_Evecs)
 
-    return DMD_dat
+    return DMD_dat, coefs, cvec
 
 #==================================================================================================================================#
 #
@@ -316,7 +321,8 @@ def Read_Vecs(dset,name,Nmodes,vlen,uvcn='Umat',tlen=0):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def DMD_Sort(DMD_Data, trunc_eps):
+def DMD_Sort(DMD_Data, coef, trunc_eps, trunc_opt):
+# def DMD_Sort(DMD_Data, trunc_eps, trunc_opt):
 
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
         N_g = len(DMD_Data.dat.N_modes)
@@ -325,10 +331,14 @@ def DMD_Sort(DMD_Data, trunc_eps):
         evc_p = 0
         evcr_p = 0
         for g in range(N_g):
-            n_trunc[g] = int(trunc_eps * DMD_Data.dat.N_modes[g])
+            if (trunc_opt == 1):
+                n_trunc[g] = int(trunc_eps * DMD_Data.dat.N_modes[g])
+            else:
+                n_trunc[g] = DMD_Data.dat.N_modes[g]
 
             l = DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
             el = DMD_Data.dat.expval[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
+            b = coef[evl_p : evl_p + DMD_Data.dat.N_modes[g]]
 
             w = DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen]
             wr = DMD_Data.dat.r_evec[evcr_p : evcr_p + DMD_Data.dat.N_modes[g]**2]
@@ -345,6 +355,7 @@ def DMD_Sort(DMD_Data, trunc_eps):
                 if (loc != j):
                     evl = l[j]
                     expvl = el[j]
+                    bvl = b[j]
 
                     p = j * DMD_Data.clen
                     evc = copy.copy(w[p : p + DMD_Data.clen])
@@ -354,6 +365,7 @@ def DMD_Sort(DMD_Data, trunc_eps):
 
                     l[j] = l[loc]
                     el[j] = el[loc]
+                    b[j] = b[loc]
 
                     p2 = loc * DMD_Data.clen
                     w[p : p + DMD_Data.clen] = copy.copy(w[p2 : p2 + DMD_Data.clen])
@@ -363,12 +375,14 @@ def DMD_Sort(DMD_Data, trunc_eps):
 
                     l[loc] = evl
                     el[loc] = expvl
+                    b[loc] = bvl
 
                     w[p2 : p2 + DMD_Data.clen] = copy.copy(evc)
                     wr[p3 : p3 + DMD_Data.dat.N_modes[g]] = copy.copy(evcr)
 
             DMD_Data.dat.eval[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = l
             DMD_Data.dat.expval[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = el
+            coef[evl_p : evl_p + DMD_Data.dat.N_modes[g]] = b
             DMD_Data.dat.evec[evc_p : evc_p + DMD_Data.dat.N_modes[g] * DMD_Data.clen] = w
             DMD_Data.dat.r_evec[evcr_p : evcr_p + DMD_Data.dat.N_modes[g]**2] = wr
 
@@ -377,7 +391,11 @@ def DMD_Sort(DMD_Data, trunc_eps):
             evcr_p += DMD_Data.dat.N_modes[g]**2
 
     else:
-        n_trunc = int( trunc_eps * DMD_Data.dat.N_modes )
+        if (trunc_opt == 1):
+            n_trunc = int( trunc_eps * DMD_Data.dat.N_modes )
+        else:
+            n_trunc = DMD_Data.dat.N_modes
+
         for j in range(DMD_Data.dat.N_modes):
             max = math.sqrt( DMD_Data.dat.eval[j].real**2 + DMD_Data.dat.eval[j].imag**2 )
             loc = j
@@ -390,6 +408,7 @@ def DMD_Sort(DMD_Data, trunc_eps):
             if (loc != j):
                 evl = DMD_Data.dat.eval[j]
                 expvl = DMD_Data.dat.expval[j]
+                bvl = coef[j]
 
                 p = j * DMD_Data.clen
                 evc = copy.copy(DMD_Data.dat.evec[p : p + DMD_Data.clen])
@@ -399,6 +418,7 @@ def DMD_Sort(DMD_Data, trunc_eps):
 
                 DMD_Data.dat.eval[j] = DMD_Data.dat.eval[loc]
                 DMD_Data.dat.expval[j] = DMD_Data.dat.expval[loc]
+                coef[j] = coef[loc]
 
                 p2 = loc * DMD_Data.clen
                 DMD_Data.dat.evec[p : p + DMD_Data.clen] = DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen]
@@ -407,6 +427,7 @@ def DMD_Sort(DMD_Data, trunc_eps):
 
                 DMD_Data.dat.eval[loc] = evl
                 DMD_Data.dat.expval[loc] = expvl
+                coef[loc] = bvl
 
                 DMD_Data.dat.evec[p2 : p2 + DMD_Data.clen] = evc
                 DMD_Data.dat.r_evec[p3 : p3 + DMD_Data.dat.N_modes] = evcr
@@ -443,6 +464,11 @@ def Coef_Calc(DMD_Data, init, n_trunc, trunc_opt):
             p2 = p1 + DMD_Data.clen
             init_ = np.array(init[p1 : p2], dtype='complex')
 
+            ##
+            K = np.linalg.cond(w)
+            print('conditon number of coefficient system (g-{}) = {}'.format(n,K))
+            ##
+
             if ((trunc_opt == 1) and (n_trunc[n] != DMD_Data.dat.N_modes[n])):
                 b[pb : pb + n_trunc[n]], b1, b2, b3 = np.linalg.lstsq(w[:, 0:n_trunc[n]], np.dot(ut, init_), rcond=-1 )
             else:
@@ -462,21 +488,23 @@ def Coef_Calc(DMD_Data, init, n_trunc, trunc_opt):
         ut = np.array(ut, dtype='complex')
         init_ = np.array(init, dtype='complex')
 
-        if ((trunc_opt == 1) and (n_trunc[n] != DMD_Data.dat.N_modes[n])):
+        ##
+        K = np.linalg.cond(w)
+        print('conditon number of coefficient system = {}'.format(K))
+        ##
+
+        if ((trunc_opt == 1) and (n_trunc != DMD_Data.dat.N_modes)):
             b, b1, b2, b3 = np.linalg.lstsq(w[:, 0:n_trunc], np.dot(ut, init_), rcond=-1 )
         else:
             b = np.linalg.solve(w, np.dot(ut, init_) )
-            # for i in range(DMD_Data.dat.N_modes):
-            #     for j in range(DMD_Data.dat.N_modes):
-            #         w[i, j] = w[i, j] * DMD_Data.dat.eval[j]**5
-            # b = np.linalg.solve(w, np.dot(ut, init_) )
 
     return b
+
 
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def Expand(DMD_Data, Coef, t, n_trunc, trunc_opt):
+def Expand(DMD_Data, Coef, t, n_trunc, trunc_opt, trunc_eps, cvec):
 
     if hasattr(DMD_Data.dat.N_modes,'__len__'):
         nm = len(DMD_Data.dat.N_modes)
@@ -489,7 +517,10 @@ def Expand(DMD_Data, Coef, t, n_trunc, trunc_opt):
         for n in range(nm):
             p3 = n * DMD_Data.clen
             for i in range(n_trunc[n]):
-                l = DMD_Data.dat.eval[p1]
+                l_ = DMD_Data.dat.eval[p1]
+                if ((trunc_opt == 3)and(abs(l_**t) < trunc_eps)): l = 0.
+                else: l = l_
+
                 for j in range(DMD_Data.clen):
                     if (trunc_opt == 1): Expn[p3] = Expn[p3] + Coef[p4] * DMD_Data.dat.evec[p2] * l**t
                     else: Expn[p3] = Expn[p3] + Coef[p1] * DMD_Data.dat.evec[p2] * l**t
@@ -506,9 +537,80 @@ def Expand(DMD_Data, Coef, t, n_trunc, trunc_opt):
 
         p = 0
         for i in range(n_trunc):
-            l = DMD_Data.dat.eval[i]
+            l_ = DMD_Data.dat.eval[i]
+            if ((trunc_opt == 3)and(abs(l_**t) < trunc_eps)): l = 0.
+            else: l = l_
+
             for j in range(DMD_Data.clen):
-                Expn[j] = Expn[j] + Coef[i] * DMD_Data.dat.evec[p] * l**t
+                Expn[j] += Coef[i] * DMD_Data.dat.evec[p] * l**(t)
                 p += 1
 
+        for j in range(DMD_Data.clen):
+            Expn[j] += complex(cvec[j],0.)
+
     return Expn
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def optimized_DMD(DMD_Data, Prob_Data, opt=0):
+    nm = DMD_Data.dat.N_modes
+    if hasattr(nm,'__len__'):
+        print('optimized_DMD not functional for multigroup right now, aborting')
+        quit()
+
+    else:
+        K = np.transpose(Prob_Data.dat)
+        (clen, Klen) = np.shape(X)
+        ratio = N_t/nm
+        pts = np.arange(0,N_t,ratio).round().astype(int)
+
+        L_cplx = np.array(DMD_Data.dat.eval)
+        L = C2R(L_cplx)
+        R = np.zeros((DMD_Data.clen, nm))
+        KK = np.matmul(np.transpose(K),K)
+        trace = Gamma_func(L, KK, Klen)
+        print('Initial DMD error = {}'.format(trace))
+
+        if (opt == 0):
+            #Local optimization with initial guess of DMD modes
+            res = minimize(Gamma_func, L, (KK))
+            res = minimize(Gamma_func, L, (KK, Klen), 'BFGS', '3-point', options={'disp': True})
+        else:
+            #Global optimization
+            lowb = [-1.]*len(L)
+            upb = [1.]*len(L)
+            res = dual_annealing(Gamma_func, bounds=list(zip(lowb, upb)), args=(KK, Klen))
+        print(res.success)
+        print(res.message)
+        print('Optimized error = {}'.format(Gamma_func(res.x,KK,Klen)))
+
+        L_cplx = R2C(res.x)
+        T = np.vander(L_cplx, Klen, increasing=True)
+        V = np.matmul( K,  np.linalg.pinv(T))
+        v2 = np.transpose(V).flatten()
+
+    return L_cplx, v2
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def Gamma_func(L, KK, Klen):
+    L_cplx = R2C(L)
+    T = np.vander(L_cplx, Klen, increasing=True)
+    TT = np.matmul( np.linalg.pinv(T), T )
+    tr1 = np.trace(KK)
+    tr2 = np.trace(np.matmul(TT, KK))
+
+    return abs(tr1 - tr2)
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def R2C(r):
+    c = r[:len(r)//2] + 1j * r[len(r)//2:]
+    return c
+
+def C2R(c):
+    r = np.concatenate((np.real(c),np.imag(c)))
+    return r

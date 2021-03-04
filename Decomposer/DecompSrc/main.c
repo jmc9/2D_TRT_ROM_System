@@ -24,7 +24,7 @@ void Handle_Err(const int Status, const char *Location);
 
 /* ----- FROM INPUTS.c ----- */
 int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *gsum, double *svd_eps, Spec **Prb_specs, size_t *N_specs,
-  Data **Dcmp_data, size_t *N_data, Data **Disc_Wts, size_t *N_wts);
+  Data **Dcmp_data, size_t *N_data, Data **Disc_Wts, size_t *N_wts, int *base_subtract);
 
 void Get_Dims(const int ncid, int *BC_Type, Spec *Prb_specs, const size_t N_specs,
   Data *Dcmp_data, const size_t N_data, ncdim **dims, size_t *N_dims, Data *Disc_Wts, const size_t N_wts);
@@ -35,7 +35,7 @@ int Get_Grids(const int ncid, Data *Dcmp_data, const size_t N_data, Data **Grids
 
 /* ----- FROM OUTPUTS.c ----- */
 int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, const size_t N_dims, ncdim **clen,
-  ncdim **rank, const int gsum, const int dcmp_type, int ***dcdims);
+  ncdim **rank, const int gsum, const int dcmp_type, int ***dcdims, const int base_subtract);
 
 int Def_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims);
 
@@ -48,7 +48,7 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcm
 
 int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int gsum, Data *Dcmp_data,
   const size_t N_data, Data *Grids, const size_t N_grids, Data *Decomp, ncdim *clen, ncdim *rank, ncdim *dims,
-  int **dcdims, const double svd_eps);
+  int **dcdims, const double svd_eps, const int base_subtract);
 
 /* ----- LOCAL DEFINITIONS ----- */
 #define min(a,b) \
@@ -66,7 +66,7 @@ int main()
   char loc[5] = "main";
 
   //input variables
-  int dcmp_type, gsum, **dcdims;
+  int dcmp_type, gsum, base_subtract, **dcdims;
   int ncid_in, ncid_out;
   char infile[25], outfile[25], dsfile[100];
   double svd_eps;
@@ -98,7 +98,7 @@ int main()
   strcpy(infile,"input.inp"); //setting input file name (default)
 
   //opening, reading input file
-  err = Input(infile,dsfile,outfile,&dcmp_type,&gsum,&svd_eps,&Prb_specs,&N_specs,&Dcmp_data,&N_data,&Disc_Wts,&N_Wts);
+  err = Input(infile,dsfile,outfile,&dcmp_type,&gsum,&svd_eps,&Prb_specs,&N_specs,&Dcmp_data,&N_data,&Disc_Wts,&N_Wts,&base_subtract);
   if (err != 0){
     printf("Error detected upon user input, aborting program\n");
     exit(1);
@@ -119,7 +119,7 @@ int main()
   printf("Initializing output file\n");
   err = nc_create(outfile,NC_NETCDF4,&ncid_out); Handle_Err(err,loc); //opening NetCDF dataset
 
-  err = Def_Dims(ncid_out,Dcmp_data,N_data,dims,N_dims,&clen,&rank,gsum,dcmp_type,&dcdims); //defining dimensions in output file
+  err = Def_Dims(ncid_out,Dcmp_data,N_data,dims,N_dims,&clen,&rank,gsum,dcmp_type,&dcdims,base_subtract); //defining dimensions in output file
   if (err != 0){ printf("Error occured while defining dimensions in %s\n",outfile); exit(1); }
 
   Def_DCMP_Vars(ncid_out, dcmp_type, gsum, Dcmp_data, N_data, clen, rank, dims, &Decomp, dcdims);
@@ -136,7 +136,7 @@ int main()
   /                          PERFORMING DECOMPOSITION                           /
   /                                                                            */
   /*===========================================================================*/
-  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,gsum,Dcmp_data,N_data,Grids,N_grids,Decomp,clen,rank,dims,dcdims,svd_eps);
+  err = Decompose_Data(ncid_in,ncid_out,dcmp_type,gsum,Dcmp_data,N_data,Grids,N_grids,Decomp,clen,rank,dims,dcdims,svd_eps,base_subtract);
 
   /*===========================================================================*/
   /*                                                                            /

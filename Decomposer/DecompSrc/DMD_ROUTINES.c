@@ -153,8 +153,8 @@ int Omega_Calc(double complex **omega, double complex *lambda, const size_t xr, 
 /**/
 /*================================================================================================================================*/
 int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_t clen, const size_t rank, const size_t g,
-   const double svd_eps, double complex **wmat, double complex **lambda, double complex **wmat_tild, double **umat, size_t *N_modes,
-   double **cvec, double complex **wmat_proj)
+   const int base_subtract, const double svd_eps, double complex **wmat, double complex **lambda, double complex **wmat_tild,
+   double **umat, size_t *N_modes, double **cvec, double complex **wmat_proj)
 {
   double *x, *y;
   double *xu, *xs, *xvt, *xv, *a;
@@ -163,6 +163,17 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   size_t px, py, pa, xr;
 
   *cvec = (double *)malloc(sizeof(double)*clen);
+  for(size_t i=0; i<clen; i++){
+    (*cvec)[i] = 0.;
+  }
+
+  size_t shift;
+  if (base_subtract == 0){
+    shift = 1;
+  }
+  else if (base_subtract == 1){
+    shift = 2;
+  }
 
   //checking whether a multigroup data-matrix is being used or not
   if(N_g>0){ //if the datamatrix is multigroup, must either isolate one group or form a large multigroup matrix
@@ -170,12 +181,16 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     a = (double *)malloc(sizeof(double)*N_t*clen);
     err = gdat_reform(N_t,N_g,clen,g,data,a);
 
-    for(size_t i=0; i<clen; i++){
-      (*cvec)[i] = 0.;
+    if (base_subtract == 1){
+      size_t p = (N_t-1)*clen;
+      for(size_t i=0; i<clen; i++){
+        (*cvec)[i] = a[p];
+        ++p;
+      }
     }
 
-    x = (double *)malloc(sizeof(double)*(N_t-1)*clen);
-    y = (double *)malloc(sizeof(double)*(N_t-1)*clen);
+    x = (double *)malloc(sizeof(double)*(N_t-shift)*clen);
+    y = (double *)malloc(sizeof(double)*(N_t-shift)*clen);
 
     px = 0; py = 0; pa = 0;
     //copying first column of A to X
@@ -185,8 +200,8 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
       pa++;
     }
 
-    //copying columns 2 through N_t-1 of A to X and Y
-    for(size_t t=1; t<(N_t-1); t++){
+    //copying columns 2 through N_t-shift of A to X and Y
+    for(size_t t=1; t<(N_t-shift); t++){
       for(size_t i=0; i<clen; i++){
         x[px] = a[pa] - (*cvec)[i];
         y[py] = a[pa] - (*cvec)[i];
@@ -208,12 +223,16 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   }
   else{ //if the datamatrix is not multigroup, can immediately procede with finding the SVD
 
-    for(size_t i=0; i<clen; i++){
-      (*cvec)[i] = 0.;
+    if (base_subtract == 1){
+      size_t p = (N_t-1)*clen;
+      for(size_t i=0; i<clen; i++){
+        (*cvec)[i] = data[p];
+        ++p;
+      }
     }
 
-    x = (double *)malloc(sizeof(double)*(N_t-1)*clen);
-    y = (double *)malloc(sizeof(double)*(N_t-1)*clen);
+    x = (double *)malloc(sizeof(double)*(N_t-shift)*clen);
+    y = (double *)malloc(sizeof(double)*(N_t-shift)*clen);
 
     px = 0; py = 0; pa = 0;
     //copying first column of A to X
@@ -223,8 +242,8 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
       pa++;
     }
 
-    //copying columns 2 through N_t-1 of A to X and Y
-    for(size_t t=1; t<(N_t-1); t++){
+    //copying columns 2 through N_t-shift of A to X and Y
+    for(size_t t=1; t<(N_t-shift); t++){
       for(size_t i=0; i<clen; i++){
         x[px] = data[pa] - (*cvec)[i];
         y[py] = data[pa] - (*cvec)[i];
@@ -245,11 +264,11 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 
   //allocating space for SVD X=U*S*V^T
   xu = (double *)malloc(sizeof(double)*clen*rank);     //xu = U
-  xvt = (double *)malloc(sizeof(double)*(N_t-1)*rank); //xvt = V^T
+  xvt = (double *)malloc(sizeof(double)*(N_t-shift)*rank); //xvt = V^T
   xs = (double *)malloc(sizeof(double)*rank);          //xs = S
 
   //calculating the SVD of X
-  err = SVD_Calc(x,N_t-1,clen,xu,xs,xvt);
+  err = SVD_Calc(x,N_t-shift,clen,xu,xs,xvt);
   free(x);
 
   //checking whether to use reduced- or full-rank SVD of x in calculations
@@ -262,10 +281,10 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     printf("    -- Truncating SVD of data with rank %ld\n",xr);
 
     //reallocating V^T with reduced row count
-    double *z = malloc(sizeof(double)*(N_t-1)*xr); //temporary array
+    double *z = malloc(sizeof(double)*(N_t-shift)*xr); //temporary array
     size_t p = 0;
     size_t p2 = 0;
-    for (size_t j=0; j<(N_t-1); j++){
+    for (size_t j=0; j<(N_t-shift); j++){
       for (size_t i=0; i<xr; i++){
         z[p] = xvt[p2]; //copying first xr rows of xvt into z
         p++;
@@ -275,9 +294,9 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
     }
     free(xvt);
 
-    xvt = (double *)malloc(sizeof(double)*(N_t-1)*xr); //allocating xvt with rank = xr
+    xvt = (double *)malloc(sizeof(double)*(N_t-shift)*xr); //allocating xvt with rank = xr
     p = 0;
-    for (size_t j=0; j<(N_t-1); j++){
+    for (size_t j=0; j<(N_t-shift); j++){
       for (size_t i=0; i<xr; i++){
         xvt[p] = z[p]; //copying data back into xvt
         p++;
@@ -316,14 +335,14 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
   *umat = (double *)malloc(sizeof(double)*clen*xr);
 
   //transposing V^T (finding V = (V^T)^T)
-  xv = (double *)malloc(sizeof(double)*(N_t-1)*xr);
-  err = Transpose_Double(xvt,xv,xr,(N_t-1));
+  xv = (double *)malloc(sizeof(double)*(N_t-shift)*xr);
+  err = Transpose_Double(xvt,xv,xr,(N_t-shift));
   free(xvt);
 
   //multiplying V*S^{-1}
   px = 0;
   for(size_t i=0; i<xr; i++){
-    for(size_t j=0; j<(N_t-1); j++){
+    for(size_t j=0; j<(N_t-shift); j++){
       xv[px] = xv[px]/xs[i];
       px++;
     }
@@ -332,7 +351,7 @@ int DMD_Calc(const double *data, const size_t N_t, const size_t N_g, const size_
 
   //multiplying Y*(V*S^{-1}) (i.e y*xv), storing in x
   x = (double *)malloc(sizeof(double)*clen*xr);
-  err = MatMul_Double(x,y,xv,clen,xr,N_t-1); //finding x = y*xv
+  err = MatMul_Double(x,y,xv,clen,xr,N_t-shift); //finding x = y*xv
   free(y); free(xv);
 
   //transposing U, using y as temporary matrix
@@ -451,7 +470,7 @@ int Coef_Calc(double complex **b, const double *data, double complex *wmat_tild,
 /**/
 /*================================================================================================================================*/
 int Generate_DMD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const double svd_eps, Data *Decomp, const double delt)
+  const size_t rank, const double svd_eps, Data *Decomp, const double delt, const int base_subtract)
 {
   int err;
   int *N_modes;
@@ -500,7 +519,7 @@ int Generate_DMD(const double *data, const int ncid_out, const char *dname, cons
     startp[0] = g;
 
     //Perform the DMD algorithm, calculate DMD eigenpairs, reduced eigenvectors and left singular values of first orbital data matrix (X)
-    err = DMD_Calc(data,N_t,N_g,clen,rank,g,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr,&cvec,&wmat_proj);
+    err = DMD_Calc(data,N_t,N_g,clen,rank,g,base_subtract,svd_eps,&wmat,&lambda,&wmat_tild,&umat,&xr,&cvec,&wmat_proj);
 
     //Calculate coefficients of DMD expansion fit to the training data
     err = Coef_Calc(&b, data, wmat_tild, umat, N_t, N_g, clen, rank, g, xr, lambda, cvec, wmat);

@@ -514,7 +514,7 @@ int Get_Disc(const int ncid, Data *Disc_Wts, const size_t N_wts, ncdim *dims)
   dcmp_data - type of data to decompose */
 /*================================================================================================================================*/
 int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *gsum, double *svd_eps, Spec **Prb_specs, size_t *N_specs,
-  Data **Dcmp_data, size_t *N_data, Data **Disc_Wts, size_t *N_wts)
+  Data **Dcmp_data, size_t *N_data, Data **Disc_Wts, size_t *N_wts, int *base_subtract)
 {
   FILE *inpf;
   char line[256];
@@ -544,8 +544,7 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   *gsum = 1;
   *svd_eps = -1.;
   *N_specs = 0;
-  // *N_data = 0;
-  // *N_wts = 0;
+  *base_subtract = 0;
   int data_check = 0;
   int wts_check = 0;
 
@@ -662,6 +661,10 @@ int Input(const char *infile, char *dsfile, char *outfile, int *dcmp_type, int *
   else if (strcmp(dcmp_type_in,"DMDg") == 0){
     *dcmp_type = 1;
     *gsum = 0;
+  }
+  else if (strcmp(dcmp_type_in,"DMDb") == 0){
+    *dcmp_type = 1;
+    *base_subtract = 1;
   }
   else{
     printf("Error! [location INPUTS.c/Input]\n");

@@ -30,7 +30,7 @@ int Generate_POD(const double *data, const int ncid_out, const char *dname, cons
   const size_t rank, Data *Decomp);
 
 int Generate_DMD(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const double svd_eps, Data *Decomp, const double delt);
+  const size_t rank, const double svd_eps, Data *Decomp, const double delt, const int base_subtract);
 
 /* ----- FROM MISC_PROCS.c ----- */
 void Sort_Uniq_sizet(size_t *list, const size_t len, size_t *ulen);
@@ -48,7 +48,7 @@ int Delimit(const char *line, const char del, char **parts, const int nparts);
 /**/
 /*================================================================================================================================*/
 int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, const size_t N_dims, ncdim **clen,
-  ncdim **rank, const int gsum, const int dcmp_type, int ***dcdims)
+  ncdim **rank, const int gsum, const int dcmp_type, int ***dcdims, const int base_subtract)
 {
   int err;
   char loc[9] = "Def_Dims";
@@ -102,7 +102,12 @@ int Def_Dims(const int ncid, Data *Dcmp_data, const size_t N_data, ncdim *dims, 
       (*rank)[i].len = min((*clen)[i].len,dims[0].len);
     }
     else if (dcmp_type == 1){
-      (*rank)[i].len = min((*clen)[i].len,dims[0].len-1);
+      if (base_subtract == 0){
+        (*rank)[i].len = min((*clen)[i].len,dims[0].len-1);
+      }
+      else if (base_subtract == 1){
+        (*rank)[i].len = min((*clen)[i].len,dims[0].len-2);
+      }
     }
     else{
       printf("Invalid dcmp_type = %d found in Def_Dims!",dcmp_type);
@@ -502,7 +507,7 @@ int Def_DCMP_Vars(const int ncid, const int dcmp_type, const int gsum, Data *Dcm
 /**/
 /*================================================================================================================================*/
 int Generate_DCMP(const double *data, const int ncid_out, const char *dname, const size_t N_t, const size_t N_g, const size_t clen,
-  const size_t rank, const double svd_eps, Data *Decomp, const int dcmp_type, const double delt)
+  const size_t rank, const double svd_eps, Data *Decomp, const int dcmp_type, const double delt, const int base_subtract)
 {
   int err;
 
@@ -510,7 +515,7 @@ int Generate_DCMP(const double *data, const int ncid_out, const char *dname, con
     err = Generate_POD(data,ncid_out,dname,N_t,N_g,clen,rank,Decomp);
   }
   else if (dcmp_type == 1){ //decompose with the DMD
-    err = Generate_DMD(data,ncid_out,dname,N_t,N_g,clen,rank,svd_eps,Decomp,delt);
+    err = Generate_DMD(data,ncid_out,dname,N_t,N_g,clen,rank,svd_eps,Decomp,delt,base_subtract);
   }
 
   return err;
@@ -639,7 +644,7 @@ int Generate_DCMP(const double *data, const int ncid_out, const char *dname, con
 /*================================================================================================================================*/
 int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, const int gsum, Data *Dcmp_data,
   const size_t N_data, Data *Grids, const size_t N_grids, Data *Decomp, ncdim *clen, ncdim *rank, ncdim *dims,
-  int **dcdims, const double svd_eps)
+  int **dcdims, const double svd_eps, const int base_subtract)
 {
   int err;
   char loc[15] = "Decompose_Data";
@@ -671,7 +676,7 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
       err = nc_get_var_double(ncid_in,Dcmp_data[i].id,&Dcmp_data[i].dat[0]); Handle_Err(err,loc);
 
       err = Generate_DCMP(Dcmp_data[i].dat, ncid_out, Dcmp_data[i].name, dims[0].len, n_g, clen[dcdims[i][0]].len,
-        rank[dcdims[i][1]].len, svd_eps, &Decomp[p], dcmp_type, delt);
+        rank[dcdims[i][1]].len, svd_eps, &Decomp[p], dcmp_type, delt, base_subtract);
 
       free(Dcmp_data[i].dat);
 
@@ -750,7 +755,7 @@ int Decompose_Data(const int ncid_in, const int ncid_out, const int dcmp_type, c
 
       //decomposing stacked data matrix
       err = Generate_DCMP(Dcmp_data[i].dat, ncid_out, Dcmp_data[i].name, dims[0].len, n_g, clen[dcdims[i][0]].len,
-        rank[dcdims[i][1]].len, svd_eps, &Decomp[p], dcmp_type, delt);
+        rank[dcdims[i][1]].len, svd_eps, &Decomp[p], dcmp_type, delt, base_subtract);
 
       //freeing all allocated space
       free(Dcmp_data[i].dat);

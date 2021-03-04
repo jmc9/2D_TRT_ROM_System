@@ -11,17 +11,24 @@ CONTAINS
 !==================================================================================================================================!
 ! Map f1 onto f2
 !==================================================================================================================================!
-SUBROUTINE FMAP(f1,f2,Grid1,Grid2,GMap,VMap,Glen1,Glen2,flen1,flen2)
+SUBROUTINE FMAP(f1,f2,Grid1,Grid2,GMap,VMap,Glen1,Glen2,flen1,flen2, Open_Threads)
   REAL*8,INTENT(OUT):: f2(*)
   REAL*8,INTENT(IN):: f1(*), Grid1(*), Grid2(*)
   INTEGER,INTENT(IN):: GMap(*), VMap(*), Glen1, Glen2, flen1, flen2
+  INTEGER,INTENT(IN):: Open_Threads
   INTEGER:: olen, i, j, p1, p2
+  INTEGER:: Threads
 
   olen = flen2/Glen2
 
-  p2 = 0
+  !$ Threads = Open_Threads
+  !$ IF (Threads .GT. olen) Threads = olen
+  !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(i, j, p2, p1)
+  !$OMP DO
   DO i=1,olen
     p1 = (i-1)*Glen1
+    p2 = (i-1)*Glen2
+
     DO j=1,Glen2
 
       p2 = p2 + 1
@@ -29,7 +36,10 @@ SUBROUTINE FMAP(f1,f2,Grid1,Grid2,GMap,VMap,Glen1,Glen2,flen1,flen2)
       Grid2(2*j-1), Grid1(GMap(4*j-3)), Grid1(GMap(4*j)), Grid2(2*j), Grid1(GMap(4*j-3)+1), Grid1(GMap(4*j)+1))
 
     END DO
+
   END DO
+  !$OMP END DO
+  !$OMP END PARALLEL
 
 END SUBROUTINE FMAP
 

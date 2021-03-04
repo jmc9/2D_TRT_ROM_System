@@ -31,7 +31,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   V_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,&
   rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,t,PODgsum,Sim_Grid_Avg,&
   Sim_Grid_EdgV,Sim_Grid_EdgH,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,Sim_TGrid,Dat_TGrid,GMap_xyAvg,GMap_xyEdgV,&
-  GMap_xyEdgH,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,TMap)
+  GMap_xyEdgH,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,TMap,Open_Threads)
 
   REAL*8,INTENT(OUT):: fg_avg_xx(*), fg_avg_yy(*)
   REAL*8,INTENT(OUT):: fg_edgV_xx(*), fg_edgV_xy(*)
@@ -52,6 +52,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
   INTEGER,INTENT(IN):: GMap_xyAvg(*), GMap_xyEdgV(*), GMap_xyEdgH(*)
   INTEGER,INTENT(IN):: VMap_xyAvg(*), VMap_xyEdgV(*), VMap_xyEdgH(*)
   INTEGER,INTENT(IN):: TMap(*)
+  INTEGER,INTENT(IN):: Open_Threads
 
   REAL*8,ALLOCATABLE:: f(:), f2(:), f3(:), xxbnd(:), yybnd(:), crnbnd(:), bnd2(:)
   INTEGER:: len, g, i, j, p1, p2, p3
@@ -92,7 +93,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
 
   !mapping the vector of fg_edgV_xx data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_edgV_xx,Dat_Grid_EdgV,Sim_Grid_EdgV,GMap_xyEdgV,VMap_xyEdgV, (dN_x+1)*(dN_y+2), (N_x+1)*N_y, &
-  (dN_x+1)*(dN_y+2)*N_g, (N_x+1)*N_y*N_g)
+  (dN_x+1)*(dN_y+2)*N_g, (N_x+1)*N_y*N_g, Open_Threads)
 
   !----------fg_edgV_xy----------!
 
@@ -111,7 +112,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
 
   !mapping the vector of fg_edgV_xy data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_edgV_xy,Dat_Grid_EdgV,Sim_Grid_EdgV,GMap_xyEdgV,VMap_xyEdgV, (dN_x+1)*(dN_y+2), (N_x+1)*N_y, &
-  (dN_x+1)*(dN_y+2)*N_g, (N_x+1)*N_y*N_g)
+  (dN_x+1)*(dN_y+2)*N_g, (N_x+1)*N_y*N_g, Open_Threads)
 
   DEALLOCATE(f,f2,f3) !deallocating POD data vector
 
@@ -150,7 +151,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
 
   !mapping the vector of fg_edgH_yy data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_edgH_yy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH, (dN_x+2)*(dN_y+1), N_x*(N_y+1), &
-  (dN_x+2)*(dN_y+1)*dN_g, N_x*(N_y+1)*N_g)
+  (dN_x+2)*(dN_y+1)*dN_g, N_x*(N_y+1)*N_g, Open_Threads)
 
   !----------fg_edgH_xy----------!
 
@@ -169,7 +170,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
 
   !mapping the vector of fg_edgH_xy data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_edgH_xy,Dat_Grid_EdgH,Sim_Grid_EdgH,GMap_xyEdgH,VMap_xyEdgH, (dN_x+2)*(dN_y+1), N_x*(N_y+1), &
-  (dN_x+2)*(dN_y+1)*dN_g, N_x*(N_y+1)*N_g)
+  (dN_x+2)*(dN_y+1)*dN_g, N_x*(N_y+1)*N_g, Open_Threads)
 
   DEALLOCATE(f,f2,f3) !deallocating POD data vector
 
@@ -206,7 +207,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
 
   !mapping the vector of fg_avg_xx data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_avg_xx,Dat_Grid_Avg,Sim_Grid_Avg,GMap_xyAvg,VMap_xyAvg, (dN_x+2)*(dN_y+2), N_x*N_y, &
-  (dN_x+2)*(dN_y+2)*dN_g, N_x*N_y*N_g)
+  (dN_x+2)*(dN_y+2)*dN_g, N_x*N_y*N_g, Open_Threads)
 
   !reconstructing fg_avg_yy from decomposition (on the same grid it was decomposed on)
   ! CALL POD_RECONSTRUCT(f,C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,rrank_fg_avg_yy,len,dN_g,dN_t,t,PODgsum)
@@ -229,7 +230,7 @@ SUBROUTINE POD_RECONSTRUCT_fg(fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_
 
   !mapping the vector of fg_avg_yy data from the decomposition grid to the simulation grid
   CALL FMAP(f2,fg_avg_yy,Dat_Grid_Avg,Sim_Grid_Avg,GMap_xyAvg,VMap_xyAvg, (dN_x+2)*(dN_y+2), N_x*N_y, &
-  (dN_x+2)*(dN_y+2)*dN_g, N_x*N_y*N_g)
+  (dN_x+2)*(dN_y+2)*dN_g, N_x*N_y*N_g, Open_Threads)
 
   DEALLOCATE(f,f2,f3) !deallocating POD data vector
 
@@ -250,7 +251,7 @@ END SUBROUTINE POD_RECONSTRUCT_fg
 !
 !==================================================================================================================================!
 SUBROUTINE POD_RECONSTRUCT_BCg(Cg_L,Cg_B,Cg_R,Cg_T,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,&
-  t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyBnds,VMap_xyBnds,TMap)
+  t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyBnds,VMap_xyBnds,TMap,Open_Threads)
 
   REAL*8,INTENT(OUT):: Cg_L(*), Cg_B(*), Cg_R(*), Cg_T(*)
 
@@ -258,6 +259,7 @@ SUBROUTINE POD_RECONSTRUCT_BCg(Cg_L,Cg_B,Cg_R,Cg_T,C_BCg,S_BCg,U_BCg,V_BCg,rrank
   REAL*8,INTENT(IN):: Sim_Grid_Bnds(*), Dat_Grid_Bnds(*), Sim_TGrid(*), Dat_TGrid(*)
   INTEGER,INTENT(IN):: rrank_BCg(*), GMap_xyBnds(*), VMap_xyBnds(*), TMap(*)
   INTEGER,INTENT(IN):: dN_x, dN_y, dN_g, dN_t, N_x, N_y, N_g, N_t, t, PODgsum
+  INTEGER,INTENT(IN):: Open_Threads
 
   REAL*8,ALLOCATABLE:: BC(:), BC2(:), CL2(:), CB2(:), CR2(:), CT2(:)
   INTEGER:: len, g, i, j, p, pl, pb, pr, pt
@@ -330,19 +332,20 @@ SUBROUTINE POD_RECONSTRUCT_BCg(Cg_L,Cg_B,Cg_R,Cg_T,C_BCg,S_BCg,U_BCg,V_BCg,rrank
   END DO
 
   !mapping the vector of ... data from the decomposition grid to the simulation grid
-  CALL FMAP(CL2, Cg_L, Dat_Grid_Bnds(1), Sim_Grid_Bnds(1), GMap_xyBnds(1), VMap_xyBnds(1), dN_y+2, N_y, dN_g*(dN_y+2), N_g*N_y)
+  CALL FMAP(CL2, Cg_L, Dat_Grid_Bnds(1), Sim_Grid_Bnds(1), GMap_xyBnds(1), VMap_xyBnds(1),&
+  dN_y+2, N_y, dN_g*(dN_y+2), N_g*N_y, Open_Threads)
 
   !mapping the vector of ... data from the decomposition grid to the simulation grid
-  CALL FMAP(CB2, Cg_B, Dat_Grid_Bnds(2*dN_y+5), Sim_Grid_Bnds(2*N_y+1), GMap_xyBnds(4*N_y+1), VMap_xyBnds(4*N_y+1), &
-  dN_x+2, N_x, dN_g*(dN_x+2), N_g*N_x)
+  CALL FMAP(CB2, Cg_B, Dat_Grid_Bnds(2*dN_y+5), Sim_Grid_Bnds(2*N_y+1), GMap_xyBnds(4*N_y+1), VMap_xyBnds(4*N_y+1),&
+  dN_x+2, N_x, dN_g*(dN_x+2), N_g*N_x, Open_Threads)
 
   !mapping the vector of ... data from the decomposition grid to the simulation grid
-  CALL FMAP(CR2, Cg_R, Dat_Grid_Bnds(2*(dN_y+dN_x)+9), Sim_Grid_Bnds(2*(N_y+N_x)+1), GMap_xyBnds(4*(N_y+N_x)+1), &
-  VMap_xyBnds(4*(N_y+N_x)+1), dN_y+2, N_y, dN_g*(dN_y+2), N_g*N_y)
+  CALL FMAP(CR2, Cg_R, Dat_Grid_Bnds(2*(dN_y+dN_x)+9), Sim_Grid_Bnds(2*(N_y+N_x)+1), GMap_xyBnds(4*(N_y+N_x)+1),&
+  VMap_xyBnds(4*(N_y+N_x)+1), dN_y+2, N_y, dN_g*(dN_y+2), N_g*N_y, Open_Threads)
 
   !mapping the vector of ... data from the decomposition grid to the simulation grid
-  CALL FMAP(CT2, Cg_T, Dat_Grid_Bnds(4*dN_y+2*dN_x+13), Sim_Grid_Bnds(4*N_y+2*N_x+1), GMap_xyBnds(8*N_y+4*N_x+1), &
-  VMap_xyBnds(8*N_y+4*N_x+1), dN_x+2, N_x, dN_g*(dN_x+2), N_g*N_x)
+  CALL FMAP(CT2, Cg_T, Dat_Grid_Bnds(4*dN_y+2*dN_x+13), Sim_Grid_Bnds(4*N_y+2*N_x+1), GMap_xyBnds(8*N_y+4*N_x+1),&
+  VMap_xyBnds(8*N_y+4*N_x+1), dN_x+2, N_x, dN_g*(dN_x+2), N_g*N_x, Open_Threads)
 
   DEALLOCATE(BC,BC2,CL2,CB2,CR2,CT2)
 

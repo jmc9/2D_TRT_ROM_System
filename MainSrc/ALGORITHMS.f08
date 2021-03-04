@@ -402,11 +402,12 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       IF (time .GE. DMD_dset_times(Current_Database + 1)) THEN
         Current_Database = Current_Database + 1
 
-        CALL INPUT_fg_DMD(DMD_dsets(Current_Database), DMDgsum, dN_x, dN_y, dN_g, L_BCg, W_BCg, B_BCg, rrank_BCg,&
-          L_fg_avg_xx, W_fg_avg_xx, B_fg_avg_xx, rrank_fg_avg_xx, L_fg_edgV_xx, W_fg_edgV_xx, B_fg_edgV_xx, rrank_fg_edgV_xx,&
-          L_fg_avg_yy, W_fg_avg_yy, B_fg_avg_yy, rrank_fg_avg_yy, L_fg_edgH_yy, W_fg_edgH_yy, B_fg_edgH_yy, rrank_fg_edgH_yy,&
-          L_fg_edgV_xy, W_fg_edgV_xy, B_fg_edgV_xy, rrank_fg_edgV_xy, L_fg_edgH_xy, W_fg_edgH_xy, B_fg_edgH_xy,&
-          rrank_fg_edgH_xy, xlen_d, ylen_d, Tini_d, Delx_d, Dely_d, bcT_d, BC_Type_d, Start_Time_d)
+        CALL INPUT_fg_DMD(DMD_dsets(Current_Database), DMDgsum, dN_x, dN_y, dN_g, L_BCg, W_BCg, B_BCg, C_BCg, rrank_BCg,&
+          L_fg_avg_xx, W_fg_avg_xx, B_fg_avg_xx, C_fg_avg_xx, rrank_fg_avg_xx, L_fg_edgV_xx, W_fg_edgV_xx, B_fg_edgV_xx,&
+          C_fg_edgV_xx, rrank_fg_edgV_xx, L_fg_avg_yy, W_fg_avg_yy, B_fg_avg_yy, C_fg_avg_yy, rrank_fg_avg_yy, L_fg_edgH_yy,&
+          W_fg_edgH_yy, B_fg_edgH_yy, C_fg_edgH_yy, rrank_fg_edgH_yy, L_fg_edgV_xy, W_fg_edgV_xy, B_fg_edgV_xy, C_fg_edgV_xy,&
+          rrank_fg_edgV_xy, L_fg_edgH_xy, W_fg_edgH_xy, B_fg_edgH_xy, C_fg_edgH_xy, rrank_fg_edgH_xy, xlen_d, ylen_d,&
+          Tini_d, Delx_d, Dely_d, bcT_d, BC_Type_d, Start_Time_d)
 
         CALL GENERATE_GRIDS(Delx_d, Dely_d, Delx, Dely, xlen_d, ylen_d, xlen, ylen, dN_x, dN_y, N_x, N_y,&
           Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Sim_Grid_Bnds, Dat_Grid_Avg, Dat_Grid_EdgV, Dat_Grid_EdgH,&
@@ -491,10 +492,10 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           V_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,&
           rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,t,PODgsum,Sim_Grid_Avg,&
           Sim_Grid_EdgV,Sim_Grid_EdgH,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,Sim_TGrid,Dat_TGrid,GMap_xyAvg,GMap_xyEdgV,&
-          GMap_xyEdgH,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,TMap)
+          GMap_xyEdgH,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,TMap,Threads)
 
         CALL POD_RECONSTRUCT_BCg(Cg_L,Cg_B,Cg_R,Cg_T,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg,dN_x,dN_y,dN_g,dN_t,N_x,N_y,N_g,N_t,&
-          t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyBnds,VMap_xyBnds,TMap)
+          t,PODgsum,Sim_Grid_Bnds,Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyBnds,VMap_xyBnds,TMap,Threads)
 
         IF (Direc_Diff .EQ. 1) THEN
           fg_edgV_xy = 0d0
@@ -523,14 +524,14 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
         DMD_Time = Time - Start_Time_d
 
         CALL DMD_RECONSTRUCT_fg(fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_edgV_xy, fg_edgH_yy, fg_edgH_xy,&
-          L_fg_avg_xx, B_fg_avg_xx, W_fg_avg_xx, L_fg_edgV_xx, B_fg_edgV_xx, W_fg_edgV_xx,&
-          L_fg_avg_yy, B_fg_avg_yy, W_fg_avg_yy, L_fg_edgH_yy, B_fg_edgH_yy, W_fg_edgH_yy,&
-          L_fg_edgV_xy, B_fg_edgV_xy, W_fg_edgV_xy, L_fg_edgH_xy, B_fg_edgH_xy, W_fg_edgH_xy,&
+          L_fg_avg_xx, B_fg_avg_xx, W_fg_avg_xx, C_fg_avg_xx, L_fg_edgV_xx, B_fg_edgV_xx, W_fg_edgV_xx, C_fg_edgV_xx,&
+          L_fg_avg_yy, B_fg_avg_yy, W_fg_avg_yy, C_fg_avg_yy, L_fg_edgH_yy, B_fg_edgH_yy, W_fg_edgH_yy, C_fg_edgH_yy,&
+          L_fg_edgV_xy, B_fg_edgV_xy, W_fg_edgV_xy, C_fg_edgV_xy, L_fg_edgH_xy, B_fg_edgH_xy, W_fg_edgH_xy, C_fg_edgH_xy,&
           rrank_fg_avg_xx, rrank_fg_edgV_xx, rrank_fg_avg_yy, rrank_fg_edgH_yy, rrank_fg_edgV_xy, rrank_fg_edgH_xy,&
           dN_x, dN_y, dN_g, N_x, N_y, N_g, DMD_Time, DMDgsum, Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Dat_Grid_Avg,&
           Dat_Grid_EdgV, Dat_Grid_EdgH, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH, Threads)
 
-        CALL DMD_RECONSTRUCT_BCg(Cg_L, Cg_B, Cg_R, Cg_T, L_BCg, B_BCg, W_BCg, rrank_BCg, dN_x, dN_y, dN_g, N_x, N_y, N_g,&
+        CALL DMD_RECONSTRUCT_BCg(Cg_L, Cg_B, Cg_R, Cg_T, L_BCg, B_BCg, W_BCg, C_BCg, rrank_BCg, dN_x, dN_y, dN_g, N_x, N_y, N_g,&
           DMD_Time, DMDgsum, Sim_Grid_Bnds, Dat_Grid_Bnds, GMap_xyBnds, VMap_xyBnds, Threads)
 
       END IF

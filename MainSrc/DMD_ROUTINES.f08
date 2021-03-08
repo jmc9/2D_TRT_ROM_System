@@ -54,7 +54,7 @@ SUBROUTINE DMD_RECONSTRUCT(dat, L, B, W, C, rank, len, N_g, DMDgsum, Time, Open_
     !$OMP PARALLEL DEFAULT(SHARED) NUM_THREADS(Threads) PRIVATE(g, r, i, dmd_exp, p1, p2, p3)
     !$OMP DO
     DO g=1,N_g
-      p3 = SUM(rank(1:g))-rank(1)
+      p3 = SUM(rank(1:g))-rank(g)
       p2 = p3*glen
       DO r=1,rank(g)
         p1 = (g-1)*glen

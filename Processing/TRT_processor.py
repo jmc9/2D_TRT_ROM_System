@@ -94,13 +94,10 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     #if any comp_datasets have been specified, collecting the ranks of their expansions and plotting them
     #currently only working for gsum=1
     if (nsets>1):
-        (ranks,gsum) = proc.rank_collect(dsets,nsets,casename,N_g,proc_dir)
-        if (gsum == 1):
-            rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
-            pltr.lineplot("Ranks",trend_names,ranks,proc_dir,rleg,yscale='linear',xlabel=r'POD error $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
-        else:
-            print('cannot use gsum=0 at the moment')
-            quit()
+        (time_intervals, ranks, gsum) = proc.rank_collect(dsets,nsets,casename,N_g,proc_dir)
+        rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
+        for t in range(len(time_intervals)-1):
+            pltr.lineplot("Ranks_t{}".format(t+1),trend_names,ranks[t],proc_dir,rleg,yscale='linear',xlabel=r'Truncation Criteria $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
 
     #initializing arrays of error norms
     Temp_Norms = np.zeros([6,nsets-1,N_t])

@@ -254,7 +254,6 @@ def rank_collect(dsets,nsets,casename,N_g,proc_dir):
 
     rankfile = open('Ranks.txt','w')
 
-    ranks=[]
     rrank_BCg = []
     rrank_fg_avg_xx = []
     rrank_fg_edgV_xx = []
@@ -262,75 +261,125 @@ def rank_collect(dsets,nsets,casename,N_g,proc_dir):
     rrank_fg_edgH_yy = []
     rrank_fg_edgV_xy = []
     rrank_fg_edgH_xy = []
+    dset_times = []
 
     for i in range(nsets-1):
+        r_BCg = []
+        r_avg_xx = []
+        r_edgV_xx = []
+        r_avg_yy = []
+        r_edgH_yy = []
+        r_edgV_xy = []
+        r_edgH_xy = []
 
         rankfile.write('Dataset: '+casename[i+1]+'\n')
         rankfile.write('--------------------------------------------------\n')
 
         set = dsets[i+1]
-        gsum = set.getncattr("PODgsum")
-        if (gsum == 1):
-            rrank_BCg.append(set['rrank_BCg'][0])
-            rrank_fg_avg_xx.append(set['rrank_fg_avg_xx'][0])
-            rrank_fg_edgV_xx.append(set['rrank_fg_edgV_xx'][0])
-            rrank_fg_avg_yy.append(set['rrank_fg_avg_yy'][0])
-            rrank_fg_edgH_yy.append(set['rrank_fg_edgH_yy'][0])
-            rrank_fg_edgV_xy.append(set['rrank_fg_edgV_xy'][0])
-            rrank_fg_edgH_xy.append(set['rrank_fg_edgH_xy'][0])
+        run_type = set.getncattr("run_type")
+        if run_type == "mg_pod":
+            gsum = set['PODgsum'][:]
+            dset_times.append(set.getncattr("dset_times"))
+        elif run_type == "mg_dmd":
+            gsum = set['DMDgsum'][:]
+            dset_times.append(set.getncattr("dset_times"))
+        nbases = len(gsum)
 
-            rankfile.write('BCg: {}\n'.format(rrank_BCg[i]))
-            rankfile.write('fg_avg_xx: {}\n'.format(rrank_fg_avg_xx[i]))
-            rankfile.write('fg_avg_yy: {}\n'.format(rrank_fg_avg_yy[i]))
-            rankfile.write('fg_edgV_xx: {}\n'.format(rrank_fg_edgV_xx[i]))
-            rankfile.write('fg_edgH_yy: {}\n'.format(rrank_fg_edgH_yy[i]))
-            rankfile.write('fg_edgV_xy: {}\n'.format(rrank_fg_edgV_xy[i]))
-            rankfile.write('fg_edgH_xy: {}\n'.format(rrank_fg_edgH_xy[i]))
+        rg = np.full(nbases, 1, dtype=int)
+        for j in range(nbases):
+            if (gsum[j] == 1):
+                r_BCg.append(    [ set['rrank_BCg'][j][0]        ])
+                r_avg_xx.append( [ set['rrank_fg_avg_xx'][j][0]  ])
+                r_edgV_xx.append([ set['rrank_fg_edgV_xx'][j][0] ])
+                r_avg_yy.append( [ set['rrank_fg_avg_yy'][j][0]  ])
+                r_edgH_yy.append([ set['rrank_fg_edgH_yy'][j][0] ])
+                r_edgV_xy.append([ set['rrank_fg_edgV_xy'][j][0] ])
+                r_edgH_xy.append([ set['rrank_fg_edgH_xy'][j][0] ])
 
-        else:
-            rrank_BCg = set['rrank_BCg'][:]
-            rrank_fg_avg_xx = set['rrank_fg_avg_xx'][:]
-            rrank_fg_edgV_xx = set['rrank_fg_edgV_xx'][:]
-            rrank_fg_avg_yy = set['rrank_fg_avg_yy'][:]
-            rrank_fg_edgH_yy = set['rrank_fg_edgH_yy'][:]
-            rrank_fg_edgV_xy = set['rrank_fg_edgV_xy'][:]
-            rrank_fg_edgH_xy = set['rrank_fg_edgH_xy'][:]
+            else:
+                rg[j] = N_g
+                r_BCg.append(    set['rrank_BCg'][j][:])
+                r_avg_xx.append( set['rrank_fg_avg_xx'][j][:])
+                r_edgV_xx.append(set['rrank_fg_edgV_xx'][j][:])
+                r_avg_yy.append( set['rrank_fg_avg_yy'][j][:])
+                r_edgH_yy.append(set['rrank_fg_edgH_yy'][j][:])
+                r_edgV_xy.append(set['rrank_fg_edgV_xy'][j][:])
+                r_edgH_xy.append(set['rrank_fg_edgH_xy'][j][:])
 
-            rankfile.write('BCg:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_BCg[g]))
-            rankfile.write('\n')
+        rank_write(rankfile, 'BCg:', nbases, rg, r_BCg)
+        rank_write(rankfile, 'fg_avg_xx:', nbases, rg, r_avg_xx)
+        rank_write(rankfile, 'fg_edgV_xx:', nbases, rg, r_edgV_xx)
+        rank_write(rankfile, 'fg_avg_yy:', nbases, rg, r_avg_yy)
+        rank_write(rankfile, 'fg_edgH_yy:', nbases, rg, r_edgH_yy)
+        rank_write(rankfile, 'fg_edgV_xy:', nbases, rg, r_edgV_xy)
+        rank_write(rankfile, 'fg_edgH_xy:', nbases, rg, r_edgH_xy)
 
-            rankfile.write('fg_avg_yy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_avg_yy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_avg_yy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgV_xx:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xx[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgH_yy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_yy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgV_xy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgV_xy[g]))
-            rankfile.write('\n')
-
-            rankfile.write('fg_edgH_xy:')
-            for g in range(N_g): rankfile.write('  {}'.format(rrank_fg_edgH_xy[g]))
-            rankfile.write('\n')
+        rrank_BCg.append( r_BCg )
+        rrank_fg_avg_xx.append(  r_avg_xx )
+        rrank_fg_edgV_xx.append( r_edgV_xx )
+        rrank_fg_avg_yy.append(  r_avg_yy )
+        rrank_fg_edgH_yy.append( r_edgH_yy )
+        rrank_fg_edgV_xy.append( r_edgV_xy )
+        rrank_fg_edgH_xy.append( r_edgH_xy )
 
         rankfile.write('\n')
     rankfile.close()
     os.system('mv Ranks.txt '+proc_dir)
 
-    if (gsum == 1):
-        # rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
-        ranks = [rrank_BCg,rrank_fg_avg_xx,rrank_fg_edgV_xx,rrank_fg_avg_yy,rrank_fg_edgH_yy,rrank_fg_edgV_xy,rrank_fg_edgH_xy]
-        # pltr.lineplot("Ranks",trend_names,ranks,proc_dir,rleg,yscale='linear',xlabel=r'POD error $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
+    time_intervals = [0.]
+    all_dset_times = [ t for times in dset_times for t in times ]
+    ntimes = len(all_dset_times)
+    for i in range(ntimes):
+        t = max(all_dset_times)
+        for j in range(ntimes):
+            if ((all_dset_times[j] > time_intervals[i])and(all_dset_times[j] < t)):
+                t = all_dset_times[j]
+        time_intervals.append(t)
+        if t==max(all_dset_times): break
 
-    return (ranks,gsum)
+    ranks = []
+    ntimes = len(time_intervals)
+    for i in range(ntimes-1):
+        r_BCg = []
+        r_avg_xx = []
+        r_edgV_xx = []
+        r_avg_yy = []
+        r_edgH_yy = []
+        r_edgV_xy = []
+        r_edgH_xy = []
+        for j in range(nsets-1):
+            k = find_tloc(dset_times[j], time_intervals[i], time_intervals[i+1])
+            r_BCg.append(    rrank_BCg[j][k][0] )
+            r_avg_xx.append( rrank_fg_avg_xx[j][k][0]  )
+            r_edgV_xx.append(rrank_fg_edgV_xx[j][k][0] )
+            r_avg_yy.append( rrank_fg_avg_yy[j][k][0]  )
+            r_edgH_yy.append(rrank_fg_edgH_yy[j][k][0] )
+            r_edgV_xy.append(rrank_fg_edgV_xy[j][k][0] )
+            r_edgH_xy.append(rrank_fg_edgH_xy[j][k][0] )
+        ranks.append( [ r_BCg, r_avg_xx, r_edgV_xx, r_avg_yy, r_edgH_yy, r_edgV_xy, r_edgH_xy ] )
+
+    return (time_intervals, ranks, gsum)
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def rank_write(rankfile, name, nbases, rg, rank):
+    rankfile.write(name)
+    rankfile.write('\n')
+    for j in range(nbases):
+        rankfile.write(' ({}) '.format(j+1))
+        for g in range(rg[j]): rankfile.write('  {}'.format(rank[j][g]))
+        rankfile.write('\n')
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def find_tloc(times, t_low, t_up):
+    loc = len(times)
+    for i in range(loc-1):
+        # print(t, times[i], times[i+1])
+        if ((t_low>=times[i])and(t_up<=times[i+1])):
+            loc = i
+            # print(loc)
+            break
+    return loc

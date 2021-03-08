@@ -12,9 +12,9 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   threads,kapE_dT_flag,enrgy_strc,erg,xlen,ylen,N_x,N_y,tlen,delt,bcT_left,bcT_right,bcT_upper,bcT_lower,&
   Tini,sig_R,ar,pi,c,h,delx,dely,cv,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
-  quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,PODgsum,POD_Type,POD_dset,&
-  Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
-  Start_Time,DMD_dset_times)
+  quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,POD_Type,POD_dsets,&
+  Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
+  Start_Time,dset_times)
 
   IMPLICIT NONE
 
@@ -35,12 +35,11 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   CHARACTER(100),INTENT(OUT):: enrgy_strc, quadrature
   LOGICAL,INTENT(OUT):: Use_Line_Search, Use_Safety_Search, Res_Calc, kapE_dT_flag
 
-  REAL*8,INTENT(OUT):: POD_err
-  INTEGER,INTENT(OUT):: PODgsum, Direc_Diff
-  CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
+  REAL*8,INTENT(OUT),ALLOCATABLE:: POD_err(:), dset_times(:)
+  INTEGER,INTENT(OUT):: Direc_Diff, N_dsets
+  CHARACTER(100),INTENT(OUT):: POD_Type
+  CHARACTER(100),INTENT(OUT),ALLOCATABLE:: POD_dsets(:)
 
-  REAL*8,ALLOCATABLE,INTENT(OUT):: DMD_dset_times(:)
-  INTEGER,INTENT(OUT):: N_DMD_dsets
   CHARACTER(100),INTENT(OUT):: DMD_Type
   CHARACTER(100),INTENT(OUT),ALLOCATABLE:: DMD_dsets(:)
 
@@ -88,14 +87,14 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   aR=4d0*sig_R/c
 
   IF (run_type .EQ. 'mg_pod') THEN
-    CALL INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
+    CALL INPUT_POD_OPTS(inpunit,POD_err,POD_Type,POD_dsets,Direc_Diff,dset_times,N_dsets)
 
     IF (POD_Type .EQ. 'fg') THEN
       maxit_RTE = 1
     END IF
 
   ELSE IF (run_type .EQ. 'mg_dmd') THEN
-    CALL INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,DMD_dset_times,N_DMD_dsets)
+    CALL INPUT_DMD_OPTS(inpunit,DMD_Type,DMD_dsets,dset_times,N_dsets)
 
     IF (DMD_Type .EQ. 'fg') THEN
       maxit_RTE = 1
@@ -600,7 +599,7 @@ END SUBROUTINE INPUT_SOLVER_OPTS
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
-SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
+SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,POD_Type,POD_dsets,Direc_Diff,POD_dset_times,N_dsets)
 
   IMPLICIT NONE
 
@@ -608,21 +607,21 @@ SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
   INTEGER,INTENT(IN):: inpunit
 
   !OUTPUT VARIABLES
-  REAL*8,INTENT(OUT):: POD_err
-  INTEGER,INTENT(OUT):: PODgsum,Direc_Diff
-  CHARACTER(100),INTENT(OUT):: POD_Type, POD_dset
+  REAL*8,ALLOCATABLE,INTENT(OUT):: POD_err(:), POD_dset_times(:)
+  INTEGER,INTENT(OUT):: Direc_Diff, N_dsets
+  CHARACTER(100),INTENT(OUT):: POD_Type
+  CHARACTER(100),ALLOCATABLE,INTENT(OUT):: POD_dsets(:)
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
   CHARACTER(100):: key
   CHARACTER(100):: block
   CHARACTER(100),DIMENSION(3):: args
-  INTEGER:: io, io2, block_found
+  INTEGER:: io, io2, block_found, i, p, l
+  REAL*8:: min
 
   !DEFAULT VALUES
-  POD_dset = 'PODout.h5'
-  POD_err = 1d-5
-  PODgsum = 1
+  N_dsets = 0
   POD_Type = 'fg'
   Direc_Diff = 0
 
@@ -646,32 +645,83 @@ SUBROUTINE INPUT_POD_OPTS(inpunit,POD_err,PODgsum,POD_Type,POD_dset,Direc_Diff)
       IF (key(1:1) .EQ. '[') THEN
         EXIT
 
-      ELSE IF (trim(key) .EQ. 'dataset') THEN
-        READ(args(1),*) POD_dset
+      ELSE IF (trim(key) .EQ. 'N_datasets') THEN
+        READ(args(1),*) N_dsets
+        ALLOCATE(POD_dsets(N_dsets))
+        ALLOCATE(POD_dset_times(N_dsets+1))
+        ALLOCATE(POD_err(N_dsets))
 
       ELSE IF (trim(key) .EQ. 'POD_type') THEN
-        READ(args(1),*) POD_type
+        READ(args(1),*) POD_Type
         IF ( ALL(POD_type .NE. (/'fg','Ig'/)) ) THEN
           STOP 'unrecognized POD_type (source - subroutine INPUT_POD_OPTS :: module INPUTS)'
         END IF
-
-      ELSE IF (trim(key) .EQ. 'gsum') THEN
-        READ(args(1),*) PODgsum
-        IF (ALL(PODgsum .NE. (/0,1/))) STOP 'gsum must be 0 or 1'
-
-      ELSE IF (trim(key) .EQ. 'POD_err') THEN
-        READ(args(1),*) POD_err
-        IF ((POD_err .LE. 0).OR.(POD_err .GT. 1)) STOP 'POD_err must be between 0 and 1'
-
-      ELSE IF (trim(key) .EQ. 'direc_diff') THEN
-        READ(args(1),*) Direc_Diff
-        IF (ALL(Direc_Diff .NE. (/0,1/))) STOP 'direc_diff must be 0 or 1'
 
       END IF
 
     END IF
 
   END DO
+
+  IF (N_dsets .LE. 0) THEN
+    WRITE(*,*) 'INPUTS.f08 :: INPUT_POD_OPTS - ERROR'
+    WRITE(*,*) 'N_POD_dsets detected as >= 0!'
+    STOP
+  END IF
+
+  CALL LOCATE_BLOCK(inpunit,block,block_found)
+  p = 1
+  DO
+    READ(inpunit,'(A)',IOSTAT=io) line
+
+    IF (io .GT. 0) THEN !io > 0 means bad read
+      STOP 'Something went wrong reading general.inp'
+
+    ELSE IF (io .LT. 0) THEN !io < 0 signals end of file
+      EXIT
+
+    ELSE !checking which key is specified and putting argument in correct variable
+      READ(line,*,IOSTAT=io2) key, args !reading in key/argument pairs
+
+      IF (key(1:1) .EQ. '[') THEN
+        EXIT
+
+      ELSE IF (trim(key) .EQ. 'dataset') THEN
+        IF (p .GT. N_dsets) THEN
+          WRITE(*,*) 'MODULE: INPUTS - SUBROUTINE: INPUT_POD_OPTS'
+          WRITE(*,*) '-- Found more datasets than were accounted for!'
+          WRITE(*,*) '-- Check to make sure the input for N_datasets is consistent with the number of input datasets'
+          STOP
+        END IF
+        READ(args(1),*) POD_dset_times(p)
+        READ(args(2),*) POD_dsets(p)
+        READ(args(3),*) POD_err(p)
+        p = p + 1
+        key = ''
+
+      END IF
+
+    END IF
+
+  END DO
+
+  IF (N_dsets.GT.1) THEN
+    DO i=1,N_dsets
+      min = POD_dset_times(i)
+      l = i
+      DO p=i+1,N_dsets
+        IF (POD_dset_times(p) .LT. min) THEN
+          min = POD_dset_times(p)
+          l = p
+        END IF
+      END DO
+
+      min = POD_dset_times(i)
+      POD_dset_times(i) = POD_dset_times(l)
+      POD_dset_times(l) = min
+    END DO
+  END IF
+  POD_dset_times(N_dsets+1) = HUGE(0d0)
 
 END SUBROUTINE INPUT_POD_OPTS
 

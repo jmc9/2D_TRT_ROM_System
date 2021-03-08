@@ -16,24 +16,24 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
   bcT_bottom,bcT_right,bcT_top,Tini,E_Bound_Low,T_Bound_Low,N_x,N_y,N_m,N_g,N_t,use_grey,maxit_RTE,&
   maxit_MLOQD,maxit_GLOQD,conv_type,threads,BC_type,outfile,run_type,kapE_dT_flag,quadrature,enrgy_strc,Theta,&
   Use_Line_Search,Use_Safety_Search,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
-  QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_err,PODgsum,POD_Type,Direc_Diff,&
-  xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_DMD_dsets,DMD_dsets,DMD_Type,DMD_dset_times)
+  QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_Type,Direc_Diff,&
+  xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_dsets,DMD_dsets,DMD_Type,dset_times,N_dsets_ID,POD_dsets)
 
   INTEGER,INTENT(OUT):: outID
   INTEGER,INTENT(OUT):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
   INTEGER,INTENT(OUT):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID, MGQD_ResTypes_ID, Boundaries_ID
-  INTEGER,INTENT(OUT):: c_ID, h_ID, pi_ID, erg_ID, Comp_Unit_ID, cv_ID
+  INTEGER,INTENT(OUT):: c_ID, h_ID, pi_ID, erg_ID, Comp_Unit_ID, cv_ID, N_dsets_ID
 
   REAL*8,INTENT(IN):: c, h, pi, erg, Comp_Unit, cv
   REAL*8,INTENT(IN):: chi, conv_ho, conv_lo, conv_gr1, conv_gr2, line_src, xlen, ylen, Delx(:), Dely(:), tlen, Delt, Theta
-  REAL*8,INTENT(IN):: xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:), DMD_dset_times(:)
-  REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low, POD_err
+  REAL*8,INTENT(IN):: xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:), dset_times(:)
+  REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, E_Bound_Low, T_Bound_Low
   INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t
   INTEGER,INTENT(IN):: use_grey, maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, threads, BC_type(:)
   INTEGER,INTENT(IN):: I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
   INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out, E_out, F_out, D_out
-  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out, PODgsum, Direc_Diff, N_DMD_dsets
-  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc, POD_Type, DMD_Type, DMD_dsets(:)
+  INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out, Direc_Diff, N_dsets
+  CHARACTER(*),INTENT(IN):: outfile, run_type, quadrature, enrgy_strc, POD_Type, DMD_Type, DMD_dsets(:), POD_dsets(:)
   LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, kapE_dT_flag
 
   INTEGER:: Status
@@ -101,26 +101,36 @@ SUBROUTINE OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edg
     Status = nf90_put_att(outID,NF90_GLOBAL,'POD_Type',POD_Type)
     CALL HANDLE_ERR(Status)
 
-    Status = nf90_put_att(outID,NF90_GLOBAL,'PODgsum',PODgsum)
-    CALL HANDLE_ERR(Status)
+    ! Status = nf90_put_att(outID,NF90_GLOBAL,'PODgsum',PODgsum)
+    ! CALL HANDLE_ERR(Status)
 
     Status = nf90_put_att(outID,NF90_GLOBAL,'Direc_Diff',Direc_Diff)
     CALL HANDLE_ERR(Status)
 
-    Status = nf90_put_att(outID,NF90_GLOBAL,'POD_err',POD_err)
+    ! Status = nf90_put_att(outID,NF90_GLOBAL,'POD_err',POD_err)
+    ! CALL HANDLE_ERR(Status)
+
+    CALL NF_DEF_DIM(N_dsets_ID,outID,'N_dsets',N_dsets)
+
+    Status = nf90_put_att(outID,NF90_GLOBAL,'dset_times',dset_times)
     CALL HANDLE_ERR(Status)
+
+    DO i=1,N_dsets
+      write(buf,'(A,I1)') 'POD_dset',i
+      Status = nf90_put_att(outID,NF90_GLOBAL,buf,POD_dsets(i))
+      CALL HANDLE_ERR(Status)
+    END DO
 
   ELSE IF (run_type .EQ. 'mg_dmd') THEN
     Status = nf90_put_att(outID,NF90_GLOBAL,'DMD_Type',DMD_Type)
     CALL HANDLE_ERR(Status)
 
-    Status = nf90_put_att(outID,NF90_GLOBAL,'N_DMD_dsets',N_DMD_dsets)
+    CALL NF_DEF_DIM(N_dsets_ID,outID,'N_dsets',N_dsets)
+
+    Status = nf90_put_att(outID,NF90_GLOBAL,'dset_times',dset_times)
     CALL HANDLE_ERR(Status)
 
-    Status = nf90_put_att(outID,NF90_GLOBAL,'DMD_dset_times',DMD_dset_times)
-    CALL HANDLE_ERR(Status)
-
-    DO i=1,N_DMD_dsets
+    DO i=1,N_dsets
       write(buf,'(A,I1)') 'DMD_dset',i
       Status = nf90_put_att(outID,NF90_GLOBAL,buf,DMD_dsets(i))
       CALL HANDLE_ERR(Status)
@@ -392,12 +402,12 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,&
   Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,&
   dr_MB_ID,dr_MR_ID,dr_MT_ID,rrank_BCg_ID,rrank_fg_avg_xx_ID,rrank_fg_edgV_xx_ID,rrank_fg_avg_yy_ID,rrank_fg_edgH_yy_ID,&
-  rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID)
+  rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID,fg_dmd_out,N_dsets_ID,DMDgsum_ID,PODgsum_ID,PODerr_ID)
 
   INTEGER,INTENT(IN):: outID
   LOGICAL,INTENT(IN):: Res_Calc
   INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out
-  INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out, fg_pod_out
+  INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out, fg_pod_out, fg_dmd_out, N_dsets_ID
   INTEGER,INTENT(IN):: E_out, F_out, D_out
   INTEGER,INTENT(IN):: old_parms_out, its_out, conv_out, kap_out, Src_out
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
@@ -422,7 +432,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   INTEGER,INTENT(OUT):: Gold_hat_ID, Rhat_old_ID, PL_ID, PB_ID, PR_ID, PT_ID
   INTEGER,INTENT(OUT):: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
   INTEGER,INTENT(OUT):: rrank_BCg_ID, rrank_fg_avg_xx_ID, rrank_fg_edgV_xx_ID, rrank_fg_avg_yy_ID, rrank_fg_edgH_yy_ID
-  INTEGER,INTENT(OUT):: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID
+  INTEGER,INTENT(OUT):: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID, DMDgsum_ID, PODgsum_ID, PODerr_ID
 
   INTEGER:: Status
   CHARACTER(50):: Location = 'MODULE: OUTPUTS / SUBROUTINE: OUTFILE_VARDEFS'
@@ -926,13 +936,24 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   END IF
 
   IF (fg_pod_out .EQ. 1) THEN
-      CALL NF_DEF_VAR(rrank_BCg_ID,outID,(/N_g_ID/),'rrank_BCg','Int')
-      CALL NF_DEF_VAR(rrank_fg_avg_xx_ID,outID,(/N_g_ID/),'rrank_fg_avg_xx','Int')
-      CALL NF_DEF_VAR(rrank_fg_edgV_xx_ID,outID,(/N_g_ID/),'rrank_fg_edgV_xx','Int')
-      CALL NF_DEF_VAR(rrank_fg_avg_yy_ID,outID,(/N_g_ID/),'rrank_fg_avg_yy','Int')
-      CALL NF_DEF_VAR(rrank_fg_edgH_yy_ID,outID,(/N_g_ID/),'rrank_fg_edgH_yy','Int')
-      CALL NF_DEF_VAR(rrank_fg_edgV_xy_ID,outID,(/N_g_ID/),'rrank_fg_edgV_xy','Int')
-      CALL NF_DEF_VAR(rrank_fg_edgH_xy_ID,outID,(/N_g_ID/),'rrank_fg_edgH_xy','Int')
+    CALL NF_DEF_VAR(PODgsum_ID,outID,(/N_dsets_ID/),'PODgsum','Int')
+    CALL NF_DEF_VAR(PODerr_ID,outID,(/N_dsets_ID/),'PODerr','Double')
+    CALL NF_DEF_VAR(rrank_BCg_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_BCg','Int')
+    CALL NF_DEF_VAR(rrank_fg_avg_xx_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_avg_xx','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgV_xx_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgV_xx','Int')
+    CALL NF_DEF_VAR(rrank_fg_avg_yy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_avg_yy','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgH_yy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgH_yy','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgV_xy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgV_xy','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgH_xy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgH_xy','Int')
+  ELSE IF (fg_dmd_out .EQ. 1) THEN
+    CALL NF_DEF_VAR(DMDgsum_ID,outID,(/N_dsets_ID/),'DMDgsum','Int')
+    CALL NF_DEF_VAR(rrank_BCg_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_BCg','Int')
+    CALL NF_DEF_VAR(rrank_fg_avg_xx_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_avg_xx','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgV_xx_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgV_xx','Int')
+    CALL NF_DEF_VAR(rrank_fg_avg_yy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_avg_yy','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgH_yy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgH_yy','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgV_xy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgV_xy','Int')
+    CALL NF_DEF_VAR(rrank_fg_edgH_xy_ID,outID,(/N_g_ID,N_dsets_ID/),'rrank_fg_edgH_xy','Int')
   END IF
 
   !===========================================================================!

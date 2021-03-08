@@ -1,13 +1,13 @@
 [RUN_STATE]
-	run_type mlqd ![mlqd, mg_pod, mg_dmd, gr_pod, diff, fld, p1, p13, tr_no_qd]
-	*restart restart.out
+	run_type mg_dmd ![mlqd, mg_pod, mg_dmd, gr_pod, diff, fld, p1, p13, tr_no_qd]
+	*restart restart2.out
 	use_grey		1
 	res_calc		0
 	Test			FC
 	
 [SOLVER_OPTS]
 	maxit_RTE 	150 [INT>0]
-	maxit_MLOQD 6 [INT>0]
+	maxit_MLOQD 100 [INT>0]
 	maxit_GLOQD	10 [INT>0]
 	kapE_dT		on	[on, off]
 	chi			0.7d0
@@ -25,22 +25,26 @@
 	T_low_bnd	off
 	
 [POD_OPTS]
-	dataset outf_new.h5
-	gsum 1
-	POD_err 1d-16
+	N_datasets 3
+	dataset 0d0 qdf_podg.h5 1e-10
+	dataset 5d-2 qdf_podg.h5 1e-8
+	dataset 1d-1 qdf_podg.h5 1e-3
 	POD_type fg
 	direc_diff 0
 	
 [DMD_OPTS]
-	datasets 1 qdf_dmd.h5
+	N_datasets 3
 	DMD_type fg
- 	
+	dataset 0d0 qdf_dmdg_1e-10.h5
+	dataset 5d-2 qdf_dmdg_1e-8.h5
+	dataset 1d-1 qdf_dmdg_1e-5.h5
+	
 [PARAMETERS]
 	xlen      6d0 cm 	!slab length (x-direction)
 	ylen      6d0 cm 	!slab length (y-direction)
 	x_cells   10  		!spatial cells along x-axis
 	y_cells   10  		!spatial cells along y-axis
-	tlen      1.4d-2 sh   !temporal length
+	tlen      2d-1 sh   !temporal length
 	delt      2d-3 sh   !time step length
 	bc_type   0 0 0 0   !L B R T
 	bcT_left  1d3 ev    !left boundary temp
@@ -50,7 +54,7 @@
 	Tini      1d0 ev 	!initial temp
 	
 [OUTPUT_OPTS]
-	outfile fom.h5
+	outfile test2.h5
 	out_freq 1
 	I_out 0
 	D_out 1

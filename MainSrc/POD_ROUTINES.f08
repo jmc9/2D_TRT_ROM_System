@@ -438,12 +438,12 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_BCg,S_BCg,U_BCg,
   U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,C_fg_avg_yy,&
   S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,rrank_fg_edgH_yy,&
   C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,U_fg_edgH_xy,V_fg_edgH_xy,&
-  rrank_fg_edgH_xy,tlen,xlen,ylen,Tini,Delt,Delx,Dely,bcT,BC_Type)
+  rrank_fg_edgH_xy,tlen,xlen,ylen,Tini,Delt,Delx,Dely,bcT,BC_Type,Start_Time)
 
   CHARACTER(*),INTENT(IN):: Fname
-  INTEGER,INTENT(IN):: PODgsum
+  INTEGER,INTENT(OUT):: PODgsum
   REAL*8,INTENT(IN):: eps
-  REAL*8,INTENT(OUT):: tlen, xlen, ylen, Tini, Delt
+  REAL*8,INTENT(OUT):: tlen, xlen, ylen, Tini, Delt, Start_Time
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:), bcT(:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: C_BCg(:), S_BCg(:), U_BCg(:), V_BCg(:)
   REAL*8,ALLOCATABLE,INTENT(OUT):: C_fg_avg_xx(:), S_fg_avg_xx(:), U_fg_avg_xx(:), V_fg_avg_xx(:)
@@ -457,13 +457,15 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_BCg,S_BCg,U_BCg,
   INTEGER,ALLOCATABLE,INTENT(OUT):: rrank_fg_edgV_xy(:), rrank_fg_edgH_xy(:), rrank_BCg(:)
   INTEGER,ALLOCATABLE,INTENT(OUT):: BC_Type(:)
 
-  INTEGER:: ncID, clen, g
+  CHARACTER(10):: dcmp_type
+  CHARACTER(50):: Location = 'MODULE: POD_ROUTINES / SUBROUTINE: INPUT_fg_POD'
+  INTEGER:: ncID, clen, g, Status, ID2
+  REAL*8:: bnds(2)
 
   CALL NF_OPEN_FILE(ncID,Fname,'old','r')
 
   CALL NF_INQ_DIM(ncID,"N_x",N_x)
   CALL NF_INQ_DIM(ncID,"N_y",N_y)
-  ! CALL NF_INQ_DIM(ncID,"N_m",N_m)
   CALL NF_INQ_DIM(ncID,"N_g",N_g)
   CALL NF_INQ_DIM(ncID,"N_t",N_t)
 
@@ -482,6 +484,23 @@ SUBROUTINE INPUT_fg_POD(Fname,PODgsum,eps,N_x,N_y,N_m,N_g,N_t,C_BCg,S_BCg,U_BCg,
   CALL NF_INQ_VAR_0D(ncID,"bcT_right",bcT(3))
   CALL NF_INQ_VAR_0D(ncID,"bcT_top",bcT(4))
   CALL NF_INQ_VAR_0D(ncID,"Tini",Tini)
+
+  Status = nf90_inq_varid(ncID, "tpts", ID2)
+  CALL HANDLE_ERR(Status, Location)
+  Status = nf90_get_att(ncID, ID2, "bnds", bnds)
+  CALL HANDLE_ERR(Status, Location)
+  Start_Time = bnds(1) - Delt
+
+  Status = nf90_get_att(ncID, NF90_GLOBAL, "dcmp_type", dcmp_type)
+  CALL HANDLE_ERR(Status,Location)
+  IF (dcmp_type(1:4) .EQ. "PODg") THEN
+    PODgsum = 0
+  ELSE IF (dcmp_type(1:3) .EQ. "POD") THEN
+    PODgsum = 1
+  ELSE
+    WRITE(*,'(5A)') "POD_ROUTINES :: INPUT_fg_POD - Unrecognized dcmp_type (",trim(dcmp_type),") in dataset (",trim(Fname),")"
+    STOP
+  END IF
 
   IF (PODgsum .EQ. 1) THEN
     ALLOCATE(rrank_fg_avg_xx(1), rrank_fg_edgV_xx(1), rrank_fg_avg_yy(1), rrank_fg_edgH_yy(1))
@@ -642,6 +661,8 @@ SUBROUTINE READ_POD_FULL(ncID,name,clen,N_t,eps,C,S,U,V,rrank)
   INTEGER:: rank
   CHARACTER(100):: name2
 
+  CALL CLEAR_POD(C,S,U,V)
+
   !Determining rank of data matrix to be read in
   rank = MIN(clen,N_t)
 
@@ -685,6 +706,8 @@ SUBROUTINE READ_POD_GPART(ncID,name,clen,N_t,N_g,g,eps,C,S,U,V,rrank)
   REAL*8,ALLOCATABLE:: Sn(:), S2(:), U2(:), V2(:)
   INTEGER:: rank
   CHARACTER(100):: name2
+
+  IF (g.EQ.1) CALL CLEAR_POD(C,S,U,V)
 
   !Determining rank of data matrix to be read in
   rank = MIN(clen,N_t)
@@ -795,6 +818,16 @@ SUBROUTINE RRANK_CALC(sig,eps,len,rank)
 
 END SUBROUTINE RRANK_CALC
 
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE CLEAR_POD(C,S,U,V)
+  REAL*8,ALLOCATABLE,INTENT(INOUT):: C(:), S(:), U(:), V(:)
+  IF (ALLOCATED(C)) DEALLOCATE(C)
+  IF (ALLOCATED(S)) DEALLOCATE(S)
+  IF (ALLOCATED(U)) DEALLOCATE(U)
+  IF (ALLOCATED(V)) DEALLOCATE(V)
+END SUBROUTINE CLEAR_POD
 !==================================================================================================================================!
 !
 !==================================================================================================================================!

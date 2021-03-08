@@ -27,27 +27,28 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   N_t,Res_Calc,Use_Line_Search,Use_Safety_Search,run_type,kapE_dT_flag,outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,&
   N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
   Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
-  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dset,POD_err,PODgsum,POD_Type,xlen,ylen,&
-  Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile,N_DMD_dsets,DMD_dsets,DMD_Type,DMD_dset_times)
+  E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dsets,POD_err,POD_Type,xlen,ylen,&
+  Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile,N_dsets,DMD_dsets,DMD_Type,dset_times,&
+  N_dsets_ID)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:), Kappa_Mult(:)
   REAL*8,INTENT(IN):: Delx(:), Dely(:), Delt, Theta, tlen, xlen, ylen
-  REAL*8,INTENT(IN):: Start_Time, DMD_dset_times(:)
+  REAL*8,INTENT(IN):: Start_Time, dset_times(:)
   REAL*8,INTENT(IN):: c, cV, h, pi, Kap0, erg
   REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr1, Conv_gr2
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
-  REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low, POD_err
-  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, PODgsum, Direc_Diff, Mat(:,:), N_DMD_dsets
+  REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low, POD_err(:)
+  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, Direc_Diff, Mat(:,:), N_dsets
   INTEGER,INTENT(IN):: use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
   LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search, kapE_dT_flag
-  CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dset, restart_outfile, restart_infile
+  CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dsets(:), restart_outfile, restart_infile
   CHARACTER(*),INTENT(IN):: DMD_Type, DMD_dsets(:)
 
   !----------------Output File ID's------------------!
   INTEGER,INTENT(IN):: outID
   INTEGER,INTENT(IN):: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
-  INTEGER,INTENT(IN):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID, MGQD_ResTypes_ID, Boundaries_ID
+  INTEGER,INTENT(IN):: RT_Its_ID, MGQD_Its_ID, GQD_Its_ID, Norm_Types_ID, MGQD_ResTypes_ID, Boundaries_ID, N_dsets_ID
   INTEGER,INTENT(IN):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, restart_freq
   INTEGER,INTENT(IN):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
   INTEGER,INTENT(IN):: E_out, F_out, D_out
@@ -176,7 +177,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
   REAL*8:: tlen_d, xlen_d, ylen_d, Tini_d, Delt_d, Start_Time_d, DMD_Time
   REAL*8,ALLOCATABLE:: Delx_d(:), Dely_d(:), bcT_d(:)
-  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, fg_pod_out, DMDgsum, Current_Database
+  INTEGER:: dN_x, dN_y, dN_m, dN_g, dN_t, fg_pod_out, fg_dmd_out, DMDgsum, PODgsum
+  INTEGER:: Current_Database, DMDgsum_ID, PODgsum_ID, PODerr_ID, gsum
   INTEGER,ALLOCATABLE:: BC_Type_d(:)
 
   REAL*8,ALLOCATABLE:: Sim_Grid_Avg(:), Sim_Grid_EdgV(:), Sim_Grid_EdgH(:), Sim_Grid_Bnds(:)
@@ -231,35 +233,16 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
   !===========================================================================!
   !                                                                           !
-  !     READING IN POD DATA                                                   !
-  !                                                                           !
-  !===========================================================================!
-  IF (run_type .EQ. "mg_pod") THEN
-    IF (POD_type .EQ. 'fg') THEN
-      CALL INPUT_fg_POD(POD_dset,PODgsum,POD_err,dN_x,dN_y,dN_m,dN_g,dN_t,C_BCg,S_BCg,U_BCg,V_BCg,rrank_BCg,C_fg_avg_xx,&
-        S_fg_avg_xx,U_fg_avg_xx,V_fg_avg_xx,rrank_fg_avg_xx,C_fg_edgV_xx,S_fg_edgV_xx,U_fg_edgV_xx,V_fg_edgV_xx,rrank_fg_edgV_xx,&
-        C_fg_avg_yy,S_fg_avg_yy,U_fg_avg_yy,V_fg_avg_yy,rrank_fg_avg_yy,C_fg_edgH_yy,S_fg_edgH_yy,U_fg_edgH_yy,V_fg_edgH_yy,&
-        rrank_fg_edgH_yy,C_fg_edgV_xy,S_fg_edgV_xy,U_fg_edgV_xy,V_fg_edgV_xy,rrank_fg_edgV_xy,C_fg_edgH_xy,S_fg_edgH_xy,&
-        U_fg_edgH_xy,V_fg_edgH_xy,rrank_fg_edgH_xy,tlen_d,xlen_d,ylen_d,Tini_d,Delt_d,Delx_d,Dely_d,bcT_d,BC_Type_d)
-    ELSE IF (POD_type .EQ. 'Ig') THEN
-      CALL INPUT_Ig_POD(POD_dset,PODgsum,N_x,N_y,N_m,N_g,N_t,POD_err,C_I_avg,S_I_avg,U_I_avg,V_I_avg,rrank_I_avg,&
-        C_I_edgV,S_I_edgV,U_I_edgV,V_I_edgV,rrank_I_edgV,C_I_edgH,S_I_edgH,U_I_edgH,V_I_edgH,rrank_I_edgH)
-    END IF
-
-    Start_Time_d = 0d0
-    CALL GENERATE_GRIDS(Delx_d,Dely_d,Delt_d,Delx,Dely,Delt,xlen_d,ylen_d,Start_Time_d,xlen,ylen,Start_Time,dN_x,dN_y,&
-      dN_t,N_x,N_y,N_t,Sim_Grid_Avg,Sim_Grid_EdgV,Sim_Grid_EdgH,Sim_Grid_Bnds,Dat_Grid_Avg,Dat_Grid_EdgV,Dat_Grid_EdgH,&
-      Dat_Grid_Bnds,Sim_TGrid,Dat_TGrid,GMap_xyAvg,GMap_xyEdgV,GMap_xyEdgH,GMap_xyBnds,VMap_xyAvg,VMap_xyEdgV,VMap_xyEdgH,&
-      VMap_xyBnds,TMap)
-  END IF
-
-  !===========================================================================!
-  !                                                                           !
   !     INITIALIZING OUTPUT FILE                                              !
   !                                                                           !
   !===========================================================================!
   fg_pod_out = 0
-  IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) fg_pod_out = 1
+  fg_dmd_out = 0
+  IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
+    fg_pod_out = 1
+  ELSE IF ((run_type .EQ. 'mg_dmd').AND.(DMD_Type .EQ. 'fg')) THEN
+    fg_dmd_out = 1
+  END IF
   CALL OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
     MGQD_F_out,QDfg_out,fg_pod_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,N_x_ID,N_y_ID,N_m_ID,N_g_ID,&
     N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,&
@@ -275,7 +258,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,&
     Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,&
     dr_MB_ID,dr_MR_ID,dr_MT_ID,rrank_BCg_ID,rrank_fg_avg_xx_ID,rrank_fg_edgV_xx_ID,rrank_fg_avg_yy_ID,rrank_fg_edgH_yy_ID,&
-    rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID)
+    rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID,fg_dmd_out,N_dsets_ID,DMDgsum_ID,PODgsum_ID,PODerr_ID)
 
   !===========================================================================!
   !                                                                           !
@@ -306,38 +289,6 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     RT_start_Its = 1
     HO_Form = 1
     Fdt_Weight = 1d0
-
-    IF (PODgsum .EQ. 1) THEN
-      Status = nf90_put_var(outID,rrank_BCg_ID,rrank_BCg,(/1/),(/1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_avg_xx_ID,rrank_fg_avg_xx,(/1/),(/1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgV_xx_ID,rrank_fg_EdgV_xx,(/1/),(/1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_avg_yy_ID,rrank_fg_avg_yy,(/1/),(/1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgH_yy_ID,rrank_fg_EdgH_yy,(/1/),(/1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgV_xy_ID,rrank_fg_EdgV_xy,(/1/),(/1/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgH_xy_ID,rrank_fg_EdgH_xy,(/1/),(/1/))
-      CALL HANDLE_ERR(Status)
-    ELSE
-      Status = nf90_put_var(outID,rrank_BCg_ID,rrank_BCg,(/1/),(/N_g/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_avg_xx_ID,rrank_fg_avg_xx,(/1/),(/N_g/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgV_xx_ID,rrank_fg_EdgV_xx,(/1/),(/N_g/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_avg_yy_ID,rrank_fg_avg_yy,(/1/),(/N_g/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgH_yy_ID,rrank_fg_EdgH_yy,(/1/),(/N_g/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgV_xy_ID,rrank_fg_EdgV_xy,(/1/),(/N_g/))
-      CALL HANDLE_ERR(Status)
-      Status = nf90_put_var(outID,rrank_fg_EdgH_xy_ID,rrank_fg_EdgH_xy,(/1/),(/N_g/))
-      CALL HANDLE_ERR(Status)
-    END IF
 
   ELSE IF ( run_type .EQ. 'mg_dmd' ) THEN
     RT_start_Its = 1
@@ -394,26 +345,92 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
     !===========================================================================!
     !                                                                           !
-    !     CHECKING DMD DATABASE TIME RANGES                                     !
+    !     CHECKING DMD/POD DATABASE TIME RANGES                                 !
     !     -> LOADING NEW DATABASE WHEN ENTERING SPECIFIED TEMPORAL RANGE        !
     !                                                                           !
     !===========================================================================!
-    IF (run_type .EQ. 'mg_dmd') THEN
-      IF (time .GE. DMD_dset_times(Current_Database + 1)) THEN
+    IF ( ANY( HO_Form .EQ. (/1,3/) ) ) THEN
+      IF (time .GE. dset_times(Current_Database + 1)) THEN
         Current_Database = Current_Database + 1
 
-        CALL INPUT_fg_DMD(DMD_dsets(Current_Database), DMDgsum, dN_x, dN_y, dN_g, L_BCg, W_BCg, B_BCg, C_BCg, rrank_BCg,&
-          L_fg_avg_xx, W_fg_avg_xx, B_fg_avg_xx, C_fg_avg_xx, rrank_fg_avg_xx, L_fg_edgV_xx, W_fg_edgV_xx, B_fg_edgV_xx,&
-          C_fg_edgV_xx, rrank_fg_edgV_xx, L_fg_avg_yy, W_fg_avg_yy, B_fg_avg_yy, C_fg_avg_yy, rrank_fg_avg_yy, L_fg_edgH_yy,&
-          W_fg_edgH_yy, B_fg_edgH_yy, C_fg_edgH_yy, rrank_fg_edgH_yy, L_fg_edgV_xy, W_fg_edgV_xy, B_fg_edgV_xy, C_fg_edgV_xy,&
-          rrank_fg_edgV_xy, L_fg_edgH_xy, W_fg_edgH_xy, B_fg_edgH_xy, C_fg_edgH_xy, rrank_fg_edgH_xy, xlen_d, ylen_d,&
-          Tini_d, Delx_d, Dely_d, bcT_d, BC_Type_d, Start_Time_d)
+        !--------------------------------------------------!
+        !                     Using DMD                    !
+        !--------------------------------------------------!
+        IF (HO_Form .EQ. 3) THEN
+          CALL INPUT_fg_DMD(DMD_dsets(Current_Database), DMDgsum, dN_x, dN_y, dN_g, L_BCg, W_BCg, B_BCg, C_BCg, rrank_BCg,&
+            L_fg_avg_xx, W_fg_avg_xx, B_fg_avg_xx, C_fg_avg_xx, rrank_fg_avg_xx, L_fg_edgV_xx, W_fg_edgV_xx, B_fg_edgV_xx,&
+            C_fg_edgV_xx, rrank_fg_edgV_xx, L_fg_avg_yy, W_fg_avg_yy, B_fg_avg_yy, C_fg_avg_yy, rrank_fg_avg_yy, L_fg_edgH_yy,&
+            W_fg_edgH_yy, B_fg_edgH_yy, C_fg_edgH_yy, rrank_fg_edgH_yy, L_fg_edgV_xy, W_fg_edgV_xy, B_fg_edgV_xy, C_fg_edgV_xy,&
+            rrank_fg_edgV_xy, L_fg_edgH_xy, W_fg_edgH_xy, B_fg_edgH_xy, C_fg_edgH_xy, rrank_fg_edgH_xy, xlen_d, ylen_d,&
+            Tini_d, Delx_d, Dely_d, bcT_d, BC_Type_d, Start_Time_d)
 
-        CALL GENERATE_GRIDS(Delx_d, Dely_d, Delx, Dely, xlen_d, ylen_d, xlen, ylen, dN_x, dN_y, N_x, N_y,&
-          Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Sim_Grid_Bnds, Dat_Grid_Avg, Dat_Grid_EdgV, Dat_Grid_EdgH,&
-          Dat_Grid_Bnds, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, GMap_xyBnds, VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH,&
-          VMap_xyBnds)
+          CALL GENERATE_GRIDS(Delx_d, Dely_d, Delx, Dely, xlen_d, ylen_d, xlen, ylen, dN_x, dN_y, N_x, N_y,&
+            Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Sim_Grid_Bnds, Dat_Grid_Avg, Dat_Grid_EdgV, Dat_Grid_EdgH,&
+            Dat_Grid_Bnds, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, GMap_xyBnds, VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH,&
+            VMap_xyBnds)
+
+          gsum = DMDgsum
+          Status = nf90_put_var(outID,DMDgsum_ID,(/DMDgsum/),(/Current_Database/),(/1/))
+          CALL HANDLE_ERR(Status)
+
+        !--------------------------------------------------!
+        !                     Using POD                    !
+        !--------------------------------------------------!
+        ELSE IF (HO_Form .EQ. 1) THEN
+          CALL INPUT_fg_POD(POD_dsets(Current_Database), PODgsum, POD_err(Current_Database), dN_x, dN_y, dN_m, dN_g, dN_t,&
+            C_BCg, S_BCg, U_BCg, V_BCg, rrank_BCg, C_fg_avg_xx, S_fg_avg_xx, U_fg_avg_xx, V_fg_avg_xx, rrank_fg_avg_xx,&
+            C_fg_edgV_xx, S_fg_edgV_xx, U_fg_edgV_xx, V_fg_edgV_xx, rrank_fg_edgV_xx, C_fg_avg_yy, S_fg_avg_yy, U_fg_avg_yy,&
+            V_fg_avg_yy, rrank_fg_avg_yy, C_fg_edgH_yy, S_fg_edgH_yy, U_fg_edgH_yy, V_fg_edgH_yy, rrank_fg_edgH_yy, C_fg_edgV_xy,&
+            S_fg_edgV_xy, U_fg_edgV_xy, V_fg_edgV_xy, rrank_fg_edgV_xy, C_fg_edgH_xy, S_fg_edgH_xy, U_fg_edgH_xy, V_fg_edgH_xy,&
+            rrank_fg_edgH_xy, tlen_d, xlen_d, ylen_d, Tini_d, Delt_d, Delx_d, Dely_d, bcT_d, BC_Type_d, Start_Time_d)
+
+          CALL GENERATE_GRIDS(Delx_d, Dely_d, Delt_d, Delx, Dely, Delt, xlen_d, ylen_d, Start_Time_d, xlen, ylen, Start_Time,&
+            dN_x, dN_y, dN_t, N_x, N_y, N_t, Sim_Grid_Avg, Sim_Grid_EdgV, Sim_Grid_EdgH, Sim_Grid_Bnds, Dat_Grid_Avg,&
+            Dat_Grid_EdgV, Dat_Grid_EdgH,Dat_Grid_Bnds, Sim_TGrid, Dat_TGrid, GMap_xyAvg, GMap_xyEdgV, GMap_xyEdgH, GMap_xyBnds,&
+            VMap_xyAvg, VMap_xyEdgV, VMap_xyEdgH, VMap_xyBnds, TMap)
+
+          gsum = PODgsum
+          Status = nf90_put_var(outID,PODgsum_ID,(/PODgsum/),(/Current_Database/),(/1/))
+          CALL HANDLE_ERR(Status)
+
+        END IF
         ! WRITE(*,*) 'Successfully loaded database ',Current_Database
+
+        !--------------------------------------------------!
+        !   Writing ranks of each dataset to output file   !
+        !--------------------------------------------------!
+        IF (gsum .EQ. 1) THEN
+          Status = nf90_put_var(outID,rrank_BCg_ID,rrank_BCg,(/1,Current_Database/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_avg_xx_ID,rrank_fg_avg_xx,(/1,Current_Database/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgV_xx_ID,rrank_fg_EdgV_xx,(/1,Current_Database/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_avg_yy_ID,rrank_fg_avg_yy,(/1,Current_Database/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgH_yy_ID,rrank_fg_EdgH_yy,(/1,Current_Database/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgV_xy_ID,rrank_fg_EdgV_xy,(/1,Current_Database/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgH_xy_ID,rrank_fg_EdgH_xy,(/1,Current_Database/),(/1,1/))
+          CALL HANDLE_ERR(Status)
+        ELSE
+          Status = nf90_put_var(outID,rrank_BCg_ID,rrank_BCg,(/1,Current_Database/),(/N_g,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_avg_xx_ID,rrank_fg_avg_xx,(/1,Current_Database/),(/N_g,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgV_xx_ID,rrank_fg_EdgV_xx,(/1,Current_Database/),(/N_g,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_avg_yy_ID,rrank_fg_avg_yy,(/1,Current_Database/),(/N_g,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgH_yy_ID,rrank_fg_EdgH_yy,(/1,Current_Database/),(/N_g,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgV_xy_ID,rrank_fg_EdgV_xy,(/1,Current_Database/),(/N_g,1/))
+          CALL HANDLE_ERR(Status)
+          Status = nf90_put_var(outID,rrank_fg_EdgH_xy_ID,rrank_fg_EdgH_xy,(/1,Current_Database/),(/N_g,1/))
+          CALL HANDLE_ERR(Status)
+        END IF
+
       END IF
     END IF
 

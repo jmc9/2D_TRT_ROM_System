@@ -53,18 +53,15 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   REAL*8,ALLOCATABLE:: mat(:,:), sol(:), sol2(:)
   REAL*8,ALLOCATABLE:: mat_sp(:), mat_Usp(:), w(:), fpar(:), w2(:)
   INTEGER,ALLOCATABLE:: ja(:), ia(:), jlu(:), ju(:), jw(:), ipar(:)
-  INTEGER:: N_x, N_y, i, j, r, t, k, row_n, row_size, b, br, err, pj
-  INTEGER:: Nrows, Nelm
+  INTEGER:: N_x, N_y, i, j, r, t, k, row_n, row_size, b, br, err
 
   N_y = SIZE(E_avg,2)
   N_x = SIZE(E_avg,1)
 
-  Nrows = N_x+N_y+3*N_x*N_y
-  Nelm = 19*N_x*N_y+N_x+N_y
+  ALLOCATE(mat(N_x+N_y+3*N_x*N_y,N_x+N_y+3*N_x*N_y))
+  ALLOCATE(sol(N_x+N_y+3*N_x*N_y))
 
-  ALLOCATE(mat_sp(Nelm), ja(Nelm), ia(Nrows+1))
-  ALLOCATE(sol(Nrows))
-
+  mat=0d0
   !===========================================================================!
   !                                                                           !
   !     Building the linear system (part 1)                                   !
@@ -87,84 +84,51 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   !5 = top
 
   !left edge BC
-  ia(1) = 1
-  mat_sp(1) = Cp_L(1) !left
-  ja(1) = 1
-  mat_sp(2) = -MBx_B(1,1) !bottom
-  ja(2) = 2
-  mat_sp(3) = MBx_C(1,1) !center
-  ja(3) = 3
-  mat_sp(4) = -MBx_T(1,1) !top
-  ja(4) = 5
+  mat(1,1) = Cp_L(1) !left
+  mat(1,2) = -MBx_B(1,1) !bottom
+  mat(1,3) = MBx_C(1,1) !center
+  mat(1,5) = -MBx_T(1,1) !top
   sol(1) = BC_L(1)
 
   !bottom edge BC
-  ia(2) = 5
-  mat_sp(5) = -MBy_L(1,1)
-  ja(5) = 1
-  mat_sp(6) = Cp_B(1)
-  ja(6) = 2
-  mat_sp(7) = MBy_C(1,1)
-  ja(7) = 3
-  mat_sp(8) = -MBy_R(1,1)
-  ja(8) = 4
+  mat(2,1) = -MBy_L(1,1)
+  mat(2,2) = Cp_B(1)
+  mat(2,3) = MBy_C(1,1)
+  mat(2,4) = -MBy_R(1,1)
   sol(2) = BC_B(1)
 
   !rad energy balance
-  ia(3) = 9
-  mat_sp(9) = EB_L(1,1)
-  ja(9) = 1
-  mat_sp(10) = EB_B(1,1)
-  ja(10) = 2
-  mat_sp(11) = EB_C(1,1)
-  ja(11) = 3
-  mat_sp(12) = EB_R(1,1)
-  ja(12) = 4
-  mat_sp(13) = EB_T(1,1)
-  ja(13) = 5
+  mat(3,1) = EB_L(1,1)
+  mat(3,2) = EB_B(1,1)
+  mat(3,3) = EB_C(1,1)
+  mat(3,4) = EB_R(1,1)
+  mat(3,5) = EB_T(1,1)
   sol(3) = EB_RHS(1,1)
 
   !rad (x) momentum balance
-  ia(4) = 14
-  mat_sp(14) = MBx_B(1,1)
-  ja(14) = 2
-  mat_sp(15) = MBx_C(1,1)
-  ja(15) = 3
-  mat_sp(16) = MBx_R(1,1)
-  ja(16) = 4
-  mat_sp(17) = MBx_T(1,1)
-  ja(17) = 5
-  mat_sp(18) = -MBx_B(2,1)
-  ja(18) = 6
-  mat_sp(19) = MBx_C(2,1)
-  ja(19) = 7
-  mat_sp(20) = -MBx_T(2,1)
-  ja(20) = 9
+  mat(4,2) = MBx_B(1,1)
+  mat(4,3) = MBx_C(1,1)
+  mat(4,4) = MBx_R(1,1)
+  mat(4,5) = MBx_T(1,1)
+  mat(4,6) = -MBx_B(2,1)
+  mat(4,7) = MBx_C(2,1)
+  mat(4,9) = -MBx_T(2,1)
   sol(4) = MBx_RHS(1,1)
 
   !rad (y) momentum balance
   t = 4*N_x + 1 !points to the top face of the cell(N_x,1)
-  ia(5) = 21
-  mat_sp(21) = MBy_L(1,1)
-  ja(21) = 1
-  mat_sp(22) = MBy_C(1,1)
-  ja(22) = 3
-  mat_sp(23) = MBy_R(1,1)
-  ja(23) = 4
-  mat_sp(24) = MBy_T(1,1)
-  ja(24) = 5
-  mat_sp(25) = -MBy_L(1,2)
-  ja(25) = t+1
-  mat_sp(26) = MBy_C(1,2)
-  ja(26) = t+2
-  mat_sp(27) = -MBy_R(1,2)
-  ja(27) = t+3
+  mat(5,1) = MBy_L(1,1)
+  mat(5,3) = MBy_C(1,1)
+  mat(5,4) = MBy_R(1,1)
+  mat(5,5) = MBy_T(1,1)
+  mat(5,t+1) = -MBy_L(1,2)
+  mat(5,t+2) = MBy_C(1,2)
+  mat(5,t+3) = -MBy_R(1,2)
   sol(5) = MBy_RHS(1,1)
 
   !--------------------------------------------------!
   !                   Bottom Edge                    !
   !--------------------------------------------------!
-  pj = 28
   DO i=2,N_x
     k = 4*i + 1 !points to top edge of cell(i,1)
     r = 4*(i+1) + 1 !points to top edge of cell(i+1,1)
@@ -190,100 +154,41 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
     !t-4 = right(i-1,j+1) = left(j+1)
 
     !bottom edge BC
-    ia(k-3) = pj
+    mat(k-3,k-5) = -MBy_L(i,1)
+    mat(k-3,k-3) = Cp_B(i)
+    mat(k-3,k-2) = MBy_C(i,1)
+    mat(k-3,k-1) = -MBy_R(i,1)
     sol(k-3) = BC_B(i)
 
-    mat_sp(pj) = -MBy_L(i,1)
-    ja(pj) = k-5
-    pj = pj + 1
-    mat_sp(pj) = Cp_B(i)
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = MBy_C(i,1)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = -MBy_R(i,1)
-    ja(pj) = k-1
-    pj = pj + 1
-
     !rad energy balance
-    ia(k-2) = pj
+    mat(k-2,k-5) = EB_L(i,1)
+    mat(k-2,k-3) = EB_B(i,1)
+    mat(k-2,k-2) = EB_C(i,1)
+    mat(k-2,k-1) = EB_R(i,1)
+    mat(k-2,k)   = EB_T(i,1)
     sol(k-2) = EB_RHS(i,1)
-
-    mat_sp(pj) = EB_L(i,1)
-    ja(pj) = k-5
-    pj = pj + 1
-    mat_sp(pj) = EB_B(i,1)
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = EB_C(i,1)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = EB_R(i,1)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj)   = EB_T(i,1)
-    ja(pj) = k
-    pj = pj + 1
 
     !rad (x) momentum balance
     IF (i .NE. N_x) THEN
-      ia(k-1) = pj
+      mat(k-1,k-3) = MBx_B(i,1)
+      mat(k-1,k-2) = MBx_C(i,1)
+      mat(k-1,k-1) = MBx_R(i,1)
+      mat(k-1,k)   = MBx_T(i,1)
+      mat(k-1,r-3) = -MBx_B(i+1,1)
+      mat(k-1,r-2) = MBx_C(i+1,1)
+      mat(k-1,r)   = -MBx_T(i+1,1)
       sol(k-1) = MBx_RHS(i,1)
-
-      mat_sp(pj) = MBx_B(i,1)
-      ja(pj) = k-3
-      pj = pj + 1
-      mat_sp(pj) = MBx_C(i,1)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = MBx_R(i,1)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = MBx_T(i,1)
-      ja(pj) = k
-      pj = pj + 1
-      mat_sp(pj) = -MBx_B(i+1,1)
-      ja(pj) = r-3
-      pj = pj + 1
-      mat_sp(pj) = MBx_C(i+1,1)
-      ja(pj) =  r-2
-      pj = pj + 1
-      mat_sp(pj) = -MBx_T(i+1,1)
-      ja(pj) = r
-      pj = pj + 1
-
-    ELSE
-      pj = pj + 4
-
     END IF
 
     !rad (y) momentum balance
-    ia(k) = pj
+    mat(k,k-5) = MBy_L(i,1)
+    mat(k,k-2) = MBy_C(i,1)
+    mat(k,k-1) = MBy_R(i,1)
+    mat(k,k)   = MBy_T(i,1)
+    mat(k,t-4) = -MBy_L(i,2)
+    mat(k,t-2) = MBy_C(i,2)
+    mat(k,t-1) = -MBy_R(i,2)
     sol(k) = MBy_RHS(i,1)
-
-    mat_sp(pj) = MBy_L(i,1)
-    ja(pj) = k-5
-    pj = pj + 1
-    mat_sp(pj) = MBy_C(i,1)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = MBy_R(i,1)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj) = MBy_T(i,1)
-    ja(pj) = k
-    pj = pj + 1
-    mat_sp(pj) = -MBy_L(i,2)
-    ja(pj) = t-4
-    pj = pj + 1
-    mat_sp(pj) = MBy_C(i,2)
-    ja(pj) = t-2
-    pj = pj + 1
-    mat_sp(pj) = -MBy_R(i,2)
-    ja(pj) = t-1
-    pj = pj + 1
-
 
   END DO
 
@@ -292,7 +197,6 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   !--------------------------------------------------!
   i = N_x
   k = 4*N_x + 1
-  pj = pj - 11
 
   !k = top
   !k-1 = right
@@ -302,21 +206,11 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   !k-5 = right(N_x-1) = left
 
   !right edge BC
-  ia(k-1) = pj
+  mat(k-1,k-3) = -MBx_B(N_x,1)
+  mat(k-1,k-2) = -MBx_C(N_x,1)
+  mat(k-1,k-1) = Cp_R(1)
+  mat(k-1,k)   = -MBx_T(N_x,1)
   sol(k-1) = BC_R(1)
-  mat_sp(pj) = -MBx_B(N_x,1)
-  ja(pj) = k-3
-  pj = pj + 1
-  mat_sp(pj) = -MBx_C(N_x,1)
-  ja(pj) = k-2
-  pj = pj + 1
-  mat_sp(pj) = Cp_R(1)
-  ja(pj) = k-1
-  pj = pj + 1
-  mat_sp(pj) = -MBx_T(N_x,1)
-  ja(pj) = k
-  pj = pj + 8
-
 
   !===========================================================================!
   !                                                                           !
@@ -358,114 +252,48 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
     !b+4 = top(i+1,j-1) = bottom(i+1)
 
     !left edge BC
-    ia(k-3) = pj
+    mat(k-3,k-3) = Cp_L(j) !left
+    mat(k-3,b)   = -MBx_B(1,j) !bottom
+    mat(k-3,k-2) = MBx_C(1,j) !center
+    mat(k-3,k)   = -MBx_T(1,j) !top
     sol(k-3) = BC_L(j)
 
-    mat_sp(pj) = Cp_L(j) !left
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = -MBx_B(1,j) !bottom
-    ja(pj) = b
-    pj = pj + 1
-    mat_sp(pj) = MBx_C(1,j) !center
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = -MBx_T(1,j) !top
-    ja(pj) = k
-    pj = pj + 1
-
     !rad energy balance
-    ia(k-2) = pj
+    mat(k-2,k-3) = EB_L(i,j)
+    mat(k-2,b)   = EB_B(i,j)
+    mat(k-2,k-2) = EB_C(i,j)
+    mat(k-2,k-1) = EB_R(i,j)
+    mat(k-2,k)   = EB_T(i,j)
     sol(k-2) = EB_RHS(i,j)
 
-    mat_sp(pj) = EB_L(i,j)
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = EB_B(i,j)
-    ja(pj) = b
-    pj = pj + 1
-    mat_sp(pj) = EB_C(i,j)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = EB_R(i,j)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj) = EB_T(i,j)
-    ja(pj) = k
-    pj = pj + 1
-
     !rad (x) momentum balance
-    ia(k-1) = pj
+    mat(k-1,b)   = MBx_B(i,j)
+    mat(k-1,k-2) = MBx_C(i,j)
+    mat(k-1,k-1) = MBx_R(i,j)
+    mat(k-1,k)   = MBx_T(i,j)
+    mat(k-1,br) = -MBx_B(i+1,j)
+    mat(k-1,r-2) = MBx_C(i+1,j)
+    mat(k-1,r)   = -MBx_T(i+1,j)
     sol(k-1) = MBx_RHS(i,j)
-
-    mat_sp(pj) = MBx_B(i,j)
-    ja(pj) = b
-    pj = pj + 1
-    mat_sp(pj) = MBx_C(i,j)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = MBx_R(i,j)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj) = MBx_T(i,j)
-    ja(pj) = k
-    pj = pj + 1
-    mat_sp(pj) = -MBx_B(i+1,j)
-    ja(pj) = br
-    pj = pj + 1
-    mat_sp(pj) = MBx_C(i+1,j)
-    ja(pj) = r-2
-    pj = pj + 1
-    mat_sp(pj) = -MBx_T(i+1,j)
-    ja(pj) = r
-    pj = pj + 1
 
     !if on the top cell row, must invoke the top edge boundary condition in place of the y-momentum balance
     IF (j .NE. N_y) THEN
       !rad (y) momentum balance
-      ia(k) = pj
+      mat(k,k-3) = MBy_L(i,j)
+      mat(k,k-2) = MBy_C(i,j)
+      mat(k,k-1) = MBy_R(i,j)
+      mat(k,k)   = MBy_T(i,j)
+      mat(k,t-3) = -MBy_L(i,j+1)
+      mat(k,t-2) = MBy_C(i,j+1)
+      mat(k,t-1) = -MBy_R(i,j+1)
       sol(k) = MBy_RHS(i,j)
-
-      mat_sp(pj) = MBy_L(i,j)
-      ja(pj) = k-3
-      pj = pj + 1
-      mat_sp(pj) = MBy_C(i,j)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = MBy_R(i,j)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = MBy_T(i,j)
-      ja(pj) = k
-      pj = pj + 1
-      mat_sp(pj) = -MBy_L(i,j+1)
-      ja(pj) = t-3
-      pj = pj + 1
-      mat_sp(pj) = MBy_C(i,j+1)
-      ja(pj) = t-2
-      pj = pj + 1
-      mat_sp(pj) = -MBy_R(i,j+1)
-      ja(pj) = t-1
-      pj = pj + 1
-
     ELSE
       !Top edge BC
-      ia(k) = pj
+      mat(k,k-3) = -MBy_L(i,j)
+      mat(k,k-2) = -MBy_C(i,j)
+      mat(k,k-1) = -MBy_R(i,j)
+      mat(k,k)   = Cp_T(i)
       sol(k) = BC_T(i)
-
-      mat_sp(pj) = -MBy_L(i,j)
-      ja(pj) = k-3
-      pj = pj + 1
-      mat_sp(pj) = -MBy_C(i,j)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = -MBy_R(i,j)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = Cp_T(i)
-      ja(pj) = k
-      pj = pj + 1
-
     END IF
 
     !--------------------------------------------------!
@@ -496,128 +324,57 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
       !b+3 = top(i+1,j-1) = bottom(i+1) --> FOR ALL j>2
 
       !rad energy balance
-      ia(k-2) = pj
+      mat(k-2,k-4) = EB_L(i,j)
+      mat(k-2,b)   = EB_B(i,j)
+      mat(k-2,k-2) = EB_C(i,j)
+      mat(k-2,k-1) = EB_R(i,j)
+      mat(k-2,k)   = EB_T(i,j)
       sol(k-2) = EB_RHS(i,j)
-
-      mat_sp(pj) = EB_L(i,j)
-      ja(pj) = k-4
-      pj = pj + 1
-      mat_sp(pj) = EB_B(i,j)
-      ja(pj) = b
-      pj = pj + 1
-      mat_sp(pj) = EB_C(i,j)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = EB_R(i,j)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = EB_T(i,j)
-      ja(pj) = k
-      pj = pj + 1
 
       !if on the right-most cell of each row, must invoke the right edge boundary condition in place of the x-momentum balance
       IF (i .NE. N_x) THEN
         !rad (x) momentum balance
-        ia(k-1) = pj
+        mat(k-1,b)   = MBx_B(i,j)
+        mat(k-1,k-2) = MBx_C(i,j)
+        mat(k-1,k-1) = MBx_R(i,j)
+        mat(k-1,k)   = MBx_T(i,j)
+        mat(k-1,br) = -MBx_B(i+1,j)
+        mat(k-1,r-2) = MBx_C(i+1,j)
+        mat(k-1,r)   = -MBx_T(i+1,j)
         sol(k-1) = MBx_RHS(i,j)
-
-        mat_sp(pj) = MBx_B(i,j)
-        ja(pj) = b
-        pj = pj + 1
-        mat_sp(pj) = MBx_C(i,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = MBx_R(i,j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = MBx_T(i,j)
-        ja(pj) = k
-        pj = pj + 1
-        mat_sp(pj) = -MBx_B(i+1,j)
-        ja(pj) = br
-        pj = pj + 1
-        mat_sp(pj) = MBx_C(i+1,j)
-        ja(pj) = r-2
-        pj = pj + 1
-        mat_sp(pj) = -MBx_T(i+1,j)
-        ja(pj) = r
-        pj = pj + 1
-
       ELSE
         !right edge BC
-        ia(k-1) = pj
+        mat(k-1,b)   = -MBx_B(N_x,j)
+        mat(k-1,k-2) = -MBx_C(N_x,j)
+        mat(k-1,k-1) = Cp_R(j)
+        mat(k-1,k)   = -MBx_T(N_x,j)
         sol(k-1) = BC_R(j)
-
-        mat_sp(pj) = -MBx_B(N_x,j)
-        ja(pj) = b
-        pj = pj + 1
-        mat_sp(pj) = -MBx_C(N_x,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = Cp_R(j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = -MBx_T(N_x,j)
-        ja(pj) = k
-        pj = pj + 1
-
       END IF
 
       !if on the top cell row, must invoke the top edge boundary condition in place of the y-momentum balance
       IF (j .NE. N_y) THEN
         !rad (y) momentum balance
-        ia(k) = pj
+        mat(k,k-4) = MBy_L(i,j)
+        mat(k,k-2) = MBy_C(i,j)
+        mat(k,k-1) = MBy_R(i,j)
+        mat(k,k)   = MBy_T(i,j)
+        mat(k,t-4) = -MBy_L(i,j+1)
+        mat(k,t-2) = MBy_C(i,j+1)
+        mat(k,t-1) = -MBy_R(i,j+1)
         sol(k) = MBy_RHS(i,j)
-
-        mat_sp(pj) = MBy_L(i,j)
-        ja(pj) = k-4
-        pj = pj + 1
-        mat_sp(pj) = MBy_C(i,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = MBy_R(i,j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = MBy_T(i,j)
-        ja(pj) = k
-        pj = pj + 1
-        mat_sp(pj) = -MBy_L(i,j+1)
-        ja(pj) = t-4
-        pj = pj + 1
-        mat_sp(pj) = MBy_C(i,j+1)
-        ja(pj) = t-2
-        pj = pj + 1
-        mat_sp(pj) = -MBy_R(i,j+1)
-        ja(pj) = t-1
-        pj = pj + 1
-
       ELSE
         !Top edge BC
-        ia(k) = pj
+        mat(k,k-4) = -MBy_L(i,j)
+        mat(k,k-2) = -MBy_C(i,j)
+        mat(k,k-1) = -MBy_R(i,j)
+        mat(k,k)   = Cp_T(i)
         sol(k) = BC_T(i)
-
-        mat_sp(pj) = -MBy_L(i,j)
-        ja(pj) = k-4
-        pj = pj + 1
-        mat_sp(pj) = -MBy_C(i,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = -MBy_R(i,j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = Cp_T(i)
-        ja(pj) = k
-        pj = pj + 1
-
       END IF
 
     END DO
 
     row_n = row_n + row_size !moving row_n to the right boundary cell edge of the current row
   END DO !End loop over N_y
-
-  !last element of ia holds SIZE(ja)+1
-  ia(Nrows+1) = Nelm + 1
 
   !===========================================================================!
   !                                                                           !
@@ -628,11 +385,15 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   !                                                                           !
   !===========================================================================!
   !allocating all arrays for the linear solve
-  ALLOCATE(mat_Usp(Nelm), jlu(Nelm), ju(Nrows))
-  ALLOCATE(w(Nrows+1), jw(2*(Nrows)))
-  ALLOCATE(sol2(Nrows), w2(Nrows*8), ipar(16), fpar(16))
+  ALLOCATE(mat_sp(19*N_x*N_y+N_x+N_y),ja(19*N_x*N_y+N_x+N_y),ia(3*N_x*N_y+N_x+N_y))
+  ALLOCATE(mat_Usp(19*N_x*N_y+N_x+N_y),jlu(19*N_x*N_y+N_x+N_y),ju(3*N_x*N_y+N_x+N_y))
+  ALLOCATE(w(3*N_x*N_y+N_x+N_y+1),jw(2*(3*N_x*N_y+N_x+N_y)))
+  ALLOCATE(sol2(N_x+N_y+3*N_x*N_y),w2((N_x+N_y+3*N_x*N_y)*8),ipar(16),fpar(16))
 
   !initializing all new arrays to zero
+  mat_sp = 0d0
+  ja = 0
+  ia = 0
   mat_Usp = 0d0
   jlu = 0
   ju = 0
@@ -641,11 +402,16 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   ipar = 0
   fpar = 0d0
   w2 = 0d0
-  sol2 = 0d0
+  sol2=0d0
+
+  !Putting the coefficient matrix into sparse (compressed row sparse) format
+  !the sparse formatted matrix is contained in (mat_sp, ja, ia)
+  CALL DNSCSR(3*N_x*N_y+N_x+N_y,3*N_x*N_y+N_x+N_y,19*N_x*N_y+N_x+N_y,mat,3*N_x*N_y+N_x+N_y,mat_sp,ja,ia,err)
+  IF (err .NE. 0) STOP 'DNSCSR TERMINATED TOO EARLY'
 
   !Performing preconditioning with ILUT
   !using a fill level of 3 and 'drop tolerance' of 1d-6
-  CALL ILUT(Nrows ,mat_sp, ja, ia, 3, 1d-6, mat_Usp, jlu, ju, Nelm, w, jw, err)
+  CALL ILUT(3*N_x*N_y+N_x+N_y,mat_sp,ja,ia,3,1d-6,mat_Usp,jlu,ju,19*N_x*N_y+N_x+N_y,w,jw,err)
   IF (err .NE. 0) THEN
     WRITE(*,*) err
     STOP 'BAD ILUT'
@@ -655,7 +421,7 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   ipar(1) = 0  !tell solver to initialize new linear solve
   ipar(2) = 2  !use right preconditioning
   ipar(3) = -1 !termination condition
-  ipar(4) = Nrows*8 !length of the work space
+  ipar(4) = (N_x+N_y+3*N_x*N_y)*8 !length of the work space
   ipar(5) = 10   !useless for BI-CGSTAB, default is 10
   ipar(6) = 2000 !max number of mat-vec products
 
@@ -691,29 +457,25 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   !      Performing linear solve via BI-CGSTAB       !
   !--------------------------------------------------!
   KLOOP: DO
-    CALL BCGSTAB(Nrows, sol, sol2, ipar, fpar, w2)
+    CALL BCGSTAB(3*N_x*N_y+N_x+N_y,sol,sol2,ipar,fpar,w2)
 
     IF (ipar(1) .EQ. 0) THEN !successful termination
       EXIT KLOOP
     ELSE IF (ipar(1) .EQ. 1) THEN !require matrix vector product with A
-      CALL AMUX(Nrows, w2(ipar(8)), w2(ipar(9)), mat_sp, ja, ia)
+      CALL AMUX(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_sp,ja,ia)
       CYCLE KLOOP
     ELSE IF (ipar(1) .EQ. 2) THEN !require matrix vector product with A^T
-      CALL ATMUX(Nrows, w2(ipar(8)), w2(ipar(9)), mat_sp, ja, ia)
+      CALL ATMUX(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_sp,ja,ia)
       CYCLE KLOOP
     ELSE IF ((ipar(1) .EQ. 3).OR.(ipar(1) .EQ. 5)) THEN !require matrix vector product with M
-      CALL LUSOL(Nrows, w2(ipar(8)), w2(ipar(9)), mat_Usp, jlu, ju)
+      CALL LUSOL(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_Usp,jlu,ju)
       CYCLE KLOOP
     ELSE IF ((ipar(1) .EQ. 4).OR.(ipar(1) .EQ. 6)) THEN !require matrix vector product with M^T
-      CALL LUTSOL(Nrows, w2(ipar(8)), w2(ipar(9)), mat_Usp, jlu, ju)
+      CALL LUTSOL(3*N_x*N_y+N_x+N_y,w2(ipar(8)),w2(ipar(9)),mat_Usp,jlu,ju)
       CYCLE KLOOP
     ELSE IF (ipar(1) .LT. 0) THEN !UNsuccessful termination
-      ALLOCATE(mat(Nrows, Nrows))
-      CALL CSRDNS(Nrows, Nrows, mat_sp, ja, ia, mat, Nrows, err)
-      IF (err .NE. 0) STOP 'CSRDNS TERMINATED TOO EARLY'
-      CALL GAUSS_COMPLETE(mat, sol) !if BI-CGSTAB fails to solve the system, resort to direct solution by gaussian elimination
-      DEALLOCATE(mat)
-      sol2 = sol
+      CALL GAUSS_COMPLETE(mat,sol) !if BI-CGSTAB fails to solve the system, resort to direct solution by gaussian elimination
+      sol2=sol
       ipar(7) = -1 !flag that a direct solve was used
       EXIT KLOOP
     END IF
@@ -722,7 +484,7 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   Its = ipar(7) !store total matrix-vector product count
 
   !deallocate all arrays except for solution vector
-  DEALLOCATE(mat_sp, mat_Usp, sol, ja, ia, jlu, ju, w, jw, w2, ipar, fpar)
+  DEALLOCATE(mat,mat_sp,mat_Usp,sol,ja,ia,jlu,ju,w,jw,w2,ipar,fpar)
 
   !--------------------------------------------------!
   !               Collecting Solution                !

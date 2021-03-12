@@ -65,6 +65,8 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   ALLOCATE(mat_sp(Nelm), ja(Nelm), ia(Nrows+1))
   ALLOCATE(sol(Nrows))
 
+  pj = 1
+
   !===========================================================================!
   !                                                                           !
   !     Building the linear system (part 1)                                   !
@@ -87,84 +89,57 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   !5 = top
 
   !left edge BC
-  ia(1) = 1
-  mat_sp(1) = Cp_L(1) !left
-  ja(1) = 1
-  mat_sp(2) = -MBx_B(1,1) !bottom
-  ja(2) = 2
-  mat_sp(3) = MBx_C(1,1) !center
-  ja(3) = 3
-  mat_sp(4) = -MBx_T(1,1) !top
-  ja(4) = 5
+  ia(1) = pj
   sol(1) = BC_L(1)
+  CALL SPARSE_IN(pj, mat_sp, Cp_L(1),     ja, 1)
+  CALL SPARSE_IN(pj, mat_sp, -MBx_B(1,1), ja, 2)
+  CALL SPARSE_IN(pj, mat_sp, MBx_C(1,1),  ja, 3)
+  CALL SPARSE_IN(pj, mat_sp, -MBx_T(1,1), ja, 5)
 
   !bottom edge BC
-  ia(2) = 5
-  mat_sp(5) = -MBy_L(1,1)
-  ja(5) = 1
-  mat_sp(6) = Cp_B(1)
-  ja(6) = 2
-  mat_sp(7) = MBy_C(1,1)
-  ja(7) = 3
-  mat_sp(8) = -MBy_R(1,1)
-  ja(8) = 4
+  ia(2) = pj
   sol(2) = BC_B(1)
+  CALL SPARSE_IN(pj, mat_sp, -MBy_L(1,1), ja, 1)
+  CALL SPARSE_IN(pj, mat_sp, Cp_B(1),     ja, 2)
+  CALL SPARSE_IN(pj, mat_sp, MBy_C(1,1),  ja, 3)
+  CALL SPARSE_IN(pj, mat_sp, -MBy_R(1,1), ja, 4)
 
   !rad energy balance
-  ia(3) = 9
-  mat_sp(9) = EB_L(1,1)
-  ja(9) = 1
-  mat_sp(10) = EB_B(1,1)
-  ja(10) = 2
-  mat_sp(11) = EB_C(1,1)
-  ja(11) = 3
-  mat_sp(12) = EB_R(1,1)
-  ja(12) = 4
-  mat_sp(13) = EB_T(1,1)
-  ja(13) = 5
+  ia(3) = pj
   sol(3) = EB_RHS(1,1)
+  CALL SPARSE_IN(pj, mat_sp, EB_L(1,1), ja, 1)
+  CALL SPARSE_IN(pj, mat_sp, EB_B(1,1), ja, 2)
+  CALL SPARSE_IN(pj, mat_sp, EB_C(1,1), ja, 3)
+  CALL SPARSE_IN(pj, mat_sp, EB_R(1,1), ja, 4)
+  CALL SPARSE_IN(pj, mat_sp, EB_T(1,1), ja, 5)
 
   !rad (x) momentum balance
-  ia(4) = 14
-  mat_sp(14) = MBx_B(1,1)
-  ja(14) = 2
-  mat_sp(15) = MBx_C(1,1)
-  ja(15) = 3
-  mat_sp(16) = MBx_R(1,1)
-  ja(16) = 4
-  mat_sp(17) = MBx_T(1,1)
-  ja(17) = 5
-  mat_sp(18) = -MBx_B(2,1)
-  ja(18) = 6
-  mat_sp(19) = MBx_C(2,1)
-  ja(19) = 7
-  mat_sp(20) = -MBx_T(2,1)
-  ja(20) = 9
+  ia(4) = pj
   sol(4) = MBx_RHS(1,1)
+  CALL SPARSE_IN(pj, mat_sp, MBx_B(1,1),  ja, 2)
+  CALL SPARSE_IN(pj, mat_sp, MBx_C(1,1),  ja, 3)
+  CALL SPARSE_IN(pj, mat_sp, MBx_R(1,1),  ja, 4)
+  CALL SPARSE_IN(pj, mat_sp, MBx_T(1,1),  ja, 5)
+  CALL SPARSE_IN(pj, mat_sp, -MBx_B(2,1), ja, 6)
+  CALL SPARSE_IN(pj, mat_sp, MBx_C(2,1),  ja, 7)
+  CALL SPARSE_IN(pj, mat_sp, -MBx_T(2,1), ja, 9)
 
   !rad (y) momentum balance
   t = 4*N_x + 1 !points to the top face of the cell(N_x,1)
-  ia(5) = 21
-  mat_sp(21) = MBy_L(1,1)
-  ja(21) = 1
-  mat_sp(22) = MBy_C(1,1)
-  ja(22) = 3
-  mat_sp(23) = MBy_R(1,1)
-  ja(23) = 4
-  mat_sp(24) = MBy_T(1,1)
-  ja(24) = 5
-  mat_sp(25) = -MBy_L(1,2)
-  ja(25) = t+1
-  mat_sp(26) = MBy_C(1,2)
-  ja(26) = t+2
-  mat_sp(27) = -MBy_R(1,2)
-  ja(27) = t+3
+  ia(5) = pj
   sol(5) = MBy_RHS(1,1)
+  CALL SPARSE_IN(pj, mat_sp, MBy_L(1,1),  ja, 1)
+  CALL SPARSE_IN(pj, mat_sp, MBy_C(1,1),  ja, 3)
+  CALL SPARSE_IN(pj, mat_sp, MBy_R(1,1),  ja, 4)
+  CALL SPARSE_IN(pj, mat_sp, MBy_T(1,1),  ja, 5)
+  CALL SPARSE_IN(pj, mat_sp, -MBy_L(1,2), ja, t+1)
+  CALL SPARSE_IN(pj, mat_sp, MBy_C(1,2),  ja, t+2)
+  CALL SPARSE_IN(pj, mat_sp, -MBy_R(1,2), ja, t+3)
 
   !--------------------------------------------------!
   !                   Bottom Edge                    !
   !--------------------------------------------------!
-  pj = 28
+  ! pj = 28
   DO i=2,N_x
     k = 4*i + 1 !points to top edge of cell(i,1)
     r = 4*(i+1) + 1 !points to top edge of cell(i+1,1)
@@ -192,130 +167,56 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
     !bottom edge BC
     ia(k-3) = pj
     sol(k-3) = BC_B(i)
-
-    mat_sp(pj) = -MBy_L(i,1)
-    ja(pj) = k-5
-    pj = pj + 1
-    mat_sp(pj) = Cp_B(i)
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = MBy_C(i,1)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = -MBy_R(i,1)
-    ja(pj) = k-1
-    pj = pj + 1
+    CALL SPARSE_IN(pj, mat_sp, -MBy_L(i,1), ja, k-5)
+    CALL SPARSE_IN(pj, mat_sp, Cp_B(i),     ja, k-3)
+    CALL SPARSE_IN(pj, mat_sp, MBy_C(i,1),  ja, k-2)
+    CALL SPARSE_IN(pj, mat_sp, -MBy_R(i,1), ja, k-1)
 
     !rad energy balance
     ia(k-2) = pj
     sol(k-2) = EB_RHS(i,1)
-
-    mat_sp(pj) = EB_L(i,1)
-    ja(pj) = k-5
-    pj = pj + 1
-    mat_sp(pj) = EB_B(i,1)
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = EB_C(i,1)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = EB_R(i,1)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj)   = EB_T(i,1)
-    ja(pj) = k
-    pj = pj + 1
+    CALL SPARSE_IN(pj, mat_sp, EB_L(i,1), ja, k-5)
+    CALL SPARSE_IN(pj, mat_sp, EB_B(i,1), ja, k-3)
+    CALL SPARSE_IN(pj, mat_sp, EB_C(i,1), ja, k-2)
+    CALL SPARSE_IN(pj, mat_sp, EB_R(i,1), ja, k-1)
+    CALL SPARSE_IN(pj, mat_sp, EB_T(i,1), ja, k)
 
     !rad (x) momentum balance
     IF (i .NE. N_x) THEN
       ia(k-1) = pj
       sol(k-1) = MBx_RHS(i,1)
-
-      mat_sp(pj) = MBx_B(i,1)
-      ja(pj) = k-3
-      pj = pj + 1
-      mat_sp(pj) = MBx_C(i,1)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = MBx_R(i,1)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = MBx_T(i,1)
-      ja(pj) = k
-      pj = pj + 1
-      mat_sp(pj) = -MBx_B(i+1,1)
-      ja(pj) = r-3
-      pj = pj + 1
-      mat_sp(pj) = MBx_C(i+1,1)
-      ja(pj) =  r-2
-      pj = pj + 1
-      mat_sp(pj) = -MBx_T(i+1,1)
-      ja(pj) = r
-      pj = pj + 1
+      CALL SPARSE_IN(pj, mat_sp, MBx_B(i,1),    ja, k-3)
+      CALL SPARSE_IN(pj, mat_sp, MBx_C(i,1),    ja, k-2)
+      CALL SPARSE_IN(pj, mat_sp, MBx_R(i,1),    ja, k-1)
+      CALL SPARSE_IN(pj, mat_sp, MBx_T(i,1),    ja, k)
+      CALL SPARSE_IN(pj, mat_sp, -MBx_B(i+1,1), ja, r-3)
+      CALL SPARSE_IN(pj, mat_sp, MBx_C(i+1,1),  ja, r-2)
+      CALL SPARSE_IN(pj, mat_sp, -MBx_T(i+1,1), ja, r)
 
     ELSE
-      pj = pj + 4
+      !Bottom right corner right face boundary condition
+      ia(k-1) = pj
+      sol(k-1) = BC_R(1)
+      CALL SPARSE_IN(pj, mat_sp, -MBx_B(N_x,1), ja, k-3)
+      CALL SPARSE_IN(pj, mat_sp, -MBx_C(N_x,1), ja, k-2)
+      CALL SPARSE_IN(pj, mat_sp, Cp_R(1),       ja, k-1)
+      CALL SPARSE_IN(pj, mat_sp, -MBx_T(N_x,1), ja, k)
 
     END IF
 
     !rad (y) momentum balance
     ia(k) = pj
     sol(k) = MBy_RHS(i,1)
-
-    mat_sp(pj) = MBy_L(i,1)
-    ja(pj) = k-5
-    pj = pj + 1
-    mat_sp(pj) = MBy_C(i,1)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = MBy_R(i,1)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj) = MBy_T(i,1)
-    ja(pj) = k
-    pj = pj + 1
-    mat_sp(pj) = -MBy_L(i,2)
-    ja(pj) = t-4
-    pj = pj + 1
-    mat_sp(pj) = MBy_C(i,2)
-    ja(pj) = t-2
-    pj = pj + 1
-    mat_sp(pj) = -MBy_R(i,2)
-    ja(pj) = t-1
-    pj = pj + 1
+    CALL SPARSE_IN(pj, mat_sp, MBy_L(i,1),  ja, k-5)
+    CALL SPARSE_IN(pj, mat_sp, MBy_C(i,1),  ja, k-2)
+    CALL SPARSE_IN(pj, mat_sp, MBy_R(i,1),  ja, k-1)
+    CALL SPARSE_IN(pj, mat_sp, MBy_T(i,1),  ja, k)
+    CALL SPARSE_IN(pj, mat_sp, -MBy_L(i,2), ja, t-4)
+    CALL SPARSE_IN(pj, mat_sp, MBy_C(i,2),  ja, t-2)
+    CALL SPARSE_IN(pj, mat_sp, -MBy_R(i,2), ja, t-1)
 
 
   END DO
-
-  !--------------------------------------------------!
-  !              Bottom right Corner                 !
-  !--------------------------------------------------!
-  i = N_x
-  k = 4*N_x + 1
-  pj = pj - 11
-
-  !k = top
-  !k-1 = right
-  !k-2 = center
-  !k-3 = bottom
-  !k-4 = top(N_x-1)
-  !k-5 = right(N_x-1) = left
-
-  !right edge BC
-  ia(k-1) = pj
-  sol(k-1) = BC_R(1)
-  mat_sp(pj) = -MBx_B(N_x,1)
-  ja(pj) = k-3
-  pj = pj + 1
-  mat_sp(pj) = -MBx_C(N_x,1)
-  ja(pj) = k-2
-  pj = pj + 1
-  mat_sp(pj) = Cp_R(1)
-  ja(pj) = k-1
-  pj = pj + 1
-  mat_sp(pj) = -MBx_T(N_x,1)
-  ja(pj) = k
-  pj = pj + 8
 
 
   !===========================================================================!
@@ -360,111 +261,52 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
     !left edge BC
     ia(k-3) = pj
     sol(k-3) = BC_L(j)
-
-    mat_sp(pj) = Cp_L(j) !left
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = -MBx_B(1,j) !bottom
-    ja(pj) = b
-    pj = pj + 1
-    mat_sp(pj) = MBx_C(1,j) !center
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = -MBx_T(1,j) !top
-    ja(pj) = k
-    pj = pj + 1
+    CALL SPARSE_IN(pj, mat_sp, Cp_L(j),     ja, k-3)
+    CALL SPARSE_IN(pj, mat_sp, -MBx_B(1,j), ja, b)
+    CALL SPARSE_IN(pj, mat_sp, MBx_C(1,j),  ja, k-2)
+    CALL SPARSE_IN(pj, mat_sp, -MBx_T(1,j), ja, k)
 
     !rad energy balance
     ia(k-2) = pj
     sol(k-2) = EB_RHS(i,j)
-
-    mat_sp(pj) = EB_L(i,j)
-    ja(pj) = k-3
-    pj = pj + 1
-    mat_sp(pj) = EB_B(i,j)
-    ja(pj) = b
-    pj = pj + 1
-    mat_sp(pj) = EB_C(i,j)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = EB_R(i,j)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj) = EB_T(i,j)
-    ja(pj) = k
-    pj = pj + 1
+    CALL SPARSE_IN(pj, mat_sp, EB_L(i,j), ja, k-3)
+    CALL SPARSE_IN(pj, mat_sp, EB_B(i,j), ja, b)
+    CALL SPARSE_IN(pj, mat_sp, EB_C(i,j), ja, k-2)
+    CALL SPARSE_IN(pj, mat_sp, EB_R(i,j), ja, k-1)
+    CALL SPARSE_IN(pj, mat_sp, EB_T(i,j), ja, k)
 
     !rad (x) momentum balance
     ia(k-1) = pj
     sol(k-1) = MBx_RHS(i,j)
-
-    mat_sp(pj) = MBx_B(i,j)
-    ja(pj) = b
-    pj = pj + 1
-    mat_sp(pj) = MBx_C(i,j)
-    ja(pj) = k-2
-    pj = pj + 1
-    mat_sp(pj) = MBx_R(i,j)
-    ja(pj) = k-1
-    pj = pj + 1
-    mat_sp(pj) = MBx_T(i,j)
-    ja(pj) = k
-    pj = pj + 1
-    mat_sp(pj) = -MBx_B(i+1,j)
-    ja(pj) = br
-    pj = pj + 1
-    mat_sp(pj) = MBx_C(i+1,j)
-    ja(pj) = r-2
-    pj = pj + 1
-    mat_sp(pj) = -MBx_T(i+1,j)
-    ja(pj) = r
-    pj = pj + 1
+    CALL SPARSE_IN(pj, mat_sp, MBx_B(i,j),    ja, b)
+    CALL SPARSE_IN(pj, mat_sp, MBx_C(i,j),    ja, k-2)
+    CALL SPARSE_IN(pj, mat_sp, MBx_R(i,j),    ja, k-1)
+    CALL SPARSE_IN(pj, mat_sp, MBx_T(i,j),    ja, k)
+    CALL SPARSE_IN(pj, mat_sp, -MBx_B(i+1,j), ja, br)
+    CALL SPARSE_IN(pj, mat_sp, MBx_C(i+1,j),  ja, r-2)
+    CALL SPARSE_IN(pj, mat_sp, -MBx_T(i+1,j), ja, r)
 
     !if on the top cell row, must invoke the top edge boundary condition in place of the y-momentum balance
     IF (j .NE. N_y) THEN
       !rad (y) momentum balance
       ia(k) = pj
       sol(k) = MBy_RHS(i,j)
-
-      mat_sp(pj) = MBy_L(i,j)
-      ja(pj) = k-3
-      pj = pj + 1
-      mat_sp(pj) = MBy_C(i,j)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = MBy_R(i,j)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = MBy_T(i,j)
-      ja(pj) = k
-      pj = pj + 1
-      mat_sp(pj) = -MBy_L(i,j+1)
-      ja(pj) = t-3
-      pj = pj + 1
-      mat_sp(pj) = MBy_C(i,j+1)
-      ja(pj) = t-2
-      pj = pj + 1
-      mat_sp(pj) = -MBy_R(i,j+1)
-      ja(pj) = t-1
-      pj = pj + 1
+      CALL SPARSE_IN(pj, mat_sp, MBy_L(i,j),    ja, k-3)
+      CALL SPARSE_IN(pj, mat_sp, MBy_C(i,j),    ja, k-2)
+      CALL SPARSE_IN(pj, mat_sp, MBy_R(i,j),    ja, k-1)
+      CALL SPARSE_IN(pj, mat_sp, MBy_T(i,j),    ja, k)
+      CALL SPARSE_IN(pj, mat_sp, -MBy_L(i,j+1), ja, t-3)
+      CALL SPARSE_IN(pj, mat_sp, MBy_C(i,j+1),  ja, t-2)
+      CALL SPARSE_IN(pj, mat_sp, -MBy_R(i,j+1), ja, t-1)
 
     ELSE
       !Top edge BC
       ia(k) = pj
       sol(k) = BC_T(i)
-
-      mat_sp(pj) = -MBy_L(i,j)
-      ja(pj) = k-3
-      pj = pj + 1
-      mat_sp(pj) = -MBy_C(i,j)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = -MBy_R(i,j)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = Cp_T(i)
-      ja(pj) = k
-      pj = pj + 1
+      CALL SPARSE_IN(pj, mat_sp, -MBy_L(i,j), ja, k-3)
+      CALL SPARSE_IN(pj, mat_sp, -MBy_C(i,j), ja, k-2)
+      CALL SPARSE_IN(pj, mat_sp, -MBy_R(i,j), ja, k-1)
+      CALL SPARSE_IN(pj, mat_sp, Cp_T(i),     ja, k)
 
     END IF
 
@@ -498,68 +340,33 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
       !rad energy balance
       ia(k-2) = pj
       sol(k-2) = EB_RHS(i,j)
-
-      mat_sp(pj) = EB_L(i,j)
-      ja(pj) = k-4
-      pj = pj + 1
-      mat_sp(pj) = EB_B(i,j)
-      ja(pj) = b
-      pj = pj + 1
-      mat_sp(pj) = EB_C(i,j)
-      ja(pj) = k-2
-      pj = pj + 1
-      mat_sp(pj) = EB_R(i,j)
-      ja(pj) = k-1
-      pj = pj + 1
-      mat_sp(pj) = EB_T(i,j)
-      ja(pj) = k
-      pj = pj + 1
+      CALL SPARSE_IN(pj, mat_sp, EB_L(i,j), ja, k-4)
+      CALL SPARSE_IN(pj, mat_sp, EB_B(i,j), ja, b)
+      CALL SPARSE_IN(pj, mat_sp, EB_C(i,j), ja, k-2)
+      CALL SPARSE_IN(pj, mat_sp, EB_R(i,j), ja, k-1)
+      CALL SPARSE_IN(pj, mat_sp, EB_T(i,j), ja, k)
 
       !if on the right-most cell of each row, must invoke the right edge boundary condition in place of the x-momentum balance
       IF (i .NE. N_x) THEN
         !rad (x) momentum balance
         ia(k-1) = pj
         sol(k-1) = MBx_RHS(i,j)
-
-        mat_sp(pj) = MBx_B(i,j)
-        ja(pj) = b
-        pj = pj + 1
-        mat_sp(pj) = MBx_C(i,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = MBx_R(i,j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = MBx_T(i,j)
-        ja(pj) = k
-        pj = pj + 1
-        mat_sp(pj) = -MBx_B(i+1,j)
-        ja(pj) = br
-        pj = pj + 1
-        mat_sp(pj) = MBx_C(i+1,j)
-        ja(pj) = r-2
-        pj = pj + 1
-        mat_sp(pj) = -MBx_T(i+1,j)
-        ja(pj) = r
-        pj = pj + 1
+        CALL SPARSE_IN(pj, mat_sp, MBx_B(i,j),    ja, b)
+        CALL SPARSE_IN(pj, mat_sp, MBx_C(i,j),    ja, k-2)
+        CALL SPARSE_IN(pj, mat_sp, MBx_R(i,j),    ja, k-1)
+        CALL SPARSE_IN(pj, mat_sp, MBx_T(i,j),    ja, k)
+        CALL SPARSE_IN(pj, mat_sp, -MBx_B(i+1,j), ja, br)
+        CALL SPARSE_IN(pj, mat_sp, MBx_C(i+1,j),  ja, r-2)
+        CALL SPARSE_IN(pj, mat_sp, -MBx_T(i+1,j), ja, r)
 
       ELSE
         !right edge BC
         ia(k-1) = pj
         sol(k-1) = BC_R(j)
-
-        mat_sp(pj) = -MBx_B(N_x,j)
-        ja(pj) = b
-        pj = pj + 1
-        mat_sp(pj) = -MBx_C(N_x,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = Cp_R(j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = -MBx_T(N_x,j)
-        ja(pj) = k
-        pj = pj + 1
+        CALL SPARSE_IN(pj, mat_sp, -MBx_B(N_x,j), ja, b)
+        CALL SPARSE_IN(pj, mat_sp, -MBx_C(N_x,j), ja, k-2)
+        CALL SPARSE_IN(pj, mat_sp, Cp_R(j),       ja, k-1)
+        CALL SPARSE_IN(pj, mat_sp, -MBx_T(N_x,j), ja, k)
 
       END IF
 
@@ -568,46 +375,22 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
         !rad (y) momentum balance
         ia(k) = pj
         sol(k) = MBy_RHS(i,j)
-
-        mat_sp(pj) = MBy_L(i,j)
-        ja(pj) = k-4
-        pj = pj + 1
-        mat_sp(pj) = MBy_C(i,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = MBy_R(i,j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = MBy_T(i,j)
-        ja(pj) = k
-        pj = pj + 1
-        mat_sp(pj) = -MBy_L(i,j+1)
-        ja(pj) = t-4
-        pj = pj + 1
-        mat_sp(pj) = MBy_C(i,j+1)
-        ja(pj) = t-2
-        pj = pj + 1
-        mat_sp(pj) = -MBy_R(i,j+1)
-        ja(pj) = t-1
-        pj = pj + 1
+        CALL SPARSE_IN(pj, mat_sp, MBy_L(i,j),    ja, k-4)
+        CALL SPARSE_IN(pj, mat_sp, MBy_C(i,j),    ja, k-2)
+        CALL SPARSE_IN(pj, mat_sp, MBy_R(i,j),    ja, k-1)
+        CALL SPARSE_IN(pj, mat_sp, MBy_T(i,j),    ja, k)
+        CALL SPARSE_IN(pj, mat_sp, -MBy_L(i,j+1), ja, t-4)
+        CALL SPARSE_IN(pj, mat_sp, MBy_C(i,j+1),  ja, t-2)
+        CALL SPARSE_IN(pj, mat_sp, -MBy_R(i,j+1), ja, t-1)
 
       ELSE
         !Top edge BC
         ia(k) = pj
         sol(k) = BC_T(i)
-
-        mat_sp(pj) = -MBy_L(i,j)
-        ja(pj) = k-4
-        pj = pj + 1
-        mat_sp(pj) = -MBy_C(i,j)
-        ja(pj) = k-2
-        pj = pj + 1
-        mat_sp(pj) = -MBy_R(i,j)
-        ja(pj) = k-1
-        pj = pj + 1
-        mat_sp(pj) = Cp_T(i)
-        ja(pj) = k
-        pj = pj + 1
+        CALL SPARSE_IN(pj, mat_sp, -MBy_L(i,j), ja, k-4)
+        CALL SPARSE_IN(pj, mat_sp, -MBy_C(i,j), ja, k-2)
+        CALL SPARSE_IN(pj, mat_sp, -MBy_R(i,j), ja, k-1)
+        CALL SPARSE_IN(pj, mat_sp, Cp_T(i),     ja, k)
 
       END IF
 
@@ -616,8 +399,7 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
     row_n = row_n + row_size !moving row_n to the right boundary cell edge of the current row
   END DO !End loop over N_y
 
-  !last element of ia holds SIZE(ja)+1
-  ia(Nrows+1) = Nelm + 1
+  ia(Nrows+1) = pj
 
   !===========================================================================!
   !                                                                           !
@@ -754,6 +536,23 @@ RECURSIVE SUBROUTINE QD_FV(E_avg,E_edgV,E_edgH,Its,EB_L,EB_B,EB_C,EB_R,EB_T,MBx_
   DEALLOCATE(sol2)
 
 END SUBROUTINE QD_FV
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+SUBROUTINE SPARSE_IN(p, mat_sp, val, ja, col)
+  INTEGER,INTENT(INOUT):: p, ja(*)
+  REAL*8,INTENT(INOUT):: mat_sp(*)
+  INTEGER,INTENT(IN):: col
+  REAL*8,INTENT(IN):: val
+
+  IF (val .NE. 0d0) THEN
+    mat_sp(p) = val
+    ja(p) = col
+    p = p + 1
+  END IF
+
+END SUBROUTINE
 
 !==================================================================================================================================!
 !

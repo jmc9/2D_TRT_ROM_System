@@ -783,7 +783,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   !--------------------------------------------------!
   !             Radiation Intensities                !
   !--------------------------------------------------!
-  IF (HO_Eg_out .EQ. 1) THEN
+  IF (I_out .EQ. 1) THEN
     !cell-averaged
     CALL NF_DEF_VAR(I_avg_ID,outID,(/N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID/),'I_avg','Double')
     CALL NF_DEF_UNIT(outID,I_avg_ID,'erg/(Ster*cm^3)')

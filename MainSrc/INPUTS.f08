@@ -14,7 +14,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
   quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,POD_Type,POD_dsets,&
   Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
-  Start_Time,dset_times)
+  Start_Time,dset_times,Init_out)
 
   IMPLICIT NONE
 
@@ -51,7 +51,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, restart_freq
   INTEGER,INTENT(OUT):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
   INTEGER,INTENT(OUT):: E_out, F_out, D_out
-  INTEGER,INTENT(OUT):: old_parms_out, its_out, conv_out, kap_out, Src_out
+  INTEGER,INTENT(OUT):: old_parms_out, its_out, conv_out, kap_out, Src_out, Init_out
 
   REAL*8,ALLOCATABLE,INTENT(OUT):: nu_g(:)
   INTEGER,INTENT(OUT):: N_g
@@ -107,12 +107,17 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   CALL INPUT_PARAMETERS(inpunit,erg,xlen,ylen,N_x,N_y,tlen,delt,BC_Type,bcT_left,bcT_right,bcT_upper,&
     bcT_lower,Tini)
 
+  CALL INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
+    MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,restart_outfile,restart_freq,Init_out)
+
   ALLOCATE(Delx(N_x))
   ALLOCATE(Dely(N_y))
   Delx = xlen/REAL(N_x,8)
   Dely = ylen/REAL(N_y,8)
   N_t = NINT( (tlen-Start_Time) /delt )
   Cv=0.5917d0*ar*(bcT_left)**3*((1.38d-16)**4*(11600d0**4)*erg**4)
+
+  IF (Init_out .EQ. 1) N_t = N_t + 1
 
   ALLOCATE(xpts_avg(N_x), xpts_edgV(N_x+1))
   ALLOCATE(ypts_avg(N_y), ypts_edgH(N_y+1))
@@ -133,7 +138,11 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   DO i=2,N_y
     ypts_avg(i) = ypts_avg(i-1) + (Dely(i) + Dely(i-1))/2d0
   END DO
-  tpts(1) = Start_Time + Delt
+  IF (Init_out .EQ. 0) THEN
+    tpts(1) = Start_Time + Delt
+  ELSE
+    tpts(1) = Start_Time
+  END IF
   DO i=2,N_t
     tpts(i) = tpts(i-1) + Delt
   END DO
@@ -143,9 +152,6 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   CALL INPUT_ENERGY(inpunit,enrgy_strc,N_g,nu_g)
 
   CALL INPUT_QUAD(quadrature,N_m,Omega_x,Omega_y,quad_weight)
-
-  CALL INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
-    MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,restart_outfile,restart_freq)
 
   CLOSE ( inpunit, STATUS='KEEP')
 
@@ -1133,7 +1139,7 @@ END SUBROUTINE INPUT_PARAMETERS
 !==================================================================================================================================!
 
 SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,&
-  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,restart_outfile,restart_freq)
+  MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,restart_outfile,restart_freq,Init_out)
 
   IMPLICIT NONE
 
@@ -1146,7 +1152,7 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
   INTEGER,INTENT(OUT):: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
   INTEGER,INTENT(OUT):: E_out, F_out, D_out
   INTEGER,INTENT(OUT):: old_parms_out, its_out, conv_out, kap_out, Src_out
-  INTEGER,INTENT(OUT):: restart_freq
+  INTEGER,INTENT(OUT):: restart_freq, Init_out
 
   !LOCAL VARIABLES
   CHARACTER(1000):: line
@@ -1178,6 +1184,7 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
   kap_out  = 1
   Src_out  = 1
   restart_freq = 1
+  Init_out = 0
 
   block = '[OUTPUT_OPTS]'
   CALL LOCATE_BLOCK(inpunit,block,block_found)
@@ -1396,6 +1403,16 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
           WRITE(*,'(A)') 'Src_out must be 0 or 1'
           WRITE(*,'(A)') 'Setting Src_out to 0'
           Src_out = 0
+        END IF
+
+      ELSE IF (trim(key) .EQ. 'init_out') THEN
+        READ(args(1),*) Init_out
+        IF (ALL(Init_out .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'init_out must be 0 or 1'
+          WRITE(*,'(A)') 'Setting init_out to 0'
+          Init_out = 0
         END IF
 
       END IF

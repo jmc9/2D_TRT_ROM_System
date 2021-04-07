@@ -41,7 +41,7 @@ program main
     INTEGER:: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, restart_freq
     INTEGER:: Eg_out, Fg_out, MGQD_E_out, MGQD_F_out, QDfg_out
     INTEGER:: E_out, F_out, D_out
-    INTEGER:: old_parms_out, its_out, conv_out, kap_out, Src_out
+    INTEGER:: old_parms_out, its_out, conv_out, kap_out, Src_out, Init_out
     CHARACTER(100):: run_type, restart_infile, outfile, Test, restart_outfile
     CHARACTER(100):: enrgy_strc, quadrature
     CHARACTER(100):: POD_Type, DMD_Type
@@ -85,7 +85,7 @@ program main
       MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
       quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,POD_Type,POD_dsets,&
       Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
-      Start_Time,dset_times)
+      Start_Time,dset_times,Init_out)
 
     CALL OUTFILE_INIT(outID,N_x_ID,N_y_ID,N_m_ID,N_g_ID,N_t_ID,N_edgV_ID,N_edgH_ID,N_xc_ID,N_yc_ID,Quads_ID,RT_Its_ID,&
       MGQD_Its_ID,GQD_Its_ID,Norm_Types_ID,MGQD_ResTypes_ID,Boundaries_ID,c_ID,h_ID,pi_ID,erg_ID,Comp_Unit_ID,cv_ID,&
@@ -105,7 +105,7 @@ program main
       Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
       E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dsets,POD_err,POD_Type,xlen,ylen,&
       Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile,N_dsets,DMD_dsets,DMD_Type,dset_times,&
-      N_dsets_ID)
+      N_dsets_ID,Init_out)
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     CALL NF_CLOSE_FILE(outID)

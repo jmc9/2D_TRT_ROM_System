@@ -136,8 +136,9 @@ def domain_parms(dset):
     Delt = 2e-2
 
     (xp,yp) = cell_coords(Delx,Dely)
-    tp = []
-    for i in range(N_t): tp.append((i+1)*Delt)
+    # tp = []
+    # for i in range(N_t): tp.append((i+1)*Delt)
+    tp=dset['tpts'][:]
 
     return (xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x)
 

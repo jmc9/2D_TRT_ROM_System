@@ -70,6 +70,40 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
     (xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = inp.domain_parms(dsets[0]) #getting problem domain parameters
     (A_EdgV, A_EdgH, Ag, Ag_EdgV, Ag_EdgH) = proc.A_calcs(A,N_g,N_y,N_x) #calculating areas/weights for different types of functions
+    tpts_ = [ [t for t in ds['tpts'][:]] for ds in dsets ]
+
+    ###
+    #
+    tpts=[]
+    tn=np.zeros((N_t,nsets),dtype=int)
+    pn=0
+    p=np.zeros(nsets,dtype=int)
+    for tm in tpts_[0]:
+        if tm in tpts: continue
+        check=True
+        p[1:]=0
+        pd=1
+        for t2 in tpts_[1:]:
+            p2=0
+            check2=False
+            for tm2 in t2:
+                if (tm>=tm2-1e-10)and(tm<=tm2+1e-10):
+                    check2=True
+                    p[pd]=p2
+                    break
+                p2 += 1
+            if not check2:
+                check = False
+                break
+            pd+=1
+        if check:
+            tpts.append(tm)
+            for n in range(nsets): tn[pn][n] = p[n]
+            pn += 1
+        p[0] += 1
+    #
+    ###
+    N_t2 = pn
 
     pltbnds = [Tbound,Ebound,Ebound,Ebound]
     bnd = []
@@ -100,14 +134,14 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
             pltr.lineplot("Ranks_t{}".format(t+1),trend_names,ranks[t],proc_dir,rleg,yscale='linear',xlabel=r'Truncation Criteria $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
 
     #initializing arrays of error norms
-    Temp_Norms = np.zeros([6,nsets-1,N_t])
-    E_avg_Norms = np.zeros([6,nsets-1,N_t])
-    fg_avg_xx_Norms = np.zeros([6,nsets-1,N_t])
-    fg_avg_yy_Norms = np.zeros([6,nsets-1,N_t])
-    fg_edgV_xx_Norms = np.zeros([6,nsets-1,N_t])
-    fg_edgV_xy_Norms = np.zeros([6,nsets-1,N_t])
-    fg_edgH_yy_Norms = np.zeros([6,nsets-1,N_t])
-    fg_edgH_xy_Norms = np.zeros([6,nsets-1,N_t])
+    Temp_Norms = np.zeros([6,nsets-1,N_t2])
+    E_avg_Norms = np.zeros([6,nsets-1,N_t2])
+    fg_avg_xx_Norms = np.zeros([6,nsets-1,N_t2])
+    fg_avg_yy_Norms = np.zeros([6,nsets-1,N_t2])
+    fg_edgV_xx_Norms = np.zeros([6,nsets-1,N_t2])
+    fg_edgV_xy_Norms = np.zeros([6,nsets-1,N_t2])
+    fg_edgH_yy_Norms = np.zeros([6,nsets-1,N_t2])
+    fg_edgH_xy_Norms = np.zeros([6,nsets-1,N_t2])
 
     Temp_Norm_Trends = np.zeros([6,len(ntrend_tp),nsets-1])
     E_avg_Norm_Trends = np.zeros([6,len(ntrend_tp),nsets-1])
@@ -115,22 +149,22 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
     t2 = 0
     print('beginning data collection and plotting...')
-    for t in range(N_t):
-        print('... simulation time  =  '+str(tp[t]))
+    for t in range(N_t2):
+
+        print('... simulation time  =  '+str(tp[tn[t][0]]))
         for n in range(nsets):
 
             if n == 0: m = 0
             else: m = 1
 
-            #collecting data from dataset
             (Temp[m],E_avg[m],E_edgV[m],E_edgH[m],E_avg_MGQD[m],E_edgV_MGQD[m],E_edgH_MGQD[m],E_avg_HO[m],E_edgV_HO[m],E_edgH_HO[m],Fx_edgV[m],\
             Fy_edgH,Fx_edgV_MGQD[m],Fy_edgH_MGQD[m],Fx_edgV_HO[m],Fy_edgH_HO[m],Eg_avg[m],Eg_edgV[m],Eg_edgH[m],Eg_avg_HO[m],Eg_edgV_HO[m],\
             Eg_edgH_HO[m],Fxg_edgV[m],Fyg_edgH[m],Fxg_edgV_HO[m],Fyg_edgH_HO[m],fg_avg_xx[m],fg_avg_xy[m],fg_avg_yy[m],fg_edgV_xx[m],fg_edgV_xy[m],\
-            fg_edgH_yy[m],fg_edgH_xy[m]) = proc.get_data(dsets[n],inp_flags[n],t)
+            fg_edgH_yy[m],fg_edgH_xy[m]) = proc.get_data(dsets[n],inp_flags[n],tn[t][n])
 
             #plotting the results for case n for desired instants of time (contained in the array tp_plt)
             if (t in tp_plt):
-                pltr.plot_results(dsets[n],casedirs[n],xp,yp,tp[t],N_g,N_y,N_x,inp_flags[n],plotdirs[n],pd_names[n],Temp[m],fg_avg_xx[m],\
+                pltr.plot_results(dsets[n],casedirs[n],xp,yp,tp[tn[t][n]],N_g,N_y,N_x,inp_flags[n],plotdirs[n],pd_names[n],Temp[m],fg_avg_xx[m],\
                 fg_avg_xy[m],fg_avg_yy[m],E_avg[m],E_avg_MGQD[m],E_avg_HO[m],Eg_avg[m],Eg_avg_HO[m],pltbnds)
 
             #if looking at a non-reference dataset, calculate norms of error compared to reference dataset
@@ -149,22 +183,22 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
                         Temp_Norm_Trends[i][t2][n-1] = Temp_Norms[i][n-1][t]
                         E_avg_Norm_Trends[i][t2][n-1] = E_avg_Norms[i][n-1][t]
         if t in ntrend_tp:
-            ntrend_times.append(str(tp[t])+' ns')
+            ntrend_times.append('{} ns'.format(round(tp[tn[t][0]],8)))
             t2 = t2 + 1
 
     #plotting error norms
     if nsets>1:
-        pltr.plot_norms("T",Temp_Norms,tp,dsnames,T_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("E_avg",E_avg_Norms,tp,dsnames,E_avg_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_avg_xx",fg_avg_xx_Norms,tp,dsnames,fg_avg_xx_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_avg_yy",fg_avg_yy_Norms,tp,dsnames,fg_avg_yy_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgV_xx",fg_edgV_xx_Norms,tp,dsnames,fg_EdgV_xx_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgV_xy",fg_edgV_xy_Norms,tp,dsnames,fg_EdgV_xy_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgH_yy",fg_edgH_yy_Norms,tp,dsnames,fg_EdgH_yy_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgH_xy",fg_edgH_xy_Norms,tp,dsnames,fg_EdgH_xy_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("T",Temp_Norms,tpts,dsnames,T_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("E_avg",E_avg_Norms,tpts,dsnames,E_avg_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("fg_avg_xx",fg_avg_xx_Norms,tpts,dsnames,fg_avg_xx_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("fg_avg_yy",fg_avg_yy_Norms,tpts,dsnames,fg_avg_yy_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("fg_edgV_xx",fg_edgV_xx_Norms,tpts,dsnames,fg_EdgV_xx_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("fg_edgV_xy",fg_edgV_xy_Norms,tpts,dsnames,fg_EdgV_xy_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("fg_edgH_yy",fg_edgH_yy_Norms,tpts,dsnames,fg_EdgH_yy_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("fg_edgH_xy",fg_edgH_xy_Norms,tpts,dsnames,fg_EdgH_xy_norm_dir,'Error from Reference','Time (ns)')
 
-        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,'Error from Reference',r'POD error $\varepsilon$',marker='D')
-        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,'Error from Reference',r'POD error $\varepsilon$',marker='D')
+        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,'Error from Reference',r'Truncation Criteria $\varepsilon$',marker='D')
+        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,'Error from Reference',r'Truncation Criteria $\varepsilon$',marker='D')
 
     for n in range(nsets): dsets[n].close() #closing dataset file
 

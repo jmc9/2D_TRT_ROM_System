@@ -100,7 +100,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
       maxit_RTE = 1
     END IF
 
-  ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p1/3')) THEN
+  ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'fld').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p13')) THEN
     maxit_RTE = 1
   END IF
 

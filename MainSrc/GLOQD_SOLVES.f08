@@ -46,7 +46,7 @@ END SUBROUTINE OLD_GREY_COEFS
 !==================================================================================================================================!
 SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
   fg_edgH_xy,KapE,KapR,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,&
-  DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
+  DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Fdt_Weight)
 
   REAL*8,INTENT(IN):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,INTENT(IN):: Fxg_edgV_old(:,:,:), Fyg_edgH_old(:,:,:)
@@ -55,7 +55,7 @@ SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx
   REAL*8,INTENT(IN):: fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
   REAL*8,INTENT(IN):: KapE(:,:,:), KapR(:,:,:)
   REAL*8,INTENT(IN):: A(:,:)
-  REAL*8,INTENT(IN):: c, Delt, Theta
+  REAL*8,INTENT(IN):: c, Delt, Theta, Fdt_Weight
   REAL*8,INTENT(IN):: Pold_L(:,:,:), Pold_R(:,:,:), Pold_B(:,:,:), Pold_T(:,:,:)
 
   REAL*8,INTENT(OUT):: KapE_Bar(:,:)
@@ -89,7 +89,8 @@ SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx
   DO g=1,N_g
     DO j=1,N_y
       DO i=1,N_x
-        Tilde_KapR = KapR(i,j,g) + 1d0/(Theta*c*Delt)
+        ! Tilde_KapR = KapR(i,j,g) + 1d0/(Theta*c*Delt)
+        Tilde_KapR = KapR(i,j,g) + Fdt_Weight/(Theta*c*Delt)
         KapE_Bar(i,j) = KapE_Bar(i,j) + KapE(i,j,g)*Eg_avg(i,j,g)
 
         !D parameters
@@ -105,10 +106,14 @@ SUBROUTINE GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx
         DT_xy(i,j) = DT_xy(i,j) + fg_edgH_xy(i,j+1,g)*Eg_edgH(i,j+1,g)/Tilde_KapR
 
         !P parameters
-        PL(i,j) = PL(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fxg_edgV_old(i,j,g) + Pold_L(i,j,g))/Tilde_KapR
-        PR(i,j) = PR(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fxg_edgV_old(i+1,j,g) + Pold_R(i,j,g))/Tilde_KapR
-        PB(i,j) = PB(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fyg_edgH_old(i,j,g) + Pold_B(i,j,g))/Tilde_KapR
-        PT(i,j) = PT(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fyg_edgH_old(i,j+1,g) + Pold_T(i,j,g))/Tilde_KapR
+        ! PL(i,j) = PL(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fxg_edgV_old(i,j,g) + Pold_L(i,j,g))/Tilde_KapR
+        ! PR(i,j) = PR(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fxg_edgV_old(i+1,j,g) + Pold_R(i,j,g))/Tilde_KapR
+        ! PB(i,j) = PB(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fyg_edgH_old(i,j,g) + Pold_B(i,j,g))/Tilde_KapR
+        ! PT(i,j) = PT(i,j) + (A(i,j)/(2d0*Theta*c*Delt)*Fyg_edgH_old(i,j+1,g) + Pold_T(i,j,g))/Tilde_KapR
+        PL(i,j) = PL(i,j) + (Fdt_Weight*A(i,j)/(2d0*Theta*c*Delt)*Fxg_edgV_old(i,j,g) + Pold_L(i,j,g))/Tilde_KapR
+        PR(i,j) = PR(i,j) + (Fdt_Weight*A(i,j)/(2d0*Theta*c*Delt)*Fxg_edgV_old(i+1,j,g) + Pold_R(i,j,g))/Tilde_KapR
+        PB(i,j) = PB(i,j) + (Fdt_Weight*A(i,j)/(2d0*Theta*c*Delt)*Fyg_edgH_old(i,j,g) + Pold_B(i,j,g))/Tilde_KapR
+        PT(i,j) = PT(i,j) + (Fdt_Weight*A(i,j)/(2d0*Theta*c*Delt)*Fyg_edgH_old(i,j+1,g) + Pold_T(i,j,g))/Tilde_KapR
       END DO
     END DO
   END DO
@@ -300,7 +305,8 @@ END SUBROUTINE GQD_In_Calc
 SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,KapE_Bar_dT,Its,Deltas,dresiduals,Temp_Mold,&
   KapE_bar_Mold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,F_in_B,F_in_R,F_in_T,&
   DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,Rhat_old,Kap0,cv,Comp_Unit,Chi,&
-  line_src,E_Bound_Low,T_Bound_Low,Eps1,Eps2,Maxits,MGQD_It,Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag,GQD_Kits)
+  line_src,E_Bound_Low,T_Bound_Low,Eps1,Eps2,Maxits,MGQD_It,Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag,GQD_Kits,&
+  Fin_Weight,Ein_Weight)
 
   !OUTPUTS
   REAL*8,INTENT(INOUT):: E_avg(:,:), E_edgV(:,:), E_edgH(:,:)
@@ -323,6 +329,7 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,K
   REAL*8,INTENT(IN):: PL(:,:), PR(:,:), PB(:,:), PT(:,:)
   REAL*8,INTENT(IN):: Gold_Hat(:,:), Rhat_old(:,:)
   REAL*8,INTENT(IN):: Kap0, cv, Comp_Unit
+  REAL*8,INTENT(IN):: Fin_Weight, Ein_Weight
   REAL*8,INTENT(IN):: Chi, line_src, E_Bound_Low, T_Bound_Low, Eps1, Eps2
   INTEGER,INTENT(IN):: Maxits, MGQD_It
   LOGICAL,INTENT(IN):: Use_Line_Search, Use_Safety_Search, Res_Calc, kapE_dT_flag
@@ -529,16 +536,24 @@ SUBROUTINE EGP_FV_NEWT(E_avg,E_edgV,E_edgH,Temp,KapE_Bar,Fx_edgV,Fy_edgH,Q_bar,K
     DO j=1,N_y
       Cp_L(j) = c*Cb_L(j) - 2d0*c*Dely(j)*DL_xx(1,j)/A(1,j)
       Cp_R(j) = c*Cb_R(j) + 2d0*c*Dely(j)*DR_xx(N_x,j)/A(N_x,j)
-      BC_L(j) = c*Cb_L(j)*(E_in_L(j) - E_edgV(1,j)) + Fx_edgV(1,j) - F_in_L(j) - 2d0*dr_ML(1,j)/A(1,j)
-      BC_R(j) = c*Cb_R(j)*(E_in_R(j) - E_edgV(N_x+1,j)) + Fx_edgV(N_x+1,j) - F_in_R(j) - 2d0*dr_MR(N_x,j)/A(N_x,j)
+      ! BC_L(j) = c*Cb_L(j)*(E_in_L(j) - E_edgV(1,j)) + Fx_edgV(1,j) - F_in_L(j) - 2d0*dr_ML(1,j)/A(1,j)
+      ! BC_R(j) = c*Cb_R(j)*(E_in_R(j) - E_edgV(N_x+1,j)) + Fx_edgV(N_x+1,j) - F_in_R(j) - 2d0*dr_MR(N_x,j)/A(N_x,j)
+      BC_L(j) = c*Cb_L(j)*(Ein_Weight*E_in_L(j) - E_edgV(1,j)) + Fx_edgV(1,j) &
+      - Fin_Weight*F_in_L(j) - 2d0*dr_ML(1,j)/A(1,j)
+      BC_R(j) = c*Cb_R(j)*(Ein_Weight*E_in_R(j) - E_edgV(N_x+1,j)) + Fx_edgV(N_x+1,j) &
+      - Fin_Weight*F_in_R(j) - 2d0*dr_MR(N_x,j)/A(N_x,j)
     END DO
 
     !bottom/top boundary condition coefficients and right hand sides
     DO i=1,N_x
       Cp_B(i) = c*Cb_B(i) - 2d0*c*Delx(i)*DB_yy(i,1)/A(i,1)
       Cp_T(i) = c*Cb_T(i) + 2d0*c*Delx(i)*DT_yy(i,N_y)/A(i,N_y)
-      BC_B(i) = c*Cb_B(i)*(E_in_B(i) - E_edgH(i,1)) + Fy_edgH(i,1) - F_in_B(i) - 2d0*dr_MB(i,1)/A(i,1)
-      BC_T(i) = c*Cb_T(i)*(E_in_T(i) - E_edgH(i,N_y+1)) + Fy_edgH(i,N_y+1) - F_in_T(i) - 2d0*dr_MT(i,N_y)/A(i,N_y)
+      ! BC_B(i) = c*Cb_B(i)*(E_in_B(i) - E_edgH(i,1)) + Fy_edgH(i,1) - F_in_B(i) - 2d0*dr_MB(i,1)/A(i,1)
+      ! BC_T(i) = c*Cb_T(i)*(E_in_T(i) - E_edgH(i,N_y+1)) + Fy_edgH(i,N_y+1) - F_in_T(i) - 2d0*dr_MT(i,N_y)/A(i,N_y)
+      BC_B(i) = c*Cb_B(i)*(Ein_Weight*E_in_B(i) - E_edgH(i,1)) + Fy_edgH(i,1) &
+      - Fin_Weight*F_in_B(i) - 2d0*dr_MB(i,1)/A(i,1)
+      BC_T(i) = c*Cb_T(i)*(Ein_Weight*E_in_T(i) - E_edgH(i,N_y+1)) + Fy_edgH(i,N_y+1) &
+      - Fin_Weight*F_in_T(i) - 2d0*dr_MT(i,N_y)/A(i,N_y)
     END DO
 
     !===========================================================================!

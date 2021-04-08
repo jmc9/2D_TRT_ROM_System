@@ -158,6 +158,34 @@ END SUBROUTINE
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+SUBROUTINE FLD_COEFFICIENT_CALC(Kappa,Eg_avg,Eg_edgV,Eg_edgH,Delx,Dely,Open_Threads)
+
+  REAL*8,INTENT(INOUT):: Kappa(:,:,:)
+  REAL*8,INTENT(IN):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:), Delx(:), Dely(:)
+  INTEGER,INTENT(IN):: Open_Threads
+
+  INTEGER:: N_y, N_x, N_g, Threads
+  INTEGER:: i, j, g
+
+  N_x = SIZE(Kappa,1)
+  N_y = SIZE(Kappa,2)
+  N_g = SIZE(Kappa,3)
+
+  DO g=1,N_g
+    DO j=1,N_y
+      DO i=1,N_x
+        Kappa(i,j,g) = (1d0/3d0)*SQRT( (3d0*Kappa(i,j,g))**2 &
+          + SQRT( ( ( Eg_edgV(i+1,j,g) - Eg_edgV(i,j,g) )/(Delx(i)) )**2 &
+          + ( ( Eg_edgH(i,j+1,g) - Eg_edgH(i,j,g) )/(Dely(i)) )**2 )/Eg_avg(i,j,g) )
+      END DO
+    END DO
+  END DO
+
+END SUBROUTINE
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
 SUBROUTINE MEB_SOLVE(Temp,Eg_HO,Bg,KapE,Temp_old,Delt,cV,Kap0,Comp_Unit)
   REAL*8,INTENT(INOUT):: Temp(:,:)
   REAL*8,INTENT(IN):: Eg_HO(:,:,:), Bg(:,:,:), KapE(:,:,:)

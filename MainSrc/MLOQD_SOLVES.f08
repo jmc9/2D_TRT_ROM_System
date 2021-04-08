@@ -78,7 +78,7 @@ END SUBROUTINE OLD_MGQD_COEFS
 SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
   fg_edgH_xy,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,Src,KapE,KapR,Delx,&
   Dely,A,c,Delt,Theta,Open_Threads,Res_Calc,MGQD_Residual,MGQD_BC_Residual,G_old,Pold_L,Pold_B,Pold_R,Pold_T,&
-  Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old,MGQD_Kits)
+  Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old,MGQD_Kits,Fdt_Weight,Fin_Weight,Ein_Weight)
 
   REAL*8,INTENT(INOUT):: Eg_avg(:,:,:), Eg_edgV(:,:,:), Eg_edgH(:,:,:)
   REAL*8,INTENT(OUT):: Fxg_edgV(:,:,:), Fyg_edgH(:,:,:)
@@ -99,6 +99,7 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
   REAL*8,INTENT(IN):: Delx(:), Dely(:), A(:,:)
   REAL*8,INTENT(IN):: c, Delt
   REAL*8,INTENT(IN):: Theta
+  REAL*8,INTENT(IN):: Fdt_Weight, Fin_Weight, Ein_Weight
   INTEGER,INTENT(IN):: Open_Threads
   LOGICAL,INTENT(IN):: Res_Calc
 
@@ -146,12 +147,17 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
 
     DO j=1,N_y
       DO i=1,N_x
-        Xi(i,j) = A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))/2d0
+        ! Xi(i,j) = A(i,j)*(1d0/(Theta*c*Delt)+KapR(i,j,g))/2d0
+        Xi(i,j) = A(i,j)*(Fdt_Weight/(Theta*c*Delt)+KapR(i,j,g))/2d0
 
-        Phat_L(i,j) = ( A(i,j)*Fxg_edgV_old(i,j,g)/(2d0*Theta*c*Delt) + Pold_L(i,j,g) )/Xi(i,j)
-        Phat_B(i,j) = ( A(i,j)*Fyg_edgH_old(i,j,g)/(2d0*Theta*c*Delt) + Pold_B(i,j,g) )/Xi(i,j)
-        Phat_R(i,j) = ( A(i,j)*Fxg_edgV_old(i+1,j,g)/(2d0*Theta*c*Delt) + Pold_R(i,j,g) )/Xi(i,j)
-        Phat_T(i,j) = ( A(i,j)*Fyg_edgH_old(i,j+1,g)/(2d0*Theta*c*Delt) + Pold_T(i,j,g) )/Xi(i,j)
+        ! Phat_L(i,j) = ( A(i,j)*Fxg_edgV_old(i,j,g)/(2d0*Theta*c*Delt) + Pold_L(i,j,g) )/Xi(i,j)
+        ! Phat_B(i,j) = ( A(i,j)*Fyg_edgH_old(i,j,g)/(2d0*Theta*c*Delt) + Pold_B(i,j,g) )/Xi(i,j)
+        ! Phat_R(i,j) = ( A(i,j)*Fxg_edgV_old(i+1,j,g)/(2d0*Theta*c*Delt) + Pold_R(i,j,g) )/Xi(i,j)
+        ! Phat_T(i,j) = ( A(i,j)*Fyg_edgH_old(i,j+1,g)/(2d0*Theta*c*Delt) + Pold_T(i,j,g) )/Xi(i,j)
+        Phat_L(i,j) = ( Fdt_Weight*A(i,j)*Fxg_edgV_old(i,j,g)/(2d0*Theta*c*Delt) + Pold_L(i,j,g) )/Xi(i,j)
+        Phat_B(i,j) = ( Fdt_Weight*A(i,j)*Fyg_edgH_old(i,j,g)/(2d0*Theta*c*Delt) + Pold_B(i,j,g) )/Xi(i,j)
+        Phat_R(i,j) = ( Fdt_Weight*A(i,j)*Fxg_edgV_old(i+1,j,g)/(2d0*Theta*c*Delt) + Pold_R(i,j,g) )/Xi(i,j)
+        Phat_T(i,j) = ( Fdt_Weight*A(i,j)*Fyg_edgH_old(i,j+1,g)/(2d0*Theta*c*Delt) + Pold_T(i,j,g) )/Xi(i,j)
 
         Ghat(i,j) = A(i,j)*Src(i,j,g) + A(i,j)*Eg_avg_old(i,j,g)/(Theta*Delt) + G_old(i,j,g) &
         + Dely(j)*(Phat_L(i,j)-Phat_R(i,j)) + Delx(i)*(Phat_B(i,j)-Phat_T(i,j))
@@ -192,15 +198,19 @@ SUBROUTINE MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy
     DO j=1,N_y
       Cp_L(j) = c*Cg_L(j,g) - c*Dely(j)*fg_edgV_xx(1,j,g)/Xi(1,j)
       Cp_R(j) = c*Cg_R(j,g) + c*Dely(j)*fg_edgV_xx(N_x+1,j,g)/Xi(N_x,j)
-      BC_L(j) = c*Cg_L(j,g)*Eg_in_L(j,g) - Fg_in_L(j,g) + Phat_L(1,j)
-      BC_R(j) = c*Cg_R(j,g)*Eg_in_R(j,g) - Fg_in_R(j,g) + Phat_R(N_x,j)
+      ! BC_L(j) = c*Cg_L(j,g)*Eg_in_L(j,g) - Fg_in_L(j,g) + Phat_L(1,j)
+      ! BC_R(j) = c*Cg_R(j,g)*Eg_in_R(j,g) - Fg_in_R(j,g) + Phat_R(N_x,j)
+      BC_L(j) = Ein_Weight*c*Cg_L(j,g)*Eg_in_L(j,g) - Fin_Weight*Fg_in_L(j,g) + Phat_L(1,j)
+      BC_R(j) = Ein_Weight*c*Cg_R(j,g)*Eg_in_R(j,g) - Fin_Weight*Fg_in_R(j,g) + Phat_R(N_x,j)
     END DO
 
     DO i=1,N_x
       Cp_B(i) = c*Cg_B(i,g) - c*Delx(i)*fg_edgH_yy(i,1,g)/Xi(i,1)
       Cp_T(i) = c*Cg_T(i,g) + c*Delx(i)*fg_edgH_yy(i,N_y+1,g)/Xi(i,N_y)
-      BC_B(i) = c*Cg_B(i,g)*Eg_in_B(i,g) - Fg_in_B(i,g) + Phat_B(i,1)
-      BC_T(i) = c*Cg_T(i,g)*Eg_in_T(i,g) - Fg_in_T(i,g) + Phat_T(i,N_y)
+      ! BC_B(i) = c*Cg_B(i,g)*Eg_in_B(i,g) - Fg_in_B(i,g) + Phat_B(i,1)
+      ! BC_T(i) = c*Cg_T(i,g)*Eg_in_T(i,g) - Fg_in_T(i,g) + Phat_T(i,N_y)
+      BC_B(i) = Ein_Weight*c*Cg_B(i,g)*Eg_in_B(i,g) - Fin_Weight*Fg_in_B(i,g) + Phat_B(i,1)
+      BC_T(i) = Ein_Weight*c*Cg_T(i,g)*Eg_in_T(i,g) - Fin_Weight*Fg_in_T(i,g) + Phat_T(i,N_y)
     END DO
 
     DO j=1,N_y

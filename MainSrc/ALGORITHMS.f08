@@ -119,7 +119,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,ALLOCATABLE:: MGQD_E_avg_MGQDold(:,:), MGQD_E_avg_MGQDold2(:,:)
   REAL*8:: TR_Tnorm, TR_Enorm, TR_Trho, TR_Erho
   REAL*8:: MGQD_Tnorm, MGQD_Enorm, MGQD_Trho, MGQD_Erho
-  REAL*8:: Time, Fdt_Weight
+  REAL*8:: Time, Fdt_Weight, Fin_Weight, Ein_Weight
   INTEGER:: MGQD_Its, EGP_Its, Status
   INTEGER:: RT_Its, RT_start_Its, t, HO_Form
   INTEGER,ALLOCATABLE:: MGQD_Kits(:), GQD_Kits(:)
@@ -286,33 +286,66 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   !===========================================================================!
   IF ( run_type .EQ. 'tr_no_qd' ) THEN
     RT_start_Its = 1
-    HO_Form = 0
+    HO_Form = 0 !Use Boltzmann solver
+    ! Use QD (p1) equations for low-order
     Fdt_Weight = 1d0
+    ! Quasidiffusion BC
+    Fin_Weight = 1d0
+    Ein_Weight = 1d0
+
   ELSE IF ( run_type .EQ. 'mlqd' ) THEN
     RT_start_Its = 2
-    HO_Form = 0
+    HO_Form = 0 !Use Boltzmann solver
+    ! Use QD (p1) equations for low-order
     Fdt_Weight = 1d0
-  ELSE IF ( run_type .EQ. 'diff' ) THEN
+    ! Quasidiffusion BC
+    Fin_Weight = 1d0
+    Ein_Weight = 1d0
+
+  ELSE IF (( run_type .EQ. 'diff' ).OR.( run_type .EQ. 'fld' )) THEN
     RT_start_Its = 1
-    HO_Form = 2
+    HO_Form = 2 !Turn off boltzmann solve
+    ! Use diffusion equations for low-order (turn off dF/dt)
     Fdt_Weight = 0d0
+    ! Marshak BC
+    Fin_Weight = 2d0
+    Ein_Weight = 0d0
+
   ELSE IF ( run_type .EQ. 'p1' ) THEN
     RT_start_Its = 1
-    HO_Form = 2
+    HO_Form = 2 !Turn off boltzmann solve
+    ! Use QD (p1) equations for low-order
     Fdt_Weight = 1d0
-  ELSE IF ( run_type .EQ. 'p1/3' ) THEN
+    ! Marshak BC
+    Fin_Weight = 2d0
+    Ein_Weight = 0d0
+
+  ELSE IF ( run_type .EQ. 'p13' ) THEN
     RT_start_Its = 1
-    HO_Form = 2
+    HO_Form = 2 !Turn off boltzmann solve
+    ! Use QD (p1) equations for low-order with 1/3 weight on dF/dt
     Fdt_Weight = 1d0/3d0
+    ! Marshak BC
+    Fin_Weight = 2d0
+    Ein_Weight = 0d0
+
   ELSE IF ((run_type .EQ. 'mg_pod').AND.(POD_Type .EQ. 'fg')) THEN
     RT_start_Its = 1
-    HO_Form = 1
+    HO_Form = 1 !Turn off boltzmann solve, replace with POD approximation of QD tensor
+    ! Use QD (p1) equations for low-order
     Fdt_Weight = 1d0
+    ! Quasidiffusion BC
+    Fin_Weight = 1d0
+    Ein_Weight = 1d0
 
   ELSE IF ( run_type .EQ. 'mg_dmd' ) THEN
     RT_start_Its = 1
-    HO_Form = 3
+    HO_Form = 3 !Turn off boltzmann solve, replace with DMD approximation of QD tensor
+    ! Use QD (p1) equations for low-order
     Fdt_Weight = 1d0
+    ! Quasidiffusion BC
+    Fin_Weight = 1d0
+    Ein_Weight = 1d0
 
   ELSE
     WRITE(*,*)
@@ -608,7 +641,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
           CALL MLOQD_FV(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
             fg_edgH_xy,Cg_L,Cg_B,Cg_R,Cg_T,Eg_in_L,Eg_in_B,Eg_in_R,Eg_in_T,Fg_in_L,Fg_in_B,Fg_in_R,Fg_in_T,MGQD_Src,KapE,&
             KapR,Delx,Dely,A,c,Delt,Theta,Threads,Res_Calc,MGQD_Residual,MGQD_BC_Residual,G_old,Pold_L,Pold_B,Pold_R,&
-            Pold_T,Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old,MGQD_Kits)
+            Pold_T,Eg_avg_old,Fxg_edgV_old,Fyg_edgH_old,MGQD_Kits,Fdt_Weight,Fin_Weight,Ein_Weight)
 
           !calculate grey solution from MGQD solution
           CALL COLLAPSE_MG_EF(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV,Fyg_edgH,Threads,MGQD_E_avg,MGQD_E_edgV,MGQD_E_edgH,MGQD_Fx_edgV,&
@@ -634,7 +667,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
             KapE_bar_MGQDold = KapE_bar
             CALL GREY_COEFS(Eg_avg,Eg_edgV,Eg_edgH,Fxg_edgV_old,Fyg_edgH_old,fg_avg_xx,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,&
               fg_edgH_xy,KapE,KapR,A,c,Delt,Theta,Pold_L,Pold_R,Pold_B,Pold_T,KapE_Bar,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,&
-              DR_xy,DB_xy,DT_xy,PL,PR,PB,PT)
+              DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Fdt_Weight)
 
             E_avg = MGQD_E_avg
             E_edgV = MGQD_E_edgV
@@ -647,7 +680,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
               Temp_MGQDold2,KapE_bar_MGQDold,Theta,Delt,Delx,Dely,A,Cb_L,Cb_B,Cb_R,Cb_T,E_in_L,E_in_B,E_in_R,E_in_T,F_in_L,&
               F_in_B,F_in_R,F_in_T,DC_xx,DL_xx,DR_xx,DC_yy,DB_yy,DT_yy,DL_xy,DR_xy,DB_xy,DT_xy,PL,PR,PB,PT,Gold_Hat,&
               Rhat_old,Kap0,cv,Comp_Unit,Chi,line_src,E_Bound_Low,T_Bound_Low,Conv_gr1,Conv_gr2,Maxit_GLOQD,MGQD_Its,&
-              Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag,GQD_Kits)
+              Use_Line_Search,Use_Safety_Search,Res_Calc,kapE_dT_flag,GQD_Kits,Fin_Weight,Ein_Weight)
 
             !writing the count of EGP iterations to output file
             IF (Res_Calc) THEN
@@ -694,6 +727,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
           !update material properties with new Temp
           CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads,Mat,Kappa_Mult)
+          IF (run_type .EQ. 'fld') CALL FLD_COEFFICIENT_CALC(KapR,Eg_avg,Eg_edgV,Eg_edgH,Delx,Dely,Threads)
 
           !check convergence of MGQD solution (in grey form) for E, T
           Tconv = CONVERGENCE(Conv_Type,conv_lo,Temp,Temp_MGQDold,Temp_MGQDold2,MGQD_Its,&
@@ -771,7 +805,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE IF ((run_type .EQ. 'mg_dmd').AND.(DMD_Type .EQ. 'fg')) THEN
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
-    ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p1/3')) THEN
+    ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'fld').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p13')) THEN
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE
     END IF

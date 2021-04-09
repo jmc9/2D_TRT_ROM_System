@@ -15,6 +15,58 @@ import matplotlib.ticker as ticker
 
 #local tools
 import misc_tools as msc
+from processing import cross_section as cs
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def plot_cs(name,cs,xp,times,dsnames,drop,xlabel,ylabel,textp=[]):
+    nd, nt, nx = np.shape(cs)
+
+    # one dataset, all times
+    for d in range(nd):
+        lineplot(name+"_"+dsnames[d], xp, cs[d], drop, times, ylabel=ylabel, xlabel=xlabel)
+
+    # one time, all datasets
+    for t in range(nt):
+        dat=[]
+        for d in range(nd):
+            dat.append(cs[d][t])
+        lineplot('{}_t={}sh'.format(name,round(times[t],8)), xp, dat, drop, dsnames, ylabel=ylabel, xlabel=xlabel)
+
+    # all times, all datasets
+    plt.rc('font', family='serif', size=10)
+    plt.rc('xtick', labelsize='medium')
+    plt.rc('ytick', labelsize='medium')
+
+    fig, ax = plt.subplots(figsize=(7,5)) #creating the figure
+
+    marker = ['o','s','+','x','v','^','*','D','.']
+    # style  = ['-','--','-.',':','densely dashdotted','-','-','-','-']
+    style  = [(0,()), (0,(5,5)), (0,(1,1)), (0,(3,5,1,5)), (0,(5,2,5,5,1,4)), (0, (5, 1)), (0, (3, 1, 1, 1))]
+    color  = ['black','tab:orange','tab:blue','tab:green','tab:purple','tab:brown','tab:pink','tab:green','tab:cyan']
+    for t in range(nt):
+        for d in range(nd):
+            if t==0:
+                ax.plot(xp,cs[d][t],label=dsnames[d],linewidth=.75, markersize=3, marker=marker[d], color=color[d], ls=style[d], markerfacecolor='none')
+            else:
+                ax.plot(xp,cs[d][t],linewidth=.75, markersize=3, marker=marker[d], color=color[d], ls=style[d], markerfacecolor='none')
+        if len(textp)>0:
+            plt.annotate('t={}ns'.format(round(times[t]*10,8)),(xp[textp[t]],cs[0][t][textp[t]]),textcoords='offset points',xytext=(5,10))
+    ax.legend()
+    plt.legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=2., fontsize='small')
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    ax.tick_params(axis='y',direction='in',labelleft=True,left=True,right=True)
+    ax.tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True)
+
+    plt.grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--')
+    plt.grid(which = 'minor', axis = 'y', color = 'lightgrey', linestyle = ':', linewidth=.75)
+
+    plt.savefig(drop+'/'+'{}_ALLPLOTS'.format(name)+'.pdf') #saving the figure
+    plt.close(fig) #closing out figure
 
 #==================================================================================================================================#
 #

@@ -44,7 +44,12 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     fg_EdgH_yy_norm_dir = norm_dir+'/fg_EdgH_yy'; msc.dirset(fg_EdgH_yy_norm_dir)
     fg_EdgH_xy_norm_dir = norm_dir+'/fg_EdgH_xy'; msc.dirset(fg_EdgH_xy_norm_dir)
 
-    (dsets,dsnames,trend_names,tp_plt,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd) = inp.input(infile) #reading input file, returning datasets to process
+    cs_dir = proc_dir+'/Cross_Sections'; msc.dirset(cs_dir)
+    T_cs_dir = cs_dir+'/Temp'; msc.dirset(T_cs_dir)
+    E_cs_dir = cs_dir+'/E_avg'; msc.dirset(E_cs_dir)
+
+    (dsets,dsnames,trend_names,tp_plt,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
+    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol) = inp.input(infile) #reading input file, returning datasets to process
     nsets = len(dsets) #finding the number of datasets
 
     #initializing arrays that will hold simulation data
@@ -68,7 +73,7 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
         msc.setup_plotdirs(plotdirs[n],pd_names[n],inp_flags[n]) #creating directories
     if not dsnames: dsnames = casename[1:]
 
-    (xp,yp,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = inp.domain_parms(dsets[0]) #getting problem domain parameters
+    (xp,yp,xp_c,yp_c,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = inp.domain_parms(dsets[0]) #getting problem domain parameters
     (A_EdgV, A_EdgH, Ag, Ag_EdgV, Ag_EdgH) = proc.A_calcs(A,N_g,N_y,N_x) #calculating areas/weights for different types of functions
     tpts_ = [ [t for t in ds['tpts'][:]] for ds in dsets ]
 
@@ -127,27 +132,36 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
     #if any comp_datasets have been specified, collecting the ranks of their expansions and plotting them
     #currently only working for gsum=1
-    if (nsets>1):
+    if ((nsets>1)and(switch_ranks==1)):
         (time_intervals, ranks, gsum) = proc.rank_collect(dsets,nsets,casename,N_g,proc_dir)
         rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
         for t in range(len(time_intervals)-1):
             pltr.lineplot("Ranks_t{}".format(t+1),trend_names,ranks[t],proc_dir,rleg,yscale='linear',xlabel=r'Truncation Criteria $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
 
     #initializing arrays of error norms
-    Temp_Norms = np.zeros([6,nsets-1,N_t2])
-    E_avg_Norms = np.zeros([6,nsets-1,N_t2])
-    fg_avg_xx_Norms = np.zeros([6,nsets-1,N_t2])
-    fg_avg_yy_Norms = np.zeros([6,nsets-1,N_t2])
-    fg_edgV_xx_Norms = np.zeros([6,nsets-1,N_t2])
-    fg_edgV_xy_Norms = np.zeros([6,nsets-1,N_t2])
-    fg_edgH_yy_Norms = np.zeros([6,nsets-1,N_t2])
-    fg_edgH_xy_Norms = np.zeros([6,nsets-1,N_t2])
+    if (switch_norms==1):
+        Temp_Norms = np.zeros([6,nsets-1,N_t2])
+        E_avg_Norms = np.zeros([6,nsets-1,N_t2])
+        fg_avg_xx_Norms = np.zeros([6,nsets-1,N_t2])
+        fg_avg_yy_Norms = np.zeros([6,nsets-1,N_t2])
+        fg_edgV_xx_Norms = np.zeros([6,nsets-1,N_t2])
+        fg_edgV_xy_Norms = np.zeros([6,nsets-1,N_t2])
+        fg_edgH_yy_Norms = np.zeros([6,nsets-1,N_t2])
+        fg_edgH_xy_Norms = np.zeros([6,nsets-1,N_t2])
 
-    Temp_Norm_Trends = np.zeros([6,len(ntrend_tp),nsets-1])
-    E_avg_Norm_Trends = np.zeros([6,len(ntrend_tp),nsets-1])
-    ntrend_times = []
+        Temp_Norm_Trends = np.zeros([6,len(ntrend_tp),nsets-1])
+        E_avg_Norm_Trends = np.zeros([6,len(ntrend_tp),nsets-1])
+        ntrend_times = []
+
+    if (switch_cs==1):
+        Temp_xcs = np.zeros([3,nsets,len(csx_times),N_x])
+        Temp_ycs = np.zeros([3,nsets,len(csy_times),N_y])
+        E_xcs = np.zeros([3,nsets,len(csx_times),N_x])
+        E_ycs = np.zeros([3,nsets,len(csy_times),N_y])
 
     t2 = 0
+    csx_t = 0
+    csy_t = 0
     print('beginning data collection and plotting...')
     for t in range(N_t2):
 
@@ -157,18 +171,45 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
             if n == 0: m = 0
             else: m = 1
 
-            (Temp[m],E_avg[m],E_edgV[m],E_edgH[m],E_avg_MGQD[m],E_edgV_MGQD[m],E_edgH_MGQD[m],E_avg_HO[m],E_edgV_HO[m],E_edgH_HO[m],Fx_edgV[m],\
-            Fy_edgH,Fx_edgV_MGQD[m],Fy_edgH_MGQD[m],Fx_edgV_HO[m],Fy_edgH_HO[m],Eg_avg[m],Eg_edgV[m],Eg_edgH[m],Eg_avg_HO[m],Eg_edgV_HO[m],\
-            Eg_edgH_HO[m],Fxg_edgV[m],Fyg_edgH[m],Fxg_edgV_HO[m],Fyg_edgH_HO[m],fg_avg_xx[m],fg_avg_xy[m],fg_avg_yy[m],fg_edgV_xx[m],fg_edgV_xy[m],\
-            fg_edgH_yy[m],fg_edgH_xy[m]) = proc.get_data(dsets[n],inp_flags[n],tn[t][n])
+            if ( (switch_norms==1)
+               or ((switch_cs==1)and(np.any(np.isclose(tp[tn[t][n]],cs_times))))
+               or ((switch_sol==1)and(t in tp_plt)) ):
+                (Temp[m],E_avg[m],E_edgV[m],E_edgH[m],E_avg_MGQD[m],E_edgV_MGQD[m],E_edgH_MGQD[m],E_avg_HO[m],E_edgV_HO[m],E_edgH_HO[m],Fx_edgV[m],\
+                Fy_edgH,Fx_edgV_MGQD[m],Fy_edgH_MGQD[m],Fx_edgV_HO[m],Fy_edgH_HO[m],Eg_avg[m],Eg_edgV[m],Eg_edgH[m],Eg_avg_HO[m],Eg_edgV_HO[m],\
+                Eg_edgH_HO[m],Fxg_edgV[m],Fyg_edgH[m],Fxg_edgV_HO[m],Fyg_edgH_HO[m],fg_avg_xx[m],fg_avg_xy[m],fg_avg_yy[m],fg_edgV_xx[m],fg_edgV_xy[m],\
+                fg_edgH_yy[m],fg_edgH_xy[m]) = proc.get_data(dsets[n],inp_flags[n],tn[t][n])
 
             #plotting the results for case n for desired instants of time (contained in the array tp_plt)
-            if (t in tp_plt):
+            if ((switch_sol==1)and(t in tp_plt)):
                 pltr.plot_results(dsets[n],casedirs[n],xp,yp,tp[tn[t][n]],N_g,N_y,N_x,inp_flags[n],plotdirs[n],pd_names[n],Temp[m],fg_avg_xx[m],\
                 fg_avg_xy[m],fg_avg_yy[m],E_avg[m],E_avg_MGQD[m],E_avg_HO[m],Eg_avg[m],Eg_avg_HO[m],pltbnds)
 
+            #if plotting cross-sections of solutions, collecting them here
+            if (switch_cs==1):
+                if np.any(np.isclose(tp[tn[t][n]],csx_times)):
+                    if (csx[0]==1): #'bottom' of domain along x-axis
+                        Temp_xcs[0][n][csx_t] = proc.cross_section(Temp[m],(N_y,N_x),(0,-1))
+                        E_xcs[0][n][csx_t] = proc.cross_section(E_avg[m],(N_y,N_x),(0,-1))
+                    if (csx[1]==1): #'middle' of domain along x-axis
+                        Temp_xcs[1][n][csx_t] = proc.cross_section(Temp[m],(N_y,N_x),(N_y//2,-1))
+                        E_xcs[1][n][csx_t] = proc.cross_section(E_avg[m],(N_y,N_x),(N_y//2,-1))
+                    if (csx[2]==1): #'top' of domain along x-axis
+                        Temp_xcs[2][n][csx_t] = proc.cross_section(Temp[m],(N_y,N_x),(N_y-1,-1))
+                        E_xcs[2][n][csx_t] = proc.cross_section(E_avg[m],(N_y,N_x),(N_y-1,-1))
+
+                if np.any(np.isclose(tp[tn[t][n]],csy_times)):
+                    if (csy[0]==1): #'left' of domain along y-axis
+                        Temp_ycs[0][n][csy_t] = proc.cross_section(Temp[m],(N_y,N_x),(-1,0))
+                        E_ycs[0][n][csy_t] = proc.cross_section(E_avg[m],(N_y,N_x),(-1,0))
+                    if (csy[1]==1): #'middle' of domain along y-axis
+                        Temp_ycs[1][n][csy_t] = proc.cross_section(Temp[m],(N_y,N_x),(-1,N_x//2))
+                        E_ycs[1][n][csy_t] = proc.cross_section(E_avg[m],(N_y,N_x),(-1,N_x//2))
+                    if (csy[2]==1): #'right' of domain along y-axis
+                        Temp_ycs[2][n][csy_t] = proc.cross_section(Temp[m],(N_y,N_x),(-1,N_x-1))
+                        E_ycs[2][n][csy_t] = proc.cross_section(E_avg[m],(N_y,N_x),(-1,N_x-1))
+
             #if looking at a non-reference dataset, calculate norms of error compared to reference dataset
-            if n>0:
+            if ((switch_norms==1)and(n>0)):
                 (Temp_Norms[0][n-1][t],Temp_Norms[1][n-1][t],Temp_Norms[2][n-1][t],Temp_Norms[3][n-1][t],Temp_Norms[4][n-1][t],Temp_Norms[5][n-1][t]) = proc.data_compare(Temp,A)
                 (E_avg_Norms[0][n-1][t],E_avg_Norms[1][n-1][t],E_avg_Norms[2][n-1][t],E_avg_Norms[3][n-1][t],E_avg_Norms[4][n-1][t],E_avg_Norms[5][n-1][t]) = proc.data_compare(E_avg,A)
                 (fg_avg_xx_Norms[0][n-1][t],fg_avg_xx_Norms[1][n-1][t],fg_avg_xx_Norms[2][n-1][t],fg_avg_xx_Norms[3][n-1][t],fg_avg_xx_Norms[4][n-1][t],fg_avg_xx_Norms[5][n-1][t]) = proc.gdata_compare(fg_avg_xx,Ag)
@@ -182,12 +223,14 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
                     for i in range(6):
                         Temp_Norm_Trends[i][t2][n-1] = Temp_Norms[i][n-1][t]
                         E_avg_Norm_Trends[i][t2][n-1] = E_avg_Norms[i][n-1][t]
-        if t in ntrend_tp:
+        if ((switch_norms==1)and(t in ntrend_tp)):
             ntrend_times.append('{} ns'.format(round(tp[tn[t][0]],8)))
             t2 = t2 + 1
+        if ((switch_cs==1)and(np.any(np.isclose(tp[tn[t][n]],csx_times)))): csx_t+=1
+        if ((switch_cs==1)and(np.any(np.isclose(tp[tn[t][n]],csy_times)))): csy_t+=1
 
     #plotting error norms
-    if nsets>1:
+    if ((switch_norms==1)and(nsets>0)):
         pltr.plot_norms("T",Temp_Norms,tpts,dsnames,T_norm_dir,'Error from Reference','Time (ns)')
         pltr.plot_norms("E_avg",E_avg_Norms,tpts,dsnames,E_avg_norm_dir,'Error from Reference','Time (ns)')
         pltr.plot_norms("fg_avg_xx",fg_avg_xx_Norms,tpts,dsnames,fg_avg_xx_norm_dir,'Error from Reference','Time (ns)')
@@ -200,6 +243,30 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
         pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,'Error from Reference',r'Truncation Criteria $\varepsilon$',marker='D')
         pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,'Error from Reference',r'Truncation Criteria $\varepsilon$',marker='D')
 
+    #plotting solution cross sections
+    if ((switch_cs==1)and(cs_times)):
+        dsnames.insert(0,'fom')
+        if (csx[0]==1):
+            pltr.plot_cs('Temp_xcs_bot',Temp_xcs[0],xp_c,csx_times,dsnames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
+            pltr.plot_cs('E_xcs_bot',E_xcs[0],xp_c,cs_times,dsnames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
+        if (csx[1]==1):
+            pltr.plot_cs('Temp_xcs_mid',Temp_xcs[1],xp_c,csx_times,dsnames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
+            pltr.plot_cs('E_xcs_mid',E_xcs[1],xp_c,cs_times,dsnames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
+        if (csx[2]==1):
+            pltr.plot_cs('Temp_xcs_top',Temp_xcs[2],xp_c,csx_times,dsnames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
+            pltr.plot_cs('E_xcs_top',E_xcs[2],xp_c,cs_times,dsnames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
+
+        if (csy[0]==1):
+            pltr.plot_cs('Temp_ycs_left',Temp_ycs[0],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_left',E_ycs[0],xp_c,cs_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+        if (csy[1]==1):
+            pltr.plot_cs('Temp_ycs_mid',Temp_ycs[1],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_mid',E_ycs[1],xp_c,cs_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+        if (csy[2]==1):
+            pltr.plot_cs('Temp_ycs_right',Temp_ycs[2],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_right',E_ycs[2],xp_c,cs_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+
+
     for n in range(nsets): dsets[n].close() #closing dataset file
 
 #==================================================================================================================================#
@@ -207,7 +274,7 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 #==================================================================================================================================#
 def options():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hi:o:', ['help','input=','output='])
+        opts, args = getopt.getopt(sys.argv[1:], 'hzi:o:', ['help','input=','output='])
     except getopt.GetoptError as err:
         print(str(err))
         usage(); quit()
@@ -217,6 +284,8 @@ def options():
     for o, a in opts:
         if o in ['-h','--help']:
             usage(); quit()
+        elif o in ['-z']:
+            inp.sample_infile(); quit()
         elif o in ['-i','--input']:
             infile = a
         elif o in ['-o','--output']:
@@ -244,6 +313,9 @@ def usage():
     print('- Joseph M. Coale, jmcoale@ncsu.edu')
     print()
     print('This python3 code is used to process and compare results generated by the 2D TRT ROM code (Author: Joseph M. Coale)')
+    print()
+    print('If you would like a sample input file with descriptions of each input option, please call this code again with option -z\n--> i.e. call ./TRT_processor.py -z')
+    print()
     print('Below are all available options and their usages')
     print()
     print('Options:')

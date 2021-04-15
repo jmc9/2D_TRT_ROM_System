@@ -41,18 +41,18 @@ def plot_cs(name,cs,xp,times,dsnames,drop,xlabel,ylabel,textp=[]):
 
     fig, ax = plt.subplots(figsize=(7,5)) #creating the figure
 
-    marker = ['o','s','+','x','v','^','*','D','.']
+    marker = ['o','x','+','s','v','^','*','D','.']
     # style  = ['-','--','-.',':','densely dashdotted','-','-','-','-']
     style  = [(0,()), (0,(5,5)), (0,(1,1)), (0,(3,5,1,5)), (0,(5,2,5,5,1,4)), (0, (5, 1)), (0, (3, 1, 1, 1))]
     color  = ['black','tab:orange','tab:blue','tab:green','tab:purple','tab:brown','tab:pink','tab:green','tab:cyan']
     for t in range(nt):
         for d in range(nd):
             if t==0:
-                ax.plot(xp,cs[d][t],label=dsnames[d],linewidth=.75, markersize=3, marker=marker[d], color=color[d], ls=style[d], markerfacecolor='none')
+                ax.plot(xp,cs[d][t],label=dsnames[d],linewidth=.75, markersize=7, marker=marker[d], color=color[d], ls=style[d], markerfacecolor='none')
             else:
-                ax.plot(xp,cs[d][t],linewidth=.75, markersize=3, marker=marker[d], color=color[d], ls=style[d], markerfacecolor='none')
+                ax.plot(xp,cs[d][t],linewidth=.75, markersize=7, marker=marker[d], color=color[d], ls=style[d], markerfacecolor='none')
         if len(textp)>0:
-            plt.annotate('t={}ns'.format(round(times[t]*10,8)),(xp[textp[t]],cs[0][t][textp[t]]),textcoords='offset points',xytext=(5,10))
+            plt.annotate('t={}ns'.format(round(times[t],8)),(xp[textp[t]],cs[0][t][textp[t]]),textcoords='offset points',xytext=(5,10))
     ax.legend()
     plt.legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=2., fontsize='small')
 
@@ -71,13 +71,26 @@ def plot_cs(name,cs,xp,times,dsnames,drop,xlabel,ylabel,textp=[]):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def plot_norms(name,norms,tp,casenames,drop,ylabel,xlabel,marker=''):
+def plot_norms(name,norms,tp,casenames,drop,xlabel,ylabel='',marker='',vname=''):
+    normlabl = True if ylabel=='' else False
+
+    if normlabl: ylabel='$|| {v}_{{FOM}} - {v}_{{ROM}} ||_\infty$'.format(v=vname)
     lineplot(name+"_abs_inf_Norm",tp,norms[0],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+
+    if normlabl: ylabel='$|| {v}_{{FOM}} - {v}_{{ROM}} ||_2$'.format(v=vname)
     lineplot(name+"_abs_2_Norm",tp,norms[2],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+
+    if normlabl: ylabel='$|| {v}_{{FOM}} - {v}_{{ROM}} ||_{{L_2}}$'.format(v=vname)
     lineplot(name+"_abs_L2_Norm",tp,norms[4],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
-    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
-    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
-    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+
+    if normlabl: ylabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_\infty}}{{|| {v}_{{FOM}} ||_\infty}}$'.format(v=vname)
+    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0)
+
+    if normlabl: ylabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_2}}{{|| {v}_{{FOM}} ||_2}}$'.format(v=vname)
+    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0)
+
+    if normlabl: ylabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_{{L_2}}}}{{|| {v}_{{FOM}} ||_{{L_2}}}}$'.format(v=vname)
+    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0)
 
 #==================================================================================================================================#
 # function plot_results
@@ -167,7 +180,8 @@ def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno')
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right'):
+def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',fsize=10,
+ylsize=0,xlsize=0,ylpad=4,xlpad=4,legsize=0):
     if hasattr(arr[0],'__len__'):
         sets = len(arr)
 
@@ -192,7 +206,12 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabe
             print('Error in lineplot - marker not a string while only one dataset exists')
             quit()
 
-    plt.rc('font', family='serif', size=10)
+    if ylsize==0: ylsize = fsize
+    if xlsize==0: xlsize = fsize
+    if legsize==0: legsize = 8 #fsize
+
+    plt.rc('font', family='serif', size=fsize)
+    plt.rc('mathtext', fontset='stix')
     plt.rc('xtick', labelsize='medium')
     plt.rc('ytick', labelsize='medium')
 
@@ -207,11 +226,11 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabe
             ax.plot(tp,arr[i],label=leg,linewidth=.75,marker=marker[i])
 
     ax.legend()
-    plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
+    plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize=legsize)
     # plt.legend(bbox_to_anchor=(1.2, 1), loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel, fontsize=xlsize, labelpad=xlpad)
+    ax.set_ylabel(ylabel, fontsize=ylsize, labelpad=ylpad)
 
     ax.tick_params(axis='y',direction='in',labelleft=True,left=True,right=True)
     ax.tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True)

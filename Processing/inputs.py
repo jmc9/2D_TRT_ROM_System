@@ -110,7 +110,7 @@ def input(infile):
             quit()
         else:
             for i in range(len(dsnames)):
-                dsnames[i] = dsnames[i].replace('_',' ')
+                dsnames[i] = dsnames[i].replace('~',' ')
     else:
         if len(dsets)!=1:
             print('ERROR! "dsnames" not specified in input')
@@ -182,7 +182,7 @@ def domain_parms(dset):
     (xp,yp,xp_c,yp_c) = cell_coords(Delx,Dely)
     # tp = []
     # for i in range(N_t): tp.append((i+1)*Delt)
-    tp=dset['tpts'][:]
+    tp=[t*10. for t in dset['tpts'][:]]
 
     return (xp,yp,xp_c,yp_c,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x)
 
@@ -207,7 +207,7 @@ def cell_coords(Delx,Dely):
 #==================================================================================================================================#
 def sample_infile():
     file = open('Sample.inp','w')
-    
+
     file.write("* General notes:\n")
     file.write("* -> comments follow the '*' character\n")
     file.write("* -> all files passed to the program must have been generated with the '2D TRT ROM code'\n")

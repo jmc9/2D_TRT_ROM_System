@@ -75,7 +75,7 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
     (xp,yp,xp_c,yp_c,tp,Delx,Dely,Delt,A,N_t,N_g,N_y,N_x) = inp.domain_parms(dsets[0]) #getting problem domain parameters
     (A_EdgV, A_EdgH, Ag, Ag_EdgV, Ag_EdgH) = proc.A_calcs(A,N_g,N_y,N_x) #calculating areas/weights for different types of functions
-    tpts_ = [ [t for t in ds['tpts'][:]] for ds in dsets ]
+    tpts_ = [ [t*10. for t in ds['tpts'][:] ] for ds in dsets ]
 
     ###
     #
@@ -134,9 +134,10 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     #currently only working for gsum=1
     if ((nsets>1)and(switch_ranks==1)):
         (time_intervals, ranks, gsum) = proc.rank_collect(dsets,nsets,casename,N_g,proc_dir)
-        rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
+        # rleg = ['$\mathcal{C}$','$\mathcal{F}_{a,xx}$','$\mathcal{F}_{v,xx}$','$\mathcal{F}_{a,yy}$','$\mathcal{F}_{h,yy}$','$\mathcal{F}_{v,xy}$','$\mathcal{F}_{h,xy}$']
+        rleg = ['$\mathbf{A}^c_k$','$\mathbf{A}^{f_{xx,c}}_k$','$\mathbf{A}^{f_{xx,v}}_k$','$\mathbf{A}^{f_{yy,c}}_k$','$\mathbf{A}^{f_{yy,h}}_k$','$\mathbf{A}^{f_{xy,v}}_k$','$\mathbf{A}^{f_{xy,h}}_k$']
         for t in range(len(time_intervals)-1):
-            pltr.lineplot("Ranks_t{}".format(t+1),trend_names,ranks[t],proc_dir,rleg,yscale='linear',xlabel=r'Truncation Criteria $\varepsilon$',ylabel='Dimensionality (k)',marker='D',legloc='upper left')
+            pltr.lineplot("Ranks_t{}".format(t+1),trend_names,ranks[t],proc_dir,rleg,yscale='linear',xlabel=r'Truncation Criteria $\xi_{rel}$',ylabel='Dimensionality (k)',marker='D',legloc='upper left',legsize=12)
 
     #initializing arrays of error norms
     if (switch_norms==1):
@@ -231,17 +232,17 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
     #plotting error norms
     if ((switch_norms==1)and(nsets>0)):
-        pltr.plot_norms("T",Temp_Norms,tpts,dsnames,T_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("E_avg",E_avg_Norms,tpts,dsnames,E_avg_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_avg_xx",fg_avg_xx_Norms,tpts,dsnames,fg_avg_xx_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_avg_yy",fg_avg_yy_Norms,tpts,dsnames,fg_avg_yy_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgV_xx",fg_edgV_xx_Norms,tpts,dsnames,fg_EdgV_xx_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgV_xy",fg_edgV_xy_Norms,tpts,dsnames,fg_EdgV_xy_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgH_yy",fg_edgH_yy_Norms,tpts,dsnames,fg_EdgH_yy_norm_dir,'Error from Reference','Time (ns)')
-        pltr.plot_norms("fg_edgH_xy",fg_edgH_xy_Norms,tpts,dsnames,fg_EdgH_xy_norm_dir,'Error from Reference','Time (ns)')
+        pltr.plot_norms("T",Temp_Norms,tpts,dsnames,T_norm_dir,'Time (ns)',vname='T')
+        pltr.plot_norms("E_avg",E_avg_Norms,tpts,dsnames,E_avg_norm_dir,'Time (ns)',vname='E')
+        pltr.plot_norms("fg_avg_xx",fg_avg_xx_Norms,tpts,dsnames,fg_avg_xx_norm_dir,'Time (ns)',vname='fxx')
+        pltr.plot_norms("fg_avg_yy",fg_avg_yy_Norms,tpts,dsnames,fg_avg_yy_norm_dir,'Time (ns)',vname='fyy')
+        pltr.plot_norms("fg_edgV_xx",fg_edgV_xx_Norms,tpts,dsnames,fg_EdgV_xx_norm_dir,'Time (ns)',vname='fxx')
+        pltr.plot_norms("fg_edgV_xy",fg_edgV_xy_Norms,tpts,dsnames,fg_EdgV_xy_norm_dir,'Time (ns)',vname='fxy')
+        pltr.plot_norms("fg_edgH_yy",fg_edgH_yy_Norms,tpts,dsnames,fg_EdgH_yy_norm_dir,'Time (ns)',vname='fyy')
+        pltr.plot_norms("fg_edgH_xy",fg_edgH_xy_Norms,tpts,dsnames,fg_EdgH_xy_norm_dir,'Time (ns)',vname='fxy')
 
-        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,'Error from Reference',r'Truncation Criteria $\varepsilon$',marker='D')
-        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,'Error from Reference',r'Truncation Criteria $\varepsilon$',marker='D')
+        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,r'Truncation Criteria $\xi_{rel}$',vname='T',marker='D')
+        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,r'Truncation Criteria $\xi_{rel}$',vname='E',marker='D')
 
     #plotting solution cross sections
     if ((switch_cs==1)and(cs_times)):
@@ -258,13 +259,13 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
         if (csy[0]==1):
             pltr.plot_cs('Temp_ycs_left',Temp_ycs[0],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
-            pltr.plot_cs('E_ycs_left',E_ycs[0],xp_c,cs_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_left',E_ycs[0],yp_c,csy_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
         if (csy[1]==1):
             pltr.plot_cs('Temp_ycs_mid',Temp_ycs[1],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
-            pltr.plot_cs('E_ycs_mid',E_ycs[1],xp_c,cs_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_mid',E_ycs[1],yp_c,csy_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
         if (csy[2]==1):
             pltr.plot_cs('Temp_ycs_right',Temp_ycs[2],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
-            pltr.plot_cs('E_ycs_right',E_ycs[2],xp_c,cs_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_right',E_ycs[2],yp_c,csy_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
 
 
     for n in range(nsets): dsets[n].close() #closing dataset file

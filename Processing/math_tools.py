@@ -27,7 +27,7 @@ def norm1(x):
     n = len(x)
     norm = 0.
     for i in range(n):
-        norm = norm + x[i]
+        norm = norm + abs(x[i])
 
     return norm
 
@@ -38,7 +38,7 @@ def normL1(x,A):
     n = len(x)
     norm = 0.
     for i in range(n):
-        norm = norm + A[i]*x[i]
+        norm = norm + A[i]*abs(x[i])
 
     return norm
 

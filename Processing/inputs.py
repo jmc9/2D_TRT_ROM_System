@@ -17,12 +17,13 @@ def input(infile):
     file = open(infile,'r')
 
     dsets = []
-    tp_plt = []
+    plt_times = []
     Tbound = [0.,0.]
     Ebound = [0.,0.]
     fg_avg_xx_bnd = []
     ntrend_tp = []
     dsnames = []
+    fignames = []
     trend_names = []
     cs_times = []
     csx_times = []
@@ -44,8 +45,10 @@ def input(infile):
 
             elif input[0] == 'dsnames': dsnames=input[1:]
 
+            elif input[0] == 'fignames': fignames=input[1:]
+
             elif input[0] == 'plt_times_init':
-                for inp in input[1:]: tp_plt.append(int(inp))
+                for inp in input[1:]: plt_times.append(float(inp))
 
             elif input[0] == 'trend_names': trend_names=input[1:]
 
@@ -82,8 +85,9 @@ def input(infile):
 
             elif input[0] == 'switch_ranks': switch_ranks = int(input[1])
             elif input[0] == 'switch_norms': switch_norms = int(input[1])
-            elif input[0] == 'switch_cs': switch_cs = int(input[1])
-            elif input[0] == 'switch_sol': switch_sol = int(input[1])
+            elif input[0] == 'switch_cs':    switch_cs    = int(input[1])
+            elif input[0] == 'switch_sol':   switch_sol   = int(input[1])
+            elif input[0] == 'switch_errplots': switch_errplots = int(input[1])
 
     if dsets:
         if dsets == ['none']: dsets = [rset]
@@ -128,12 +132,21 @@ def input(infile):
             print('ERROR! "trend_names" not specified in input')
             quit()
 
+    if fignames:
+        if len(dsets)!=1 and len(trend_names)!=len(dsets)-1:
+            print('ERROR! not every comp_dataset has been asigned a "fignames" (or too many fignames have been specified)')
+            quit()
+    else:
+        if len(dsets)!=1:
+            print('ERROR! "fignames" not specified in input')
+            quit()
+
     # if ntrend_tp: switch_norms=1
 
     file.close()
 
-    return (dsets,dsnames,trend_names,tp_plt,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
-    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol)
+    return (dsets,dsnames,trend_names,fignames,plt_times,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
+    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots)
 
 #==================================================================================================================================#
 #
@@ -230,13 +243,19 @@ def sample_infile():
     file.write("* Arguments: same number of arguments as comp_datasets\n")
     file.write("* Function:  specifies the names of each data file given in comp_datasets, used in plots\n")
     file.write("* Required?: REQUIRED\n")
-    file.write("dsnames diff fld p13 p1\n\n")
+    file.write("dsnames Diffusion FLD $P_{1/3}$ $P_1$\n\n")
 
     file.write("* trend_names:\n")
     file.write("* Arguments: same number of arguments as comp_datasets\n")
     file.write("* Function:  similar to dsnames, but for specifying parameters in the legend of trend plots\n")
     file.write("* Required?: REQUIRED\n")
-    file.write("trend_names diff fld p13 p1\n\n")
+    file.write("trend_names Diffusion FLD $P_{1/3}$ $P_1$\n\n")
+
+    file.write("* fignames:\n")
+    file.write("* Arguments: one more argument than comp_datasets\n")
+    file.write("* Function:  specifies abridged names of each data file given in comp_datasets (and the reference file), used to save figures with\n")
+    file.write("* Required?: REQUIRED\n")
+    file.write("fignames fom diff fld p13 p1\n\n")
 
     file.write("* plt_times_init:\n")
     file.write("* Arguments: 1\n")

@@ -11,6 +11,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from matplotlib.gridspec import GridSpec
 # import matplotlib.colors as mcolors
 
 #local tools
@@ -20,12 +21,12 @@ from processing import cross_section as cs
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def plot_cs(name,cs,xp,times,dsnames,drop,xlabel,ylabel,textp=[]):
+def plot_cs(name,cs,xp,times,dsnames,fignames,drop,xlabel,ylabel,textp=[]):
     nd, nt, nx = np.shape(cs)
 
     # one dataset, all times
     for d in range(nd):
-        lineplot(name+"_"+dsnames[d], xp, cs[d], drop, times, ylabel=ylabel, xlabel=xlabel)
+        lineplot(name+"_"+fignames[d], xp, cs[d], drop, times, ylabel=ylabel, xlabel=xlabel)
 
     # one time, all datasets
     for t in range(nt):
@@ -102,12 +103,13 @@ def plot_norms(name,norms,tp,casenames,drop,xlabel,ylabel='',marker='',vname='')
 #
 #==================================================================================================================================#
 def plot_results(dset,plotdir,xp,yp,time,N_g,N_y,N_x,inp_flags,plotdirs,pd_names,Temp,fg_avg_xx,fg_avg_xy,fg_avg_yy,E_avg,E_avg_MGQD,\
-E_avg_HO,Eg_avg,Eg_avg_HO,bnds):
+E_avg_HO,Eg_avg,Eg_avg_HO,bnds,plot_qdf,plot_E_HO):
 
     loc = msc.locate_pd('Temperature',pd_names); dir = plotdirs[loc]
-    plot_data(Temp,'Temperature',xp,yp,time,dir,N_y,N_x,'inferno','eV',bnds[0])
+    Temp_ = [T/1000. for T in Temp]
+    plot_data(Temp_,'Temperature',xp,yp,time,dir,N_y,N_x,'inferno','KeV',bnds[0])
 
-    if inp_flags[2] == 1:
+    if ((inp_flags[2] == 1)and(plot_qdf)):
 
         loc = msc.locate_pd('fg_xx',pd_names); dir = plotdirs[loc]
         plot_gdata(fg_avg_xx,'fg_avg_xx',xp,yp,time,dir,N_g,N_y,N_x,'inferno',bnds=bnds[4])
@@ -120,13 +122,14 @@ E_avg_HO,Eg_avg,Eg_avg_HO,bnds):
 
     if inp_flags[12] == 1: loc = msc.locate_pd('E_avg_Grey',pd_names); dir = plotdirs[loc]; plot_data(E_avg,'E_avg_Grey',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[1])
 
-    if inp_flags[9] == 1: loc = msc.locate_pd('E_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_data(E_avg_MGQD,'E_avg_MGQD',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[2])
+    if plot_E_HO:
+        if inp_flags[9] == 1: loc = msc.locate_pd('E_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_data(E_avg_MGQD,'E_avg_MGQD',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[2])
 
-    if inp_flags[8] == 1: loc = msc.locate_pd('Eg_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg,'Eg_avg_MGQD',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
+        if inp_flags[8] == 1: loc = msc.locate_pd('Eg_avg_MGQD',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg,'Eg_avg_MGQD',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
 
-    if inp_flags[5] == 1: loc = msc.locate_pd('E_avg_HO',pd_names); dir = plotdirs[loc]; plot_data(E_avg_HO,'E_avg_HO',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[3])
+        if inp_flags[5] == 1: loc = msc.locate_pd('E_avg_HO',pd_names); dir = plotdirs[loc]; plot_data(E_avg_HO,'E_avg_HO',xp,yp,time,dir,N_y,N_x,'inferno','erg$\cdot 10^{13}$',bnds[3])
 
-    if inp_flags[4] == 1: loc = msc.locate_pd('Eg_avg_HO',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg_HO,'Eg_avg_HO',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
+        if inp_flags[4] == 1: loc = msc.locate_pd('Eg_avg_HO',pd_names); dir = plotdirs[loc]; plot_gdata(Eg_avg_HO,'Eg_avg_HO',xp,yp,time,dir,N_g,N_y,N_x,'inferno')
 
 #==================================================================================================================================#
 # function plot_data / plot_gdata
@@ -160,14 +163,15 @@ def plot_gdata(data,name,xp,yp,time,drop,N_g,N_y,N_x,c,units=[],bnds=[]):
 #
 #==================================================================================================================================#
 def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno'):
-    fig, ax = plt.subplots() #creating the figure
+    plt.rc('font', family='serif', size=10)
+    fig, ax = plt.subplots(figsize=(7,5)) #creating the figure
 
     if bnds and not bnds == [0.,0.]:
         plt.pcolormesh(xp,yp,arr,cmap=c,vmin=bnds[0],vmax=bnds[1]) #plotting
     else:
         plt.pcolormesh(xp,yp,arr,cmap=c) #plotting
 
-    clb = plt.colorbar() #creating color bar
+    clb = plt.colorbar(format=ticker.FuncFormatter(fmt)) #creating color bar
     if units:
         clb.ax.set_title(units)
 
@@ -176,6 +180,11 @@ def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno')
     ax.yaxis.set_major_locator(ticker.MultipleLocator(tickfreq)) #setting frequency of ticks along the y-axis
     plt.savefig(drop+'/'+name+'_'+'{:.2e}'.format(time)+'.pdf') #saving the figure
     plt.close(fig) #closing out figure
+
+def fmt(x, pos):
+    a, b = '{:.1e}'.format(x).split('e')
+    b = int(b)
+    return r'${} \times 10^{{{}}}$'.format(a, b)
 
 #==================================================================================================================================#
 #

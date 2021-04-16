@@ -48,9 +48,23 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     T_cs_dir = cs_dir+'/Temp'; msc.dirset(T_cs_dir)
     E_cs_dir = cs_dir+'/E_avg'; msc.dirset(E_cs_dir)
 
-    (dsets,dsnames,trend_names,tp_plt,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
-    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol) = inp.input(infile) #reading input file, returning datasets to process
+    eplt_dir = proc_dir+'/Error_Plots'; msc.dirset(eplt_dir)
+    T_eplt_dir = eplt_dir+'/Temp'; msc.dirset(T_eplt_dir)
+    E_eplt_dir = eplt_dir+'/E_avg'; msc.dirset(E_eplt_dir)
+
+    (dsets,dsnames,trend_names,fignames,plt_times,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
+    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots) = inp.input(infile) #reading input file, returning datasets to process
     nsets = len(dsets) #finding the number of datasets
+
+    if switch_sol == 1:
+        plot_qdf=False
+        plot_E_HO=False
+    elif switch_sol == 2:
+        plot_qdf=True
+        plot_E_HO=False
+    else:
+        plot_qdf=True
+        plot_E_HO=True
 
     #initializing arrays that will hold simulation data
     (Temp,E_avg,E_edgV,E_edgH,E_avg_MGQD,E_edgV_MGQD,E_edgH_MGQD,E_avg_HO,E_edgV_HO,E_edgH_HO,Fx_edgV,\
@@ -127,8 +141,8 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     #finding the instants of time for which to visualize data
     n_tplts=round(N_t/plt_tfreq)
     for i in range(n_tplts):
-        j = (i+1)*plt_tfreq-1
-        if not j in tp_plt: tp_plt.append((i+1)*plt_tfreq-1)
+        j = (i+1)*plt_tfreq*Delt
+        if not np.any(np.isclose(tp[tn[t][n]],plt_times)): tp_plt.append(j)
 
     #if any comp_datasets have been specified, collecting the ranks of their expansions and plotting them
     #currently only working for gsum=1
@@ -165,6 +179,7 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     csy_t = 0
     print('beginning data collection and plotting...')
     for t in range(N_t2):
+        T_errs=[]
 
         print('... simulation time  =  '+str(tp[tn[t][0]]))
         for n in range(nsets):
@@ -174,16 +189,16 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
             if ( (switch_norms==1)
                or ((switch_cs==1)and(np.any(np.isclose(tp[tn[t][n]],cs_times))))
-               or ((switch_sol==1)and(t in tp_plt)) ):
+               or ( ((switch_sol==1)or(switch_errplots==1)) and ( np.any(np.isclose(tp[tn[t][n]],plt_times)) )) ):
                 (Temp[m],E_avg[m],E_edgV[m],E_edgH[m],E_avg_MGQD[m],E_edgV_MGQD[m],E_edgH_MGQD[m],E_avg_HO[m],E_edgV_HO[m],E_edgH_HO[m],Fx_edgV[m],\
                 Fy_edgH,Fx_edgV_MGQD[m],Fy_edgH_MGQD[m],Fx_edgV_HO[m],Fy_edgH_HO[m],Eg_avg[m],Eg_edgV[m],Eg_edgH[m],Eg_avg_HO[m],Eg_edgV_HO[m],\
                 Eg_edgH_HO[m],Fxg_edgV[m],Fyg_edgH[m],Fxg_edgV_HO[m],Fyg_edgH_HO[m],fg_avg_xx[m],fg_avg_xy[m],fg_avg_yy[m],fg_edgV_xx[m],fg_edgV_xy[m],\
                 fg_edgH_yy[m],fg_edgH_xy[m]) = proc.get_data(dsets[n],inp_flags[n],tn[t][n])
 
-            #plotting the results for case n for desired instants of time (contained in the array tp_plt)
-            if ((switch_sol==1)and(t in tp_plt)):
+            #plotting the results for case n for desired instants of time (contained in the array plt_times)
+            if ((switch_sol>0)and( np.any(np.isclose(tp[tn[t][n]],plt_times)) )):
                 pltr.plot_results(dsets[n],casedirs[n],xp,yp,tp[tn[t][n]],N_g,N_y,N_x,inp_flags[n],plotdirs[n],pd_names[n],Temp[m],fg_avg_xx[m],\
-                fg_avg_xy[m],fg_avg_yy[m],E_avg[m],E_avg_MGQD[m],E_avg_HO[m],Eg_avg[m],Eg_avg_HO[m],pltbnds)
+                fg_avg_xy[m],fg_avg_yy[m],E_avg[m],E_avg_MGQD[m],E_avg_HO[m],Eg_avg[m],Eg_avg_HO[m],pltbnds,plot_qdf,plot_E_HO)
 
             #if plotting cross-sections of solutions, collecting them here
             if (switch_cs==1):
@@ -208,6 +223,13 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
                     if (csy[2]==1): #'right' of domain along y-axis
                         Temp_ycs[2][n][csy_t] = proc.cross_section(Temp[m],(N_y,N_x),(-1,N_x-1))
                         E_ycs[2][n][csy_t] = proc.cross_section(E_avg[m],(N_y,N_x),(-1,N_x-1))
+
+            if ( (switch_errplots==1) and (n>0) and np.any(np.isclose(tp[tn[t][n]],plt_times)) ):
+                err, rerr, ref = proc.errcalc(Temp)
+                pltr.plot_data(rerr,'T_err_{}'.format(fignames[n]),xp,yp,tp[tn[t][0]],T_eplt_dir,N_y,N_x,'inferno')
+
+                err, rerr, ref = proc.errcalc(E_avg)
+                pltr.plot_data(rerr,'E_err_{}'.format(fignames[n]),xp,yp,tp[tn[t][0]],E_eplt_dir,N_y,N_x,'inferno')
 
             #if looking at a non-reference dataset, calculate norms of error compared to reference dataset
             if ((switch_norms==1)and(n>0)):
@@ -248,24 +270,24 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     if ((switch_cs==1)and(cs_times)):
         dsnames.insert(0,'fom')
         if (csx[0]==1):
-            pltr.plot_cs('Temp_xcs_bot',Temp_xcs[0],xp_c,csx_times,dsnames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
-            pltr.plot_cs('E_xcs_bot',E_xcs[0],xp_c,cs_times,dsnames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
+            pltr.plot_cs('Temp_xcs_bot',Temp_xcs[0],xp_c,csx_times,dsnames,fignames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
+            pltr.plot_cs('E_xcs_bot',E_xcs[0],xp_c,cs_times,dsnames,fignames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
         if (csx[1]==1):
-            pltr.plot_cs('Temp_xcs_mid',Temp_xcs[1],xp_c,csx_times,dsnames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
-            pltr.plot_cs('E_xcs_mid',E_xcs[1],xp_c,cs_times,dsnames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
+            pltr.plot_cs('Temp_xcs_mid',Temp_xcs[1],xp_c,csx_times,dsnames,fignames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
+            pltr.plot_cs('E_xcs_mid',E_xcs[1],xp_c,cs_times,dsnames,fignames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
         if (csx[2]==1):
-            pltr.plot_cs('Temp_xcs_top',Temp_xcs[2],xp_c,csx_times,dsnames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
-            pltr.plot_cs('E_xcs_top',E_xcs[2],xp_c,cs_times,dsnames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
+            pltr.plot_cs('Temp_xcs_top',Temp_xcs[2],xp_c,csx_times,dsnames,fignames,T_cs_dir,'x-length (cm)','Temperature (eV)',textp=[0,3,5,7,5])
+            pltr.plot_cs('E_xcs_top',E_xcs[2],xp_c,cs_times,dsnames,fignames,E_cs_dir,'x-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=[0,3,5,7,5])
 
         if (csy[0]==1):
-            pltr.plot_cs('Temp_ycs_left',Temp_ycs[0],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
-            pltr.plot_cs('E_ycs_left',E_ycs[0],yp_c,csy_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('Temp_ycs_left',Temp_ycs[0],yp_c,csy_times,dsnames,fignames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_left',E_ycs[0],yp_c,csy_times,dsnames,fignames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
         if (csy[1]==1):
-            pltr.plot_cs('Temp_ycs_mid',Temp_ycs[1],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
-            pltr.plot_cs('E_ycs_mid',E_ycs[1],yp_c,csy_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('Temp_ycs_mid',Temp_ycs[1],yp_c,csy_times,dsnames,fignames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_mid',E_ycs[1],yp_c,csy_times,dsnames,fignames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
         if (csy[2]==1):
-            pltr.plot_cs('Temp_ycs_right',Temp_ycs[2],yp_c,csy_times,dsnames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
-            pltr.plot_cs('E_ycs_right',E_ycs[2],yp_c,csy_times,dsnames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('Temp_ycs_right',Temp_ycs[2],yp_c,csy_times,dsnames,fignames,T_cs_dir,'y-length (cm)','Temperature (eV)',textp=np.full(len(cs_times),N_y//2))
+            pltr.plot_cs('E_ycs_right',E_ycs[2],yp_c,csy_times,dsnames,fignames,E_cs_dir,'y-length (cm)','Radiation Energy Density (erg$\cdot 1\\times 10^{13}$)',textp=np.full(len(cs_times),N_y//2))
 
 
     for n in range(nsets): dsets[n].close() #closing dataset file

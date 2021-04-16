@@ -72,26 +72,32 @@ def plot_cs(name,cs,xp,times,dsnames,fignames,drop,xlabel,ylabel,textp=[]):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def plot_norms(name,norms,tp,casenames,drop,xlabel,ylabel='',marker='',vname=''):
+def plot_norms(name,norms,tp,casenames,drop,xlabel,ylabel='',marker='',vname='',bnds=[]):
     normlabl = True if ylabel=='' else False
 
     if normlabl: ylabel='$|| {v}_{{FOM}} - {v}_{{ROM}} ||_\infty$'.format(v=vname)
-    lineplot(name+"_abs_inf_Norm",tp,norms[0],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    bnd = bnds[0] if len(bnds)>0 else []
+    lineplot(name+"_abs_inf_Norm",tp,norms[0],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylim=bnd)
 
     if normlabl: ylabel='$|| {v}_{{FOM}} - {v}_{{ROM}} ||_2$'.format(v=vname)
-    lineplot(name+"_abs_2_Norm",tp,norms[2],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    bnd = bnds[2] if len(bnds)>0 else []
+    lineplot(name+"_abs_2_Norm",tp,norms[2],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylim=bnd)
 
     if normlabl: ylabel='$|| {v}_{{FOM}} - {v}_{{ROM}} ||_{{L_2}}$'.format(v=vname)
-    lineplot(name+"_abs_L2_Norm",tp,norms[4],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker)
+    bnd = bnds[4] if len(bnds)>0 else []
+    lineplot(name+"_abs_L2_Norm",tp,norms[4],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylim=bnd)
 
     if normlabl: ylabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_\infty}}{{|| {v}_{{FOM}} ||_\infty}}$'.format(v=vname)
-    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0)
+    bnd = bnds[1] if len(bnds)>0 else []
+    lineplot(name+"_rel_inf_Norm",tp,norms[1],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0,ylim=bnd)
 
     if normlabl: ylabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_2}}{{|| {v}_{{FOM}} ||_2}}$'.format(v=vname)
-    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0)
+    bnd = bnds[3] if len(bnds)>0 else []
+    lineplot(name+"_rel_2_Norm",tp,norms[3],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0,ylim=bnd)
 
     if normlabl: ylabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_{{L_2}}}}{{|| {v}_{{FOM}} ||_{{L_2}}}}$'.format(v=vname)
-    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0)
+    bnd = bnds[5] if len(bnds)>0 else []
+    lineplot(name+"_rel_L2_Norm",tp,norms[5],drop,casenames,yscale='log',ylabel=ylabel,xlabel=xlabel,marker=marker,ylsize=14,ylpad=0,ylim=bnd)
 
 #==================================================================================================================================#
 # function plot_results
@@ -190,7 +196,7 @@ def fmt(x, pos):
 #
 #==================================================================================================================================#
 def lineplot(name,tp,arr: np.ndarray,drop,legend,yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',fsize=10,
-ylsize=0,xlsize=0,ylpad=4,xlpad=4,legsize=0):
+ylsize=0,xlsize=0,ylpad=4,xlpad=4,legsize=0,ylim=[]):
     if hasattr(arr[0],'__len__'):
         sets = len(arr)
 
@@ -247,6 +253,8 @@ ylsize=0,xlsize=0,ylpad=4,xlpad=4,legsize=0):
     ax.set_yscale(yscale)
     plt.grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--')
     plt.grid(which = 'minor', axis = 'y', color = 'lightgrey', linestyle = ':', linewidth=.75)
+
+    if ylim: plt.ylim(ylim)
 
     plt.savefig(drop+'/'+name+'.pdf') #saving the figure
     plt.close(fig) #closing out figure

@@ -30,10 +30,12 @@ def input(infile):
     csy_times = []
     csx = [0, 1, 0]
     csy = [0, 1, 1]
-    switch_ranks = 1
-    switch_norms = 0
+    switch_ranks = 0
+    switch_norms = 1
     switch_cs = 0
     switch_sol = 1
+    switch_errplots = 0
+    plt_consistency = 0
 
     for line in file:
         if (line.strip()):
@@ -88,6 +90,7 @@ def input(infile):
             elif input[0] == 'switch_cs':    switch_cs    = int(input[1])
             elif input[0] == 'switch_sol':   switch_sol   = int(input[1])
             elif input[0] == 'switch_errplots': switch_errplots = int(input[1])
+            elif input[0] == 'plt_consistency': plt_consistency = int(input[1])
 
     if dsets:
         if dsets == ['none']: dsets = [rset]
@@ -146,7 +149,7 @@ def input(infile):
     file.close()
 
     return (dsets,dsnames,trend_names,fignames,plt_times,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
-    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots)
+    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots,plt_consistency)
 
 #==================================================================================================================================#
 #

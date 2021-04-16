@@ -8,6 +8,7 @@
 #importing packages
 #==================================================================================================================================#
 import numpy as np
+import math
 
 #==================================================================================================================================#
 #
@@ -65,3 +66,37 @@ def normL2(x,A):
     norm = np.sqrt(norm)
 
     return norm
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
+def norm_maxes(norms):
+    max = [ np.amax(norm) for norm in norms ]
+    return max
+
+def norm_mins(norms):
+    min = [ np.amin(norm) for norm in norms ]
+    return min
+
+def pow10(x):
+    pow = math.floor(math.log10(x))
+    r = x/10.**pow
+    return pow, r
+
+def logbnd_up(x,pad=0.):
+    pow, r = pow10(x)
+    y = math.ceil(r) + pad
+    if y>10:
+        y=y-10
+        pow=pow+1
+    y *= 10.**pow
+    return y
+
+def logbnd_low(x,pad=0.):
+    pow, r = pow10(x)
+    y = math.floor(r) - pad
+    if y<0:
+        y=y+10
+        pow=pow-1
+    y *= 10.**pow
+    return y

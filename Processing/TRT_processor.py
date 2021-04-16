@@ -21,6 +21,7 @@ import inputs as inp
 import plotters as pltr
 import misc_tools as msc
 import processing as proc
+import math_tools as mt
 
 #==================================================================================================================================#
 #
@@ -53,7 +54,7 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
     E_eplt_dir = eplt_dir+'/E_avg'; msc.dirset(E_eplt_dir)
 
     (dsets,dsnames,trend_names,fignames,plt_times,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
-    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots) = inp.input(infile) #reading input file, returning datasets to process
+    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots,plt_consistency) = inp.input(infile) #reading input file, returning datasets to process
     nsets = len(dsets) #finding the number of datasets
 
     if switch_sol == 1:
@@ -254,8 +255,22 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
 
     #plotting error norms
     if ((switch_norms==1)and(nsets>0)):
-        pltr.plot_norms("T",Temp_Norms,tpts,dsnames,T_norm_dir,'Time (ns)',vname='T')
-        pltr.plot_norms("E_avg",E_avg_Norms,tpts,dsnames,E_avg_norm_dir,'Time (ns)',vname='E')
+        if (plt_consistency==1):
+            Tnrm_max = mt.norm_maxes(Temp_Norms)
+            Enrm_max = mt.norm_maxes(E_avg_Norms)
+            TE_upbnd = [max(Tmax,Emax) for (Tmax,Emax) in zip(Tnrm_max,Enrm_max)]
+
+            Tnrm_min = mt.norm_mins(Temp_Norms)
+            Enrm_min = mt.norm_mins(E_avg_Norms)
+            TE_lowbnd = [min(Tmin,Emin) for (Tmin,Emin) in zip(Tnrm_min,Enrm_min)]
+
+            TE_bnd = [[low,up] for (low,up) in zip(TE_lowbnd,TE_upbnd)]
+            TE_bnd = [[mt.logbnd_low(low,5.), mt.logbnd_up(up,5.)] for (low,up) in zip(TE_lowbnd,TE_upbnd)]
+        else:
+            TE_bnd = []
+
+        pltr.plot_norms("T",Temp_Norms,tpts,dsnames,T_norm_dir,'Time (ns)',vname='T',bnds=TE_bnd)
+        pltr.plot_norms("E_avg",E_avg_Norms,tpts,dsnames,E_avg_norm_dir,'Time (ns)',vname='E',bnds=TE_bnd)
         pltr.plot_norms("fg_avg_xx",fg_avg_xx_Norms,tpts,dsnames,fg_avg_xx_norm_dir,'Time (ns)',vname='fxx')
         pltr.plot_norms("fg_avg_yy",fg_avg_yy_Norms,tpts,dsnames,fg_avg_yy_norm_dir,'Time (ns)',vname='fyy')
         pltr.plot_norms("fg_edgV_xx",fg_edgV_xx_Norms,tpts,dsnames,fg_EdgV_xx_norm_dir,'Time (ns)',vname='fxx')
@@ -263,8 +278,8 @@ def TRT_process(infile,proc_dir,plotdir,plt_tfreq):
         pltr.plot_norms("fg_edgH_yy",fg_edgH_yy_Norms,tpts,dsnames,fg_EdgH_yy_norm_dir,'Time (ns)',vname='fyy')
         pltr.plot_norms("fg_edgH_xy",fg_edgH_xy_Norms,tpts,dsnames,fg_EdgH_xy_norm_dir,'Time (ns)',vname='fxy')
 
-        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,r'Truncation Criteria $\xi_{rel}$',vname='T',marker='D')
-        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,r'Truncation Criteria $\xi_{rel}$',vname='E',marker='D')
+        pltr.plot_norms("T_trends",Temp_Norm_Trends,trend_names,ntrend_times,T_norm_dir,r'Truncation Criteria $\xi_{rel}$',vname='T',marker='D',bnds=TE_bnd)
+        pltr.plot_norms("E_trends",E_avg_Norm_Trends,trend_names,ntrend_times,E_avg_norm_dir,r'Truncation Criteria $\xi_{rel}$',vname='E',marker='D',bnds=TE_bnd)
 
     #plotting solution cross sections
     if ((switch_cs==1)and(cs_times)):

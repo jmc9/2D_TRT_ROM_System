@@ -102,10 +102,19 @@ def input(infile):
         if len(csx_times)==0: csx_times = [t for t in csy_times]
         cs_times = [t for t in csx_times]
         for t in csy_times:
-            if not t in cs_times:
+            if not (t in cs_times):
+                if t>max(cs_times):
+                    cs_times.append(t)
+                    continue
+                if t<min(cs_times):
+                    cs_times.insert(0,t)
+                    continue
                 for i in range(len(cs_times)):
-                    if t>cs_times[i]:
+                    if (t>cs_times[i])and(t<min(cs_times[i:])):
                         cs_times.insert(i+1,t)
+                        break
+                    elif (t<cs_times[i])and(t>max(cs_times[:i+1])):
+                        cs_times.insert(i,t)
                         break
     else:
         csy_times = [t for t in cs_times]

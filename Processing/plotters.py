@@ -21,6 +21,78 @@ from processing import cross_section as cs
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
+def Subplot_TE_norms(Tnorms, Ttrends, Enorms, Etrends, tp, trend_times, dsnames, trend_names, drop, TE_bnd=[], fsize=10, yscale='log'):
+    n = len(dsnames)
+    n2 = len(trend_times)
+    Elabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_2}}{{|| {v}_{{FOM}} ||_2}}$'.format(v='E')
+    Tlabel='$\\frac{{|| {v}_{{FOM}} - {v}_{{ROM}} ||_2}}{{|| {v}_{{FOM}} ||_2}}$'.format(v='T')
+
+    # if ylsize==0: ylsize = fsize
+    # if xlsize==0: xlsize = fsize
+    # if legsize==0: legsize = 8 #fsize
+
+    plt.rc('font', family='serif', size=fsize)
+    plt.rc('mathtext', fontset='stix')
+    plt.rc('xtick', labelsize='medium')
+    plt.rc('ytick', labelsize='medium')
+
+    fig, axs = plt.subplots(2, 2, sharey='row', sharex='col', figsize=(14,10)) #creating the figure
+
+    # axs[0,0].plot(tp, Enorms[i], label=leg, linewidth=.75, marker=marker[i])
+    for i in range(n):
+        axs[0,0].plot(tp, Enorms[3][i], label=dsnames[i], linewidth=.75)
+        axs[1,0].plot(tp, Tnorms[3][i], label=dsnames[i], linewidth=.75)
+
+    for i in range(n2):
+        axs[0,1].plot(trend_names, Etrends[3][i], label=trend_times[i], linewidth=.75, marker='D')
+        axs[1,1].plot(trend_names, Ttrends[3][i], label=trend_times[i], linewidth=.75, marker='D')
+
+    axs[0,0].tick_params(axis='y',direction='in',labelleft=True,left=True,right=True, which='both')
+    axs[1,0].tick_params(axis='y',direction='in',labelleft=True,left=True,right=True, which='both')
+    axs[0,1].tick_params(axis='y',direction='in',labelleft=True,left=True,right=True, which='both')
+    axs[1,1].tick_params(axis='y',direction='in',labelleft=True,left=True,right=True, which='both')
+
+    axs[0,0].tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True, which='both')
+    axs[1,0].tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True, which='both')
+    axs[0,1].tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True, which='both')
+    axs[1,1].tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True, which='both')
+
+    plt.setp(axs[0,0].get_xticklabels(), visible=False)
+    plt.setp(axs[0,1].get_xticklabels(), visible=False)
+    plt.setp(axs[0,1].get_yticklabels(), visible=False)
+    plt.setp(axs[1,1].get_yticklabels(), visible=False)
+
+    axs[0,0].set_yscale(yscale)
+    axs[1,0].set_yscale(yscale)
+    axs[0,1].set_yscale(yscale)
+    axs[1,1].set_yscale(yscale)
+
+    axs[0,0].set_ylabel(Elabel, fontsize=14, labelpad=0)
+    axs[1,0].set_ylabel(Tlabel, fontsize=14, labelpad=0)
+    axs[1,0].set_xlabel('Time (ns)', fontsize=fsize)
+    axs[1,1].set_xlabel('Truncation Criteria $\\xi_{{rel}}$', fontsize=fsize)
+
+    axs[0,0].grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--', linewidth=.75)
+    axs[1,0].grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--', linewidth=.75)
+    axs[0,1].grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--', linewidth=.75)
+    axs[1,1].grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--', linewidth=.75)
+
+    if TE_bnd: plt.ylim(TE_bnd[3])
+
+    axs[0,0].legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize=fsize)
+    axs[0,1].legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize=fsize)
+    axs[1,0].legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize=fsize)
+    axs[1,1].legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize=fsize)
+    # plt.legend(loc='upper right', borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize=fsize)
+
+    fig.tight_layout(pad=1.)
+
+    plt.savefig(drop+'/TE_combined_norms.pdf') #saving the figure
+    plt.close(fig) #closing out figure
+
+#==================================================================================================================================#
+#
+#==================================================================================================================================#
 def plot_cs(name,cs,xp,times,dsnames,fignames,drop,xlabel,ylabel,textp=[]):
     nd, nt, nx = np.shape(cs)
 
@@ -168,7 +240,7 @@ def plot_gdata(data,name,xp,yp,time,drop,N_g,N_y,N_x,c,units=[],bnds=[]):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno'):
+def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno',save_format=1,clbsize=10):
     plt.rc('font', family='serif', size=10)
     fig, ax = plt.subplots(figsize=(7,5)) #creating the figure
 
@@ -180,11 +252,13 @@ def heatmap2d(arr: np.ndarray,name,xp,yp,time,drop,units=[],bnds=[],c='inferno')
     clb = plt.colorbar(format=ticker.FuncFormatter(fmt)) #creating color bar
     if units:
         clb.ax.set_title(units)
+    clb.ax.tick_params(labelsize=clbsize)
 
     tickfreq = 1 #frequency of ticks on each axis
     ax.xaxis.set_major_locator(ticker.MultipleLocator(tickfreq)) #setting frequency of ticks along the x-axis
     ax.yaxis.set_major_locator(ticker.MultipleLocator(tickfreq)) #setting frequency of ticks along the y-axis
-    plt.savefig(drop+'/'+name+'_'+'{:.2e}'.format(time)+'.pdf') #saving the figure
+    if save_format==1: plt.savefig(drop+'/'+name+'_'+'{:.2e}'.format(time)+'.pdf') #saving the figure
+    else: plt.savefig(drop+'/'+name+'_'+'{:.0f}ns'.format(time)+'.pdf') #saving the figure
     plt.close(fig) #closing out figure
 
 def fmt(x, pos):
@@ -247,8 +321,8 @@ ylsize=0,xlsize=0,ylpad=4,xlpad=4,legsize=0,ylim=[]):
     ax.set_xlabel(xlabel, fontsize=xlsize, labelpad=xlpad)
     ax.set_ylabel(ylabel, fontsize=ylsize, labelpad=ylpad)
 
-    ax.tick_params(axis='y',direction='in',labelleft=True,left=True,right=True)
-    ax.tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True)
+    ax.tick_params(axis='y',direction='in',labelleft=True,left=True,right=True, which='both')
+    ax.tick_params(axis='x',direction='in',labelbottom=True,bottom=True,top=True, which='both')
 
     ax.set_yscale(yscale)
     plt.grid(which = 'major', axis = 'y', color = 'lightgrey', linestyle = '--')

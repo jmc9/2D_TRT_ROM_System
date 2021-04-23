@@ -86,8 +86,8 @@ def pow10(x):
 def logbnd_up(x,pad=0.):
     pow, r = pow10(x)
     y = math.ceil(r) + pad
-    if y>10:
-        y=y-10
+    if y>=10:
+        y=max(y-10,1)
         pow=pow+1
     y *= 10.**pow
     return y
@@ -95,7 +95,7 @@ def logbnd_up(x,pad=0.):
 def logbnd_low(x,pad=0.):
     pow, r = pow10(x)
     y = math.floor(r) - pad
-    if y<0:
+    if y<=0:
         y=y+10
         pow=pow-1
     y *= 10.**pow

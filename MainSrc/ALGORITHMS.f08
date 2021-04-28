@@ -848,5 +848,207 @@ END SUBROUTINE TRT_MLQD_ALGORITHM
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+SUBROUTINE Tgen_QDf(Omega_x, Omega_y, quad_weight, Nu_g, Kappa_Mult, c, cV, h, pi, Kap0, erg, Comp_Unit,&
+  N_m, Mat, threads, BC_Type, Res_Calc, TfileName, outfile, enrgy_strc,&
+  I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, QDfg_out, quadrature, run_type)
+
+  !---------------Solution Parameters----------------!
+  REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:), Kappa_Mult(:)
+  REAL*8,INTENT(IN):: c, cV, h, pi, Kap0, erg
+  REAL*8,INTENT(IN):: Comp_Unit
+  INTEGER,INTENT(IN):: N_m, Mat(:,:)
+  INTEGER,INTENT(IN):: Threads, BC_Type(:)
+  LOGICAL,INTENT(IN):: Res_Calc
+  CHARACTER(*),INTENT(IN):: TfileName, outfile, enrgy_strc, quadrature, run_type
+  INTEGER,INTENT(IN):: I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, QDfg_out
+
+  REAL*8,ALLOCATABLE:: Temp(:,:)
+  REAL*8,ALLOCATABLE:: fg_avg_xx(:,:,:), fg_avg_yy(:,:,:), fg_avg_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_edgV_xx(:,:,:), fg_edgV_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: fg_edgH_yy(:,:,:), fg_edgH_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: Cg_L(:,:), Cg_B(:,:), Cg_R(:,:), Cg_T(:,:)
+
+  !---------------Material Properties----------------!
+  REAL*8:: Delt, xlen, ylen, tlen
+  REAL*8,ALLOCATABLE:: xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
+  REAL*8,ALLOCATABLE:: A(:,:), Delx(:), Dely(:)
+  REAL*8,ALLOCATABLE:: Bg(:,:,:), KapE(:,:,:), KapB(:,:,:), KapR(:,:,:)
+  REAL*8,ALLOCATABLE:: KapE_old(:,:,:), KapR_old(:,:,:), Temp_old(:,:)
+  REAL*8,ALLOCATABLE:: MGQD_Src(:,:,:), MGQD_Src_old(:,:,:), RT_Src(:,:,:,:)
+
+  !--------------Radiation Intensities---------------!
+  REAL*8,ALLOCATABLE:: I_crn_old(:,:,:,:)
+  REAL*8,ALLOCATABLE:: I_avg(:,:,:,:), I_edgV(:,:,:,:), I_edgH(:,:,:,:)
+  REAL*8,ALLOCATABLE:: I_crn(:,:,:,:), Ic_edgV(:,:,:,:), Ic_edgH(:,:,:,:)
+
+  !--------------High-Order Quantities---------------!
+  REAL*8,ALLOCATABLE:: Hg_avg_xx(:,:,:), Hg_avg_yy(:,:,:), Hg_avg_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: Hg_edgV_xx(:,:,:), Hg_edgV_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: Hg_edgH_yy(:,:,:), Hg_edgH_xy(:,:,:)
+  REAL*8,ALLOCATABLE:: HO_Eg_avg(:,:,:), HO_Eg_edgV(:,:,:), HO_Eg_edgH(:,:,:)
+  REAL*8,ALLOCATABLE:: HO_Fxg_edgV(:,:,:), HO_Fyg_edgH(:,:,:)
+  REAL*8,ALLOCATABLE:: HO_E_avg(:,:), HO_E_edgV(:,:), HO_E_edgH(:,:)
+  REAL*8,ALLOCATABLE:: HO_Fx_edgV(:,:), HO_Fy_edgH(:,:)
+
+  !-----------------Misc. Variables------------------!
+  REAL*8:: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
+  REAL*8,ALLOCATABLE:: RT_Residual(:,:,:)
+  INTEGER,ALLOCATABLE:: RT_ResLoc_x(:,:,:), RT_ResLoc_y(:,:,:)
+  INTEGER:: TfileID, outID
+  INTEGER:: N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID
+  INTEGER:: Boundaries_ID, c_ID, h_ID, pi_ID, erg_ID, Comp_Unit_ID, cv_ID
+  INTEGER:: Temp_ID, HO_E_avg_ID
+  INTEGER:: HO_E_edgV_ID, HO_E_edgH_ID, HO_Fx_edgV_ID
+  INTEGER:: HO_Fy_edgH_ID, HO_Eg_avg_ID, HO_Eg_edgV_ID, HO_Eg_edgH_ID
+  INTEGER:: HO_Fxg_edgV_ID, HO_Fyg_edgH_ID, I_avg_ID, I_edgV_ID, I_edgH_ID
+  INTEGER:: Cg_L_ID, Cg_B_ID, Cg_R_ID, Cg_T_ID
+  INTEGER:: fg_avg_xx_ID, fg_avg_yy_ID, fg_avg_xy_ID, fg_edgV_xx_ID, fg_edgV_xy_ID, fg_edgH_yy_ID, fg_edgH_xy_ID
+  INTEGER:: N_x, N_y, N_g, N_t
+  INTEGER:: t
+
+  !===========================================================================!
+  !                                                                           !
+  !     INITIALIZATION                                                        !
+  !                                                                           !
+  !===========================================================================!
+  CALL NF_OPEN_FILE(TfileID,TfileName,'old','r')
+  CALL NF_INQ_DIM(TfileID,"N_x",N_x)
+  CALL NF_INQ_DIM(TfileID,"N_y",N_y)
+  CALL NF_INQ_DIM(TfileID,"N_g",N_g)
+  CALL NF_INQ_DIM(TfileID,"N_t",N_t)
+
+  ALLOCATE(Delx(N_x), Dely(N_y))
+  ALLOCATE(xpts_avg(N_x), xpts_edgV(N_x+1))
+  ALLOCATE(ypts_avg(N_y), ypts_edgH(N_y+1))
+  ALLOCATE(tpts(N_t))
+
+  CALL NF_INQ_VAR_0D(TfileID,"tlen",tlen)
+  CALL NF_INQ_VAR_0D(TfileID,"xlen",xlen)
+  CALL NF_INQ_VAR_0D(TfileID,"ylen",ylen)
+  CALL NF_INQ_VAR_0D(TfileID,"Delt",Delt)
+  CALL NF_INQ_VAR_1D(TfileID,"Delx",Delx,(/1/),(/N_x/))
+  CALL NF_INQ_VAR_1D(TfileID,"Dely",Dely,(/1/),(/N_y/))
+  CALL NF_INQ_VAR_0D(TfileID,"bcT_left",bcT_left)
+  CALL NF_INQ_VAR_0D(TfileID,"bcT_bottom",bcT_bottom)
+  CALL NF_INQ_VAR_0D(TfileID,"bcT_right",bcT_right)
+  CALL NF_INQ_VAR_0D(TfileID,"bcT_top",bcT_top)
+  CALL NF_INQ_VAR_0D(TfileID,"Tini",Tini)
+
+  CALL NF_INQ_VAR_1D(TfileID,"tpts",tpts,(/1/),(/N_t/))
+  CALL NF_INQ_VAR_1D(TfileID,"xpts_avg",xpts_avg,(/1/),(/N_x/))
+  CALL NF_INQ_VAR_1D(TfileID,"xpts_edgV",xpts_edgV,(/1/),(/N_x+1/))
+  CALL NF_INQ_VAR_1D(TfileID,"ypts_avg",ypts_avg,(/1/),(/N_y/))
+  CALL NF_INQ_VAR_1D(TfileID,"ypts_edgH",ypts_edgH,(/1/),(/N_y+1/))
+
+  !calling 'init' routines to allocate space for all needed arrays and initialize values
+  CALL MISC_INIT(Delx,Dely,A)
+  CALL RT_INIT(I_avg,I_edgV,I_edgH,I_crn,I_crn_old,Ic_edgV,Ic_edgH,Hg_avg_xx,Hg_avg_yy,Hg_avg_xy,Hg_edgV_xx,&
+    Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,HO_Fxg_edgV,HO_Fyg_edgH,HO_E_avg,&
+    HO_E_edgV,HO_E_edgH,HO_Fx_edgV,HO_Fy_edgH,N_y,N_x,N_m,N_g,Tini,comp_unit,nu_g,bcT_left,bcT_right,&
+    bcT_top,bcT_bottom,BC_Type,pi,c)
+  CALL TEMP_INIT(Temp,RT_Src,MGQD_Src,MGQD_Src_old,KapE,KapB,KapR,KapE_old,KapR_old,Bg,N_y,N_x,N_m,N_g,Tini,&
+    Comp_Unit,Nu_g,Temp_Old,Threads,Mat,Kappa_Mult)
+
+  !Allocate Multigroup quasidiffusion tensors
+  ALLOCATE(fg_avg_xx(N_x,N_y,N_g))
+  ALLOCATE(fg_avg_yy(N_x,N_y,N_g))
+  ALLOCATE(fg_avg_xy(N_x,N_y,N_g))
+  ALLOCATE(fg_edgV_xx(N_x+1,N_y,N_g))
+  ALLOCATE(fg_edgV_xy(N_x+1,N_y,N_g))
+  ALLOCATE(fg_edgH_yy(N_x,N_y+1,N_g))
+  ALLOCATE(fg_edgH_xy(N_x,N_y+1,N_g))
+  !Allocate MGQD boundary factors
+  ALLOCATE(Cg_L(N_y,N_g))
+  ALLOCATE(Cg_B(N_x,N_g))
+  ALLOCATE(Cg_R(N_y,N_g))
+  ALLOCATE(Cg_T(N_x,N_g))
+
+  !Create output file and initialize all arrays/ values
+  CALL OUTFILE_INIT_Tgen(outID, N_x_ID, N_y_ID, N_m_ID, N_g_ID, N_t_ID, N_edgV_ID, N_edgH_ID, N_xc_ID, N_yc_ID, Quads_ID,&
+    Boundaries_ID, c_ID, h_ID, pi_ID, erg_ID, Comp_Unit_ID, cv_ID, c, h, pi, erg, Comp_Unit, cv, xlen, ylen, Delx, Dely, tlen,&
+    Delt,bcT_left, bcT_bottom, bcT_right, bcT_top, Tini, N_x, N_y, N_m, N_g, N_t, threads, BC_type, outfile, quadrature,&
+    enrgy_strc, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, QDfg_out, xpts_avg, xpts_edgV, ypts_avg, ypts_edgH, tpts,&
+    run_type, Temp_ID, HO_E_avg_ID, HO_E_edgV_ID, HO_E_edgH_ID, HO_Fx_edgV_ID, HO_Fy_edgH_ID, HO_Eg_avg_ID, HO_Eg_edgV_ID,&
+    HO_Eg_edgH_ID, HO_Fxg_edgV_ID, HO_Fyg_edgH_ID, I_avg_ID, I_edgV_ID, I_edgH_ID, Cg_L_ID, Cg_B_ID, Cg_R_ID, Cg_T_ID,&
+    fg_avg_xx_ID, fg_avg_yy_ID, fg_avg_xy_ID, fg_edgV_xx_ID, fg_edgV_xy_ID, fg_edgH_yy_ID, fg_edgH_xy_ID)
+
+  !===========================================================================!
+  !                                                                           !
+  !     PROBLEM SOLVE (BEGIN TIME STEP LOOP)                                  !
+  !                                                                           !
+  !===========================================================================!
+  DO t=1,N_t
+    write(*,*) 'Time: ',tpts(t)
+
+    CALL NF_INQ_VAR_2D(TfileID, 'Temperature', Temp, (/1,1,t/), (/N_x, N_y, 1/)) !reading Temp at time t from input file
+    CALL NF_PUT_t_VAR(outID,Temp_ID,Temp,t) !writing same Temp to output file
+
+    !calculating material properties at T=Temp
+    CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads,Mat,Kappa_Mult)
+
+    !solving the RTE
+    CALL TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega_y,Delx,Dely,A,&
+      KapE,RT_Src,I_crn_old,c,Delt,Threads,RT_Residual,RT_ResLoc_x,RT_ResLoc_y,Res_Calc)
+    !Output intensities
+    IF (I_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,I_avg_ID,I_avg,t)
+      CALL NF_PUT_t_VAR(outID,I_edgV_ID,I_edgV,t)
+      CALL NF_PUT_t_VAR(outID,I_edgH_ID,I_edgH,t)
+    END IF
+
+    !calculating low-order quantities from the high-order intensities
+    CALL COLLAPSE_INTENSITIES(Threads,I_avg,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,Hg_avg_xx,Hg_avg_yy,&
+      Hg_avg_xy,Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_edgV,HO_Eg_edgH,HO_Eg_avg,HO_Fxg_edgV,HO_Fyg_edgH,&
+      HO_E_edgV,HO_E_edgH,HO_E_avg,HO_Fx_edgV,HO_Fy_edgH)
+    !Output total rad energy densities
+    IF (HO_E_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,HO_E_avg_ID,HO_E_avg,t)
+      CALL NF_PUT_t_VAR(outID,HO_E_edgV_ID,HO_E_edgV,t)
+      CALL NF_PUT_t_VAR(outID,HO_E_edgH_ID,HO_E_edgH,t)
+    END IF
+    !Output total rad fluxes
+    IF (HO_F_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,HO_Fx_edgV_ID,HO_Fx_edgV,t)
+      CALL NF_PUT_t_VAR(outID,HO_Fy_edgH_ID,HO_Fy_edgH,t)
+    END IF
+    !Output multigroup rad energy densities
+    IF (HO_Eg_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,HO_Eg_avg_ID,HO_Eg_avg,t)
+      CALL NF_PUT_t_VAR(outID,HO_Eg_edgV_ID,HO_Eg_edgV,t)
+      CALL NF_PUT_t_VAR(outID,HO_Eg_edgH_ID,HO_Eg_edgH,t)
+    END IF
+    !Output total rad fluxes
+    IF (HO_Fg_out .EQ. 1) THEN
+      CALL NF_PUT_t_VAR(outID,HO_Fxg_edgV_ID,HO_Fxg_edgV,t)
+      CALL NF_PUT_t_VAR(outID,HO_Fyg_edgH_ID,HO_Fyg_edgH,t)
+    END IF
+
+    !calculating QD factors from the low-order quantities calculated from RTE solution
+    CALL fg_Calc(fg_avg_xx,fg_avg_yy,fg_avg_xy,fg_edgV_xx,fg_edgV_xy,fg_edgH_yy,fg_edgH_xy,Hg_avg_xx,Hg_avg_yy,Hg_avg_xy,&
+      Hg_edgV_xx,Hg_edgV_xy,Hg_edgH_yy,Hg_edgH_xy,HO_Eg_avg,HO_Eg_edgV,HO_Eg_edgH,c,Threads)
+    !Output QD factors
+    CALL NF_PUT_t_VAR(outID,fg_avg_xx_ID,fg_avg_xx,t)
+    CALL NF_PUT_t_VAR(outID,fg_avg_yy_ID,fg_avg_yy,t)
+    CALL NF_PUT_t_VAR(outID,fg_avg_xy_ID,fg_avg_xy,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgV_xx_ID,fg_edgV_xx,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgV_xy_ID,fg_edgV_xy,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgH_yy_ID,fg_edgH_yy,t)
+    CALL NF_PUT_t_VAR(outID,fg_edgH_xy_ID,fg_edgH_xy,t)
+
+    !calculating new MGQD boundary factors with the current iterate's intensities
+    CALL Cg_Calc(Cg_L,Cg_B,Cg_R,Cg_T,I_edgV,I_edgH,Omega_x,Omega_y,quad_weight,Comp_Unit,BC_Type,Threads)
+    !Output boundary factors
+    CALL NF_PUT_t_VAR(outID,Cg_L_ID,Cg_L,t)
+    CALL NF_PUT_t_VAR(outID,Cg_B_ID,Cg_B,t)
+    CALL NF_PUT_t_VAR(outID,Cg_R_ID,Cg_R,t)
+    CALL NF_PUT_t_VAR(outID,Cg_T_ID,Cg_T,t)
+
+  END DO
+
+  !close files
+  CALL NF_CLOSE_FILE(TfileID)
+  CALL NF_CLOSE_FILE(outID)
+
+END SUBROUTINE Tgen_QDf
 
 END MODULE ALGORITHMS

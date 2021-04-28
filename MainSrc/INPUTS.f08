@@ -261,7 +261,8 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,run_type,restart_infile,use_grey,Res_Calc,Tes
       ELSE IF (trim(key) .EQ. 'run_type') THEN
         READ(args(1),*) run_type
         IF ( ALL(run_type .NE. &
-        (/'mlqd     ','tr_no_qd ','mg_pod   ','mg_dmd   ','gr_pod   ','p1       ','p13      ','diff     ','fld      '/)) ) THEN
+        (/'mlqd     ','tr_no_qd ','mg_pod   ','mg_dmd   ','gr_pod   ','p1       ','p13      ','diff     ','fld      ',&
+        'Tgen_qdf '/)) ) THEN
           STOP 'unrecognized run_type (source - subroutine INPUT_RUN_STATE :: module INPUTS)'
         END IF
 

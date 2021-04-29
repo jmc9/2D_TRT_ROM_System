@@ -34,7 +34,7 @@ program main
     REAL*8,ALLOCATABLE:: out_times(:), Kappa_Mult(:), dset_times(:), POD_err(:)
     REAL*8,ALLOCATABLE:: nu_g(:)
     INTEGER,ALLOCATABLE:: Mat(:,:)
-    INTEGER:: use_grey, Direc_Diff, N_dsets
+    INTEGER:: use_grey, Direc_Diff, N_dsets, qdfin_fxy_flag
     INTEGER:: maxit_RTE, maxit_MLOQD, maxit_GLOQD, conv_type, N_m, threads
     INTEGER:: N_x, N_y, N_t, N_g
     INTEGER:: BC_Type(4)
@@ -44,7 +44,7 @@ program main
     INTEGER:: old_parms_out, its_out, conv_out, kap_out, Src_out, Init_out
     CHARACTER(100):: run_type, restart_infile, outfile, Test, restart_outfile
     CHARACTER(100):: enrgy_strc, quadrature
-    CHARACTER(100):: POD_Type, DMD_Type, TfileName='fld.h5'
+    CHARACTER(100):: POD_Type, DMD_Type, Tgen_file, qdf_infile, qdfin_bctype
     CHARACTER(100),ALLOCATABLE:: DMD_dsets(:), POD_dsets(:)
     REAL*8,ALLOCATABLE:: Omega_x(:), Omega_y(:), quad_weight(:)
     REAL*8:: Theta
@@ -85,11 +85,11 @@ program main
       MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
       quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,POD_Type,POD_dsets,&
       Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
-      Start_Time,dset_times,Init_out)
+      Start_Time,dset_times,Init_out, Tgen_file, qdf_infile, qdfin_fxy_flag, qdfin_bctype)
 
     IF (run_type .EQ. 'Tgen_qdf') THEN
       CALL Tgen_QDf(Omega_x, Omega_y, quad_weight, Nu_g, Kappa_Mult, c, cV, h, pi, Kap0, erg, Comp_Unit,&
-        N_m, Mat, threads, BC_Type, Res_Calc, TfileName, outfile, enrgy_strc,&
+        N_m, Mat, threads, BC_Type, Res_Calc, Tgen_file, outfile, enrgy_strc,&
         I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, QDfg_out, quadrature, run_type)
 
     ELSE
@@ -111,7 +111,7 @@ program main
         Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
         E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dsets,POD_err,POD_Type,xlen,ylen,&
         Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile,N_dsets,DMD_dsets,DMD_Type,dset_times,&
-        N_dsets_ID,Init_out)
+        N_dsets_ID,Init_out,qdf_infile, qdfin_fxy_flag, qdfin_bctype)
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       CALL NF_CLOSE_FILE(outID)

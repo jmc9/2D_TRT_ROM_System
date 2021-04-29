@@ -29,7 +29,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   Boundaries_ID,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,QDfg_out,&
   E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,POD_dsets,POD_err,POD_Type,xlen,ylen,&
   Direc_Diff,Mat,Kappa_Mult,restart_outfile,restart_freq,restart_infile,N_dsets,DMD_dsets,DMD_Type,dset_times,&
-  N_dsets_ID,Init_out)
+  N_dsets_ID,Init_out,qdf_infile, qdfin_fxy_flag, qdfin_bctype)
 
   !---------------Solution Parameters----------------!
   REAL*8,INTENT(IN):: Omega_x(:), Omega_y(:), quad_weight(:), Nu_g(:), Kappa_Mult(:)
@@ -39,11 +39,11 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   REAL*8,INTENT(IN):: Comp_Unit, Conv_ho, Conv_lo, Conv_gr1, Conv_gr2
   REAL*8,INTENT(IN):: bcT_left, bcT_bottom, bcT_right, bcT_top, Tini
   REAL*8,INTENT(IN):: chi, line_src, E_Bound_Low, T_Bound_Low, POD_err(:)
-  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, Direc_Diff, Mat(:,:), N_dsets
+  INTEGER,INTENT(IN):: N_x, N_y, N_m, N_g, N_t, Direc_Diff, Mat(:,:), N_dsets, qdfin_fxy_flag
   INTEGER,INTENT(IN):: use_grey, Conv_Type, Threads, BC_Type(:), Maxit_RTE, Maxit_MLOQD, Maxit_GLOQD
   LOGICAL,INTENT(IN):: Res_Calc, Use_Line_Search, Use_Safety_Search, kapE_dT_flag
   CHARACTER(*),INTENT(IN):: run_type, POD_Type, POD_dsets(:), restart_outfile, restart_infile
-  CHARACTER(*),INTENT(IN):: DMD_Type, DMD_dsets(:)
+  CHARACTER(*),INTENT(IN):: DMD_Type, DMD_dsets(:), qdf_infile, qdfin_bctype
 
   !----------------Output File ID's------------------!
   INTEGER,INTENT(IN):: outID
@@ -147,6 +147,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
   INTEGER:: rrank_BCg_ID, rrank_fg_avg_xx_ID, rrank_fg_edgV_xx_ID, rrank_fg_avg_yy_ID, rrank_fg_edgH_yy_ID
   INTEGER:: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID
+  INTEGER:: qdf_infileID
 
   !--------------------------------------------------!
   REAL*8,ALLOCATABLE:: C_BCg(:), S_BCg(:), U_BCg(:), V_BCg(:)
@@ -346,6 +347,20 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     ! Quasidiffusion BC
     Fin_Weight = 1d0
     Ein_Weight = 1d0
+
+  ELSE IF ( run_type .EQ. 'qdf_in' ) THEN
+    RT_start_Its = 1
+    HO_Form = 4 !Direct input of some QD tensor
+    ! Use QD (p1) equations for low-order
+    Fdt_Weight = 1d0
+    !Choosing boundary condition
+    IF (qdfin_bctype .EQ. 'qd') THEN! Quasidiffusion BC
+      Fin_Weight = 1d0
+      Ein_Weight = 1d0
+    ELSE IF (qdfin_bctype .EQ. 'marshak') THEN! Marshak BC
+      Fin_Weight = 2d0
+      Ein_Weight = 0d0
+    END IF
 
   ELSE
     WRITE(*,*)
@@ -596,9 +611,6 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       !--------------------------------------------------!
       ELSE IF (HO_Form .EQ. 3) THEN
         DMD_Time = Time - Start_Time_d
-        ! dmd_time=1.5d-3
-        ! write(*,*) dmd_time
-
 
         CALL DMD_RECONSTRUCT_fg(fg_avg_xx, fg_avg_yy, fg_edgV_xx, fg_edgV_xy, fg_edgH_yy, fg_edgH_xy,&
           L_fg_avg_xx, B_fg_avg_xx, W_fg_avg_xx, C_fg_avg_xx, L_fg_edgV_xx, B_fg_edgV_xx, W_fg_edgV_xx, C_fg_edgV_xx,&
@@ -613,6 +625,35 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
 
           ! write(*,*) fg_avg_xx
           ! stop
+
+      !--------------------------------------------------!
+      !                   HO_FORM = 4                    !
+      !                                                  !
+      !    READING IN MULTIGROUP QD TENSOR GIVEN BY -    !
+      !    - SOME PREVIOUS PROBLEM SOLUTION              !
+      !--------------------------------------------------!
+      ELSE IF (HO_Form .EQ. 4) THEN
+
+        CALL NF_OPEN_FILE(qdf_infileID,qdf_infile,'old','r')
+
+        CALL NF_INQ_VAR_3D(qdf_infileID, 'fg_avg_xx', fg_avg_xx, (/1,1,1,t/), (/N_x, N_y, N_g, 1/))
+        CALL NF_INQ_VAR_3D(qdf_infileID, 'fg_avg_yy', fg_avg_yy, (/1,1,1,t/), (/N_x, N_y, N_g, 1/))
+        CALL NF_INQ_VAR_3D(qdf_infileID, 'fg_edgV_xx', fg_edgV_xx, (/1,1,1,t/), (/N_x+1, N_y, N_g, 1/))
+        CALL NF_INQ_VAR_3D(qdf_infileID, 'fg_edgH_yy', fg_edgH_yy, (/1,1,1,t/), (/N_x, N_y+1, N_g, 1/))
+
+        IF (qdfin_fxy_flag .EQ. 1) THEN
+          CALL NF_INQ_VAR_3D(qdf_infileID, 'fg_edgV_xy', fg_edgV_xy, (/1,1,1,t/), (/N_x+1, N_y, N_g, 1/))
+          CALL NF_INQ_VAR_3D(qdf_infileID, 'fg_edgH_xy', fg_edgH_xy, (/1,1,1,t/), (/N_x, N_y+1, N_g, 1/))
+        END IF
+
+        IF (qdfin_bctype .EQ. 'qd') THEN
+          CALL NF_INQ_VAR_2D(qdf_infileID, 'Cg_L', Cg_L, (/1,1,t/), (/N_y, N_g, 1/))
+          CALL NF_INQ_VAR_2D(qdf_infileID, 'Cg_B', Cg_B, (/1,1,t/), (/N_x, N_g, 1/))
+          CALL NF_INQ_VAR_2D(qdf_infileID, 'Cg_R', Cg_R, (/1,1,t/), (/N_y, N_g, 1/))
+          CALL NF_INQ_VAR_2D(qdf_infileID, 'Cg_T', Cg_T, (/1,1,t/), (/N_x, N_g, 1/))
+        END IF
+
+        CALL NF_CLOSE_FILE(qdf_infileID)
 
       END IF
 
@@ -805,6 +846,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE IF ((run_type .EQ. 'mg_dmd').AND.(DMD_Type .EQ. 'fg')) THEN
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
+    ELSE IF (run_type .EQ. 'qdf_in') THEN
+      write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'fld').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p13')) THEN
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE
@@ -911,7 +954,9 @@ SUBROUTINE Tgen_QDf(Omega_x, Omega_y, quad_weight, Nu_g, Kappa_Mult, c, cV, h, p
   !     INITIALIZATION                                                        !
   !                                                                           !
   !===========================================================================!
+  write(*,*) TfileName
   CALL NF_OPEN_FILE(TfileID,TfileName,'old','r')
+  write(*,*) TfileName
   CALL NF_INQ_DIM(TfileID,"N_x",N_x)
   CALL NF_INQ_DIM(TfileID,"N_y",N_y)
   CALL NF_INQ_DIM(TfileID,"N_g",N_g)
@@ -987,6 +1032,7 @@ SUBROUTINE Tgen_QDf(Omega_x, Omega_y, quad_weight, Nu_g, Kappa_Mult, c, cV, h, p
     CALL MATERIAL_UPDATE(RT_Src,MGQD_Src,KapE,KapB,KapR,Bg,Temp,Comp_Unit,Nu_g,Threads,Mat,Kappa_Mult)
 
     !solving the RTE
+    I_crn_old = I_crn
     CALL TRANSPORT_SCB(I_avg,I_edgV,I_edgH,I_crn,Ic_edgV,Ic_edgH,Omega_x,Omega_y,Delx,Dely,A,&
       KapE,RT_Src,I_crn_old,c,Delt,Threads,RT_Residual,RT_ResLoc_x,RT_ResLoc_y,Res_Calc)
     !Output intensities

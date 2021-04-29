@@ -14,7 +14,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   MGQD_F_out,QDfg_out,E_out,F_out,D_out,old_parms_out,its_out,conv_out,kap_out,Src_out,nu_g,N_g,Omega_x,Omega_y,&
   quad_weight,N_t,quadrature,BC_Type,Use_Line_Search,Use_Safety_Search,Res_Calc,POD_err,POD_Type,POD_dsets,&
   Direc_Diff,xpts_avg,xpts_edgV,ypts_avg,ypts_edgH,tpts,N_dsets,DMD_dsets,DMD_Type,restart_outfile,restart_freq,&
-  Start_Time,dset_times,Init_out)
+  Start_Time,dset_times,Init_out, Tgen_file, qdf_infile, qdfin_fxy_flag, qdfin_bctype)
 
   IMPLICIT NONE
 
@@ -46,6 +46,9 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   REAL*8,INTENT(OUT):: xlen, ylen, tlen, delt, bcT_left, bcT_right, bcT_upper, bcT_lower, Tini
   REAL*8,ALLOCATABLE,INTENT(OUT):: Delx(:), Dely(:), xpts_avg(:), xpts_edgV(:), ypts_avg(:), ypts_edgH(:), tpts(:)
   INTEGER,INTENT(OUT):: N_x, N_y, N_t, BC_Type(:)
+
+  CHARACTER(100),INTENT(OUT):: Tgen_file, qdf_infile, qdfin_bctype
+  INTEGER,INTENT(OUT):: qdfin_fxy_flag
 
   CHARACTER(100),INTENT(OUT):: outfile, restart_outfile
   INTEGER,INTENT(OUT):: out_freq, I_out, HO_Eg_out, HO_Fg_out, HO_E_out, HO_F_out, restart_freq
@@ -100,7 +103,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
       maxit_RTE = 1
     END IF
 
-  ELSE IF ((run_type .EQ. 'diff').OR.(run_type .EQ. 'fld').OR.(run_type .EQ. 'p1').OR.(run_type .EQ. 'p13')) THEN
+  ELSE IF ( ANY(run_type .EQ.(/ 'diff  ', 'FLD   ', 'P1    ', 'P13   ','qdf_in' /)) ) THEN
     maxit_RTE = 1
   END IF
 
@@ -152,6 +155,8 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
   CALL INPUT_ENERGY(inpunit,enrgy_strc,N_g,nu_g)
 
   CALL INPUT_QUAD(quadrature,N_m,Omega_x,Omega_y,quad_weight)
+
+  CALL INPUT_MISC_OPTS(inpunit, Tgen_file, qdf_infile, qdfin_fxy_flag, qdfin_bctype)
 
   CLOSE ( inpunit, STATUS='KEEP')
 
@@ -262,7 +267,7 @@ SUBROUTINE INPUT_RUN_STATE(inpunit,run_type,restart_infile,use_grey,Res_Calc,Tes
         READ(args(1),*) run_type
         IF ( ALL(run_type .NE. &
         (/'mlqd     ','tr_no_qd ','mg_pod   ','mg_dmd   ','gr_pod   ','p1       ','p13      ','diff     ','fld      ',&
-        'Tgen_qdf '/)) ) THEN
+        'Tgen_qdf ','qdf_in   '/)) ) THEN
           STOP 'unrecognized run_type (source - subroutine INPUT_RUN_STATE :: module INPUTS)'
         END IF
 
@@ -1423,6 +1428,87 @@ SUBROUTINE INPUT_OUTPUT_OPTS(inpunit,outfile,out_freq,I_out,HO_Eg_out,HO_Fg_out,
   END DO
 
 END SUBROUTINE INPUT_OUTPUT_OPTS
+
+!==================================================================================================================================!
+!
+!==================================================================================================================================!
+
+SUBROUTINE INPUT_MISC_OPTS(inpunit, Tgen_file, qdf_infile, qdfin_fxy_flag, qdfin_bctype)
+
+  IMPLICIT NONE
+
+  !INPUT VARIABLES
+  INTEGER,INTENT(IN):: inpunit
+
+  !OUTPUT VARIABLES
+  CHARACTER(100),INTENT(OUT):: Tgen_file, qdf_infile, qdfin_bctype
+  INTEGER,INTENT(OUT):: qdfin_fxy_flag
+
+  !LOCAL VARIABLES
+  CHARACTER(1000):: line
+  CHARACTER(100):: key
+  CHARACTER(100):: block
+  CHARACTER(100),DIMENSION(3):: args
+  INTEGER:: io, io2, block_found
+
+  !DEFAULT VALUES
+  Tgen_file = 'fld.h5'
+  qdf_infile = 'Tgen_qdf.h5'
+  qdfin_bctype = 'qd'
+  qdfin_fxy_flag = 1
+
+  block = '[MISC_OPTS]'
+  CALL LOCATE_BLOCK(inpunit,block,block_found)
+
+  IF (block_found .EQ. 0) STOP '[MISC_OPTS] block was not located in input file'
+
+  DO
+    READ(inpunit,'(A)',IOSTAT=io) line
+
+    IF (io .GT. 0) THEN !io > 0 means bad read
+      STOP 'Something went wrong reading general.inp'
+
+    ELSE IF (io .LT. 0) THEN !io < 0 signals end of file
+      EXIT
+
+    ELSE !checking which key is specified and putting argument in correct variable
+      READ(line,*,IOSTAT=io2) key, args !reading in key/argument pairs
+
+      IF (key(1:1) .EQ. '[') THEN
+        EXIT
+
+      ELSE IF (trim(key) .EQ. 'Tgen_file') THEN
+        READ(args(1),*) Tgen_file
+
+      ELSE IF (trim(key) .EQ. 'qdf_infile') THEN
+        READ(args(1),*) qdf_infile
+
+      ELSE IF (trim(key) .EQ. 'fxy_flag') THEN
+        READ(args(1),*) qdfin_fxy_flag
+        IF (ALL(qdfin_fxy_flag .NE. (/0,1/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'fxy_flag must be 0 or 1'
+          WRITE(*,'(A)') 'Setting fxy_flag to 1'
+          qdfin_fxy_flag = 1
+        END IF
+
+      ELSE IF (trim(key) .EQ. 'bc_flag') THEN
+        READ(args(1),*) qdfin_bctype
+        IF (ALL(qdfin_bctype .NE. (/'qd     ','marshak'/))) THEN
+          WRITE(*,*)
+          WRITE(*,'(A)') '*** WARNING ***'
+          WRITE(*,'(A)') 'qdfin_bctype must be "qd" or "marshak"'
+          WRITE(*,'(A)') 'Setting qdfin_bctype to "qd"'
+          qdfin_bctype = 'qd'
+        END IF
+
+      END IF
+    END IF
+
+  END DO
+
+END SUBROUTINE INPUT_MISC_OPTS
 
 !==================================================================================================================================!
 !

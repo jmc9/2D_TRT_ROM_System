@@ -5,7 +5,7 @@ MODULE NCDF_IO
   IMPLICIT NONE
 
 INTERFACE NF_PUT_t_VAR
-  MODULE PROCEDURE NF_PUT_t_VAR1D, NF_PUT_t_VAR2D, NF_PUT_t_VAR3D, NF_PUT_t_VAR4D
+  MODULE PROCEDURE NF_PUT_t_VAR0D, NF_PUT_t_VAR1D, NF_PUT_t_VAR2D, NF_PUT_t_VAR3D, NF_PUT_t_VAR4D
 END INTERFACE
 
 CONTAINS
@@ -294,6 +294,20 @@ END SUBROUTINE NF_DEF_UNIT
 !==================================================================================================================================!
 !
 !==================================================================================================================================!
+SUBROUTINE NF_PUT_t_VAR0D(ncID,varID,Value,t)
+  REAL*8,INTENT(IN):: Value
+  INTEGER,INTENT(IN):: ncID, varID, t
+  INTEGER:: Status
+  CHARACTER(44):: Location = 'MODULE: NCDF_IO / SUBROUTINE: NF_PUT_t_VAR0D'
+
+  !calling NetCDF function
+  Status = nf90_put_var(ncID,varID,(/Value/),(/t/),(/1/))
+
+  !Checking for any errors that may have occured
+  CALL HANDLE_ERR(Status,Location)
+
+END SUBROUTINE NF_PUT_t_VAR0D
+
 SUBROUTINE NF_PUT_t_VAR1D(ncID,varID,Values,t)
   REAL*8,INTENT(IN):: Values(:)
   INTEGER,INTENT(IN):: ncID, varID, t

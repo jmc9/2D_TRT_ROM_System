@@ -13,6 +13,7 @@ MODULE ALGORITHMS
   USE POD_ROUTINES
   USE DMD_ROUTINES
   USE GRID_FUNCTIONS
+  USE WAVEPROP_TOOLS
 
   IMPLICIT NONE
 
@@ -148,6 +149,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER:: rrank_BCg_ID, rrank_fg_avg_xx_ID, rrank_fg_edgV_xx_ID, rrank_fg_avg_yy_ID, rrank_fg_edgH_yy_ID
   INTEGER:: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID
   INTEGER:: qdf_infileID
+  INTEGER:: Temp_XWvSpeed_ID, E_XWvSpeed_ID
 
   !--------------------------------------------------!
   REAL*8,ALLOCATABLE:: C_BCg(:), S_BCg(:), U_BCg(:), V_BCg(:)
@@ -188,6 +190,8 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
   INTEGER,ALLOCATABLE:: GMap_xyAvg(:), GMap_xyEdgV(:), GMap_xyEdgH(:), GMap_xyBnds(:)
   INTEGER,ALLOCATABLE:: VMap_xyAvg(:), VMap_xyEdgV(:), VMap_xyEdgH(:), VMap_xyBnds(:)
   INTEGER,ALLOCATABLE:: TMap(:)
+
+  REAL*8:: E_xWvSpd, T_xWvSpd
 
   INTEGER:: resf_unit = 307
 
@@ -259,7 +263,7 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
     fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,&
     Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,&
     dr_MB_ID,dr_MR_ID,dr_MT_ID,rrank_BCg_ID,rrank_fg_avg_xx_ID,rrank_fg_edgV_xx_ID,rrank_fg_avg_yy_ID,rrank_fg_edgH_yy_ID,&
-    rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID,fg_dmd_out,N_dsets_ID,DMDgsum_ID,PODgsum_ID,PODerr_ID)
+    rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID,fg_dmd_out,N_dsets_ID,DMDgsum_ID,PODgsum_ID,PODerr_ID,Temp_XWvSpeed_ID,E_XWvSpeed_ID)
 
   IF (Init_out .EQ. 1) THEN
     CALL TIMESTEP_OUTS(outID,1,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_E_out,HO_F_out,Eg_out,Fg_out,MGQD_E_out,MGQD_F_out,&
@@ -852,6 +856,12 @@ SUBROUTINE TRT_MLQD_ALGORITHM(Omega_x,Omega_y,quad_weight,Nu_g,Delx,Dely,Delt,tl
       write(*,*) Time, MGQD_Its, MGQD_Tnorm, MGQD_Enorm
     ELSE
     END IF
+
+    !calculating, writing speed of radiation & temperature wave fronts
+    E_xWvSpd = XWAVE_SPEED_edg(E_avg, E_edgV, E_avg_old, Dely, Delx, Delt, ylen, N_y, N_x)
+    CALL NF_PUT_t_VAR(outID, E_XWvSpeed_ID, E_xWvSpd, t)
+    T_xWvSpd = XWAVE_SPEED_cnt(Temp, Temp_old, Dely, Delx, Delt, ylen, N_y, N_x)
+    CALL NF_PUT_t_VAR(outID, Temp_XWvSpeed_ID, T_xWvSpd, t)
 
     !writing the count of outer/RTE iterations to output file
     IF (its_out .EQ. 1) THEN !checking if iteration counts are to be output

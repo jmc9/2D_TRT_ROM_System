@@ -851,7 +851,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   fg_edgH_xy_ID,DC_xx_ID,DL_xx_ID,DR_xx_ID,DC_yy_ID,DB_yy_ID,DT_yy_ID,DL_xy_ID,DB_xy_ID,DR_xy_ID,DT_xy_ID,G_old_ID,&
   Pold_L_ID,Pold_B_ID,Pold_R_ID,Pold_T_ID,Gold_hat_ID,Rhat_old_ID,PL_ID,PB_ID,PR_ID,PT_ID,dr_T_ID,dr_B_ID,dr_ML_ID,&
   dr_MB_ID,dr_MR_ID,dr_MT_ID,rrank_BCg_ID,rrank_fg_avg_xx_ID,rrank_fg_edgV_xx_ID,rrank_fg_avg_yy_ID,rrank_fg_edgH_yy_ID,&
-  rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID,fg_dmd_out,N_dsets_ID,DMDgsum_ID,PODgsum_ID,PODerr_ID)
+  rrank_fg_edgV_xy_ID,rrank_fg_edgH_xy_ID,fg_dmd_out,N_dsets_ID,DMDgsum_ID,PODgsum_ID,PODerr_ID,Temp_XWvSpeed_ID,E_XWvSpeed_ID)
 
   INTEGER,INTENT(IN):: outID
   LOGICAL,INTENT(IN):: Res_Calc
@@ -882,6 +882,7 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   INTEGER,INTENT(OUT):: dr_T_ID, dr_B_ID, dr_ML_ID, dr_MB_ID, dr_MR_ID, dr_MT_ID
   INTEGER,INTENT(OUT):: rrank_BCg_ID, rrank_fg_avg_xx_ID, rrank_fg_edgV_xx_ID, rrank_fg_avg_yy_ID, rrank_fg_edgH_yy_ID
   INTEGER,INTENT(OUT):: rrank_fg_edgV_xy_ID, rrank_fg_edgH_xy_ID, DMDgsum_ID, PODgsum_ID, PODerr_ID
+  INTEGER,INTENT(OUT):: Temp_XWvSpeed_ID, E_XWvSpeed_ID
 
   INTEGER:: Status
   CHARACTER(50):: Location = 'MODULE: OUTPUTS / SUBROUTINE: OUTFILE_VARDEFS'
@@ -965,6 +966,14 @@ SUBROUTINE OUTFILE_VARDEFS(outID,Res_Calc,out_freq,I_out,HO_Eg_out,HO_Fg_out,HO_
   CALL NF_DEF_VAR(Fg_in_R_ID,outID,(/N_y_ID,N_g_ID,N_t_ID/),'Fg_in_R','Double')
   CALL NF_DEF_VAR(Fg_in_T_ID,outID,(/N_x_ID,N_g_ID,N_t_ID/),'Fg_in_T','Double')
 
+  !===========================================================================!
+  !--------------------------------------------------!
+  !                 Wave Speeds                      !
+  !--------------------------------------------------!
+  CALL NF_DEF_VAR(Temp_XWvSpeed_ID,outID,(/N_t_ID/),'Temp_xWave_Speed','Double')
+  CALL NF_DEF_VAR(E_XWvSpeed_ID,outID,(/N_t_ID/),'E_xWave_Speed','Double')
+
+  !===========================================================================!
   !--------------------------------------------------!
   !                 Temperature                      !
   !--------------------------------------------------!

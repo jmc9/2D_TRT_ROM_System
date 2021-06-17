@@ -103,7 +103,7 @@ SUBROUTINE INPUT(run_type,restart_infile,use_grey,Test,Mat,Kappa_Mult,chi,conv_h
       maxit_RTE = 1
     END IF
 
-  ELSE IF ( ANY(run_type .EQ.(/ 'diff  ', 'FLD   ', 'P1    ', 'P13   ','qdf_in' /)) ) THEN
+  ELSE IF ( ANY(run_type .EQ.(/ 'diff  ', 'fld   ', 'p1    ', 'p13   ','qdf_in' /)) ) THEN
     maxit_RTE = 1
   END IF
 

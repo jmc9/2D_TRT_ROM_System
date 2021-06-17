@@ -213,7 +213,6 @@ def Plot_Svals(POD_Data, drop):
     else:
         xp = np.arange(POD_Data.dat.t_rank)+1
         pdata = POD_Data.dat.S
-
         pltr.lineplot('Svals', xp, pdata, drop, yscale='log', line='k.', marker='.')
 
 #==================================================================================================================================#

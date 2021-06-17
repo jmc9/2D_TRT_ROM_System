@@ -75,7 +75,7 @@ def lineplot_grouped(name,xp,N_g,arr: np.ndarray,drop,legend='',yscale='linear',
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',title='',line='-'):
+def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',ylabel='',marker='',legloc='upper right',title='',line='-',leganchor=(1,1)):
     if hasattr(arr[0],'__len__'):
         sets = len(arr)
 
@@ -116,7 +116,7 @@ def lineplot(name,tp,arr: np.ndarray,drop,legend='',yscale='linear',xlabel='',yl
 
     if isinstance(legend,(list,np.ndarray)):
         ax.legend()
-        plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
+        plt.legend(loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small', bbox_to_anchor=leganchor)
         # plt.legend(bbox_to_anchor=(1.2, 1), loc=legloc, borderaxespad=0., edgecolor='black', framealpha=1., fancybox=False, handlelength=1., fontsize='small')
 
     if (title != ''):
@@ -149,7 +149,6 @@ def scatterplot(arr: np.ndarray, name, drop, xlabel='', ylabel='', marker='.', c
     plt.rc('font', family='serif', size=10)
     plt.rc('xtick', labelsize='medium')
     plt.rc('ytick', labelsize='medium')
-
     fig, ax = plt.subplots(figsize=(7,5)) #creating the figure
 
     if sets == 0:

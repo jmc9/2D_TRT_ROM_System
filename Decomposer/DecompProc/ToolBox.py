@@ -34,9 +34,9 @@ def FileCheck(file):
 # INPUTS:
 #   dir - path to target directory
 #==================================================================================================================================#
-def dirset(dir):
+def dirset(dir, replace=True):
     if os.path.isdir(dir): #if directory exists, clear all files from inside
-        if len(os.listdir(dir)) > 0: os.system('rm -r '+dir+'/*')
+        if ((len(os.listdir(dir)) > 0)and(replace)): os.system('rm -r '+dir+'/*')
     else: #if directory does not exist, create it
         os.mkdir(dir)
 

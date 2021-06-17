@@ -561,9 +561,9 @@ def optimized_DMD(DMD_Data, Prob_Data, opt=0):
 
     else:
         K = np.transpose(Prob_Data.dat)
-        (clen, Klen) = np.shape(X)
-        ratio = N_t/nm
-        pts = np.arange(0,N_t,ratio).round().astype(int)
+        (clen, Klen) = np.shape(K)
+        # ratio = Klen/nm
+        # pts = np.arange(0,N_t,ratio).round().astype(int)
 
         L_cplx = np.array(DMD_Data.dat.eval)
         L = C2R(L_cplx)
@@ -574,8 +574,8 @@ def optimized_DMD(DMD_Data, Prob_Data, opt=0):
 
         if (opt == 0):
             #Local optimization with initial guess of DMD modes
-            res = minimize(Gamma_func, L, (KK))
-            res = minimize(Gamma_func, L, (KK, Klen), 'BFGS', '3-point', options={'disp': True})
+            # res = minimize(Gamma_func, L, (KK, Klen), 'BFGS', '2-point', options={'disp': True})
+            res = minimize(Gamma_func, L, (KK, Klen), 'Nelder-Mead', options={'disp': True, 'maxiter': 1000}, tol=1e-12)
         else:
             #Global optimization
             lowb = [-1.]*len(L)

@@ -140,24 +140,24 @@ def Error_Calc(recon, Prob_Data):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def errplot(plot_dir, xp, err2_abs, err2_rel, err_inf_abs, err_inf_rel, xlabel=''):
+def errplot(plot_dir, xp, err2_abs, err2_rel, err_inf_abs, err_inf_rel, xlabel='', replace=True):
     drop = plot_dir+'/err_plots'
-    tb.dirset(drop)
+    tb.dirset(drop, replace=replace)
 
     plotdat = np.transpose(err2_abs)
-    drop_ = drop+'/abs_2'; tb.dirset(drop_)
+    drop_ = drop+'/abs_2'; tb.dirset(drop_, replace=replace)
     errplot_single(drop_, plotdat, xp, 'Err_2_abs', xlabel)
 
     plotdat = np.transpose(err2_rel)
-    drop_ = drop+'/rel_2'; tb.dirset(drop_)
+    drop_ = drop+'/rel_2'; tb.dirset(drop_, replace=replace)
     errplot_single(drop_, plotdat, xp, 'Err_2_rel', xlabel)
 
     plotdat = np.transpose(err_inf_abs)
-    drop_ = drop+'/abs_inf'; tb.dirset(drop_)
+    drop_ = drop+'/abs_inf'; tb.dirset(drop_, replace=replace)
     errplot_single(drop_, plotdat, xp, 'Err_inf_abs', xlabel)
 
     plotdat = np.transpose(err_inf_rel)
-    drop_ = drop+'/rel_inf'; tb.dirset(drop_)
+    drop_ = drop+'/rel_inf'; tb.dirset(drop_, replace=replace)
     errplot_single(drop_, plotdat, xp, 'Err_inf_rel', xlabel)
 
 #==================================================================================================================================#
@@ -172,9 +172,9 @@ def errplot_single(drop, err, xp, name, xlabel=''):
 
     elif ndims == 2:
         legend = ['g{}'.format(g+1) for g in range(dims[0])]
-        pltr.lineplot('{}_allg'.format(name), xp, err, drop, yscale='log', xlabel=xlabel, legend=legend)
+        pltr.lineplot('{}_allg'.format(name), xp, err, drop, yscale='log', xlabel=xlabel, legend=legend, leganchor=(1.1,1))
         for g in range(dims[0]):
-            pltr.lineplot('{}_g{}'.format(name,g+1), xp, err[g], drop, yscale='log', xlabel=xlabel)
+            pltr.lineplot('{}_g{}'.format(name,g+1), xp, err[g], drop, yscale='log', xlabel=xlabel, leganchor=(1.1,1))
 
     else:
         print('Process_Routines/errplot_single cannot handle ndims not in [1,2] right now')
@@ -398,6 +398,19 @@ def Output(recon, err, Prob_Data, n_trunc, proc_dir):
                             err_inf_rel[j][k] = err_inf_abs[j][k] / tb.norm(pdat_[j][k],0)
 
                     errplot(dat_drop, Prob_Data[i].grids[0].crds, err2_abs, err2_rel, err_inf_abs, err_inf_rel)
+
+                    err2_abs_full = np.zeros((dims[0].len))
+                    err2_rel_full = np.zeros((dims[0].len))
+                    err_inf_abs_full = np.zeros((dims[0].len))
+                    err_inf_rel_full = np.zeros((dims[0].len))
+                    for j in range(dims[0].len):
+                        err2_abs_full[j] = tb.norm(np.concatenate(err_[j], axis=None),2)
+                        err_inf_abs_full[j] = tb.norm(np.concatenate(err_[j], axis=None),0)
+
+                        err2_rel_full[j] = err2_abs_full[j] / tb.norm(np.concatenate(pdat_[j], axis=None),2)
+                        err_inf_rel_full[j] = err_inf_abs_full[j] / tb.norm(np.concatenate(pdat_[j], axis=None),0)
+
+                    errplot(dat_drop, Prob_Data[i].grids[0].crds, err2_abs_full, err2_rel_full, err_inf_abs_full, err_inf_rel_full, replace=False)
 
                 #----Calculate 2-norm of err (with 2 grids)----
                 # 2 grids + 4 dimensions means data is structured like f[time][group_1][group_2][space(x)]

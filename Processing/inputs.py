@@ -35,7 +35,20 @@ def input(infile):
     switch_cs = 0
     switch_sol = 1
     switch_errplots = 0
+    switch_wave = 1
     plt_consistency = 0
+    proc_qdf_mg = 1
+    proc_flux_mg = 1
+    proc_edens_mg = 1
+    norm_plt_style = 'default'
+
+    yint_plt_times = []
+
+    breakout_type = 'abs'
+    Fx_breakout = [40., 80.]
+    Ev_breakout = [.15, .3]
+    Ec_breakout = [.3, .6]
+    T_breakout  = [175., 350.]
 
     for line in file:
         if (line.strip()):
@@ -85,12 +98,31 @@ def input(infile):
                 fg_avg_xx_bnd.append(float(input[2]))
                 fg_avg_xx_bnd.append(float(input[3]))
 
+            elif input[0] == 'yint_plt_times':
+                yint_plt_times = [float(inp) for inp in input[1:]]
+
+            elif input[0] == 'Fx_breakout':
+                Fx_breakout = [float(inp) for inp in input[1:]]
+            elif input[0] == 'Ev_breakout':
+                Ev_breakout = [float(inp) for inp in input[1:]]
+            elif input[0] == 'Ec_breakout':
+                Ec_breakout = [float(inp) for inp in input[1:]]
+            elif input[0] == 'T_breakout':
+                T_breakout = [float(inp) for inp in input[1:]]
+
             elif input[0] == 'switch_ranks': switch_ranks = int(input[1])
             elif input[0] == 'switch_norms': switch_norms = int(input[1])
+            elif input[0] == 'switch_wave':  switch_wave  = int(input[1])
             elif input[0] == 'switch_cs':    switch_cs    = int(input[1])
             elif input[0] == 'switch_sol':   switch_sol   = int(input[1])
             elif input[0] == 'switch_errplots': switch_errplots = int(input[1])
+            elif input[0] == 'breakout_type': breakout_type = input[1]
             elif input[0] == 'plt_consistency': plt_consistency = int(input[1])
+
+            elif input[0] == 'proc_qdf_mg': proc_qdf_mg = int(input[1])
+            elif input[0] == 'proc_flux_mg': proc_flux_mg = int(input[1])
+            elif input[0] == 'proc_edens_mg': proc_edens_mg = int(input[1])
+            elif input[0] == 'norm_plt_style': norm_plt_style=input[1]
 
     if dsets:
         if dsets == ['none']: dsets = [rset]
@@ -158,7 +190,9 @@ def input(infile):
     file.close()
 
     return (dsets,dsnames,trend_names,fignames,plt_times,plt_tfreq,ntrend_tp,Tbound,Ebound,fg_avg_xx_bnd,
-    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots,plt_consistency)
+    cs_times,csx_times,csy_times,csx,csy,switch_ranks,switch_norms,switch_cs,switch_sol,switch_errplots,plt_consistency,
+    switch_wave,yint_plt_times,breakout_type,Fx_breakout,Ev_breakout,Ec_breakout,T_breakout,proc_qdf_mg,proc_flux_mg,
+    proc_edens_mg,norm_plt_style)
 
 #==================================================================================================================================#
 #

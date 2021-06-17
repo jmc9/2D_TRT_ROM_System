@@ -100,7 +100,7 @@ def gdata_compare(data,Ag):
 #==================================================================================================================================#
 #
 #==================================================================================================================================#
-def get_data(dset,inp_flags,t):
+def get_data(dset,inp_flags,t,proc_qdf_mg,proc_flux_mg,proc_edens_mg):
     Temp = dset['Temperature'][t][:]; Temp = dat_flatten(Temp)
 
     E_avg=[]; E_edgV=[]; E_edgH=[]
@@ -137,31 +137,31 @@ def get_data(dset,inp_flags,t):
         Fy_edgH_HO = dset['Fy_edgH_HO'][t][:]; Fy_edgH_HO = dat_flatten(Fy_edgH_HO)
 
     Eg_avg=[]; Eg_edgV=[]; Eg_edgH=[]
-    if inp_flags[8] == 1:
+    if ((inp_flags[8] == 1) and (proc_edens_mg==1)):
         Eg_avg = dset['Eg_avg_MGQD'][t][:]; Eg_avg = gdat_flatten(Eg_avg)
         Eg_edgV = dset['Eg_edgV_MGQD'][t][:]; Eg_edgV = gdat_flatten(Eg_edgV)
         Eg_edgH = dset['Eg_edgH_MGQD'][t][:]; Eg_edgH = gdat_flatten(Eg_edgH)
 
     Eg_avg_HO=[]; Eg_edgV_HO=[]; Eg_edgH_HO=[]
-    if inp_flags[4] == 1:
+    if ((inp_flags[4] == 1) and (proc_edens_mg==1)):
         Eg_avg_HO = dset['Eg_avg_HO'][t][:]; Eg_avg_HO = gdat_flatten(Eg_avg_HO)
         Eg_edgV_HO = dset['Eg_edgV_HO'][t][:]; Eg_edgV_HO = gdat_flatten(Eg_edgV_HO)
         Eg_edgH_HO = dset['Eg_edgH_HO'][t][:]; Eg_edgH_HO = gdat_flatten(Eg_edgH_HO)
 
     Fxg_edgV=[]; Fyg_edgH=[]
-    if inp_flags[10] == 1:
+    if ((inp_flags[10] == 1) and (proc_flux_mg==1)):
         Fxg_edgV = dset['Fxg_edgV_MGQD'][t][:]; Fxg_edgV = gdat_flatten(Fxg_edgV)
         Fyg_edgH = dset['Fyg_edgH_MGQD'][t][:]; Fyg_edgH = gdat_flatten(Fyg_edgH)
 
     Fxg_edgV_HO=[]; Fyg_edgH_HO=[]
-    if inp_flags[6] == 1:
+    if ((inp_flags[6] == 1) and (proc_flux_mg==1)):
         Fxg_edgV_HO = dset['Fxg_edgV_HO'][t][:]; Fxg_edgV_HO = gdat_flatten(Fxg_edgV_HO)
         Fyg_edgH_HO = dset['Fyg_edgH_HO'][t][:]; Fyg_edgH_HO = gdat_flatten(Fyg_edgH_HO)
 
     fg_avg_xx=[]; fg_avg_xy=[]; fg_avg_yy=[]
     fg_edgV_xx=[]; fg_edgV_xy=[]
     fg_edgH_yy=[]; fg_edgH_xy=[]
-    if inp_flags[2] == 1:
+    if ((inp_flags[2] == 1) and (proc_qdf_mg==1)):
         fg_avg_xx = dset['fg_avg_xx'][t][:]; fg_avg_xx = gdat_flatten(fg_avg_xx)
         fg_avg_xy = dset['fg_avg_xy'][t][:]; fg_avg_xy = gdat_flatten(fg_avg_xy)
         fg_avg_yy = dset['fg_avg_yy'][t][:]; fg_avg_yy = gdat_flatten(fg_avg_yy)
@@ -172,10 +172,13 @@ def get_data(dset,inp_flags,t):
         fg_edgH_yy = dset['fg_edgH_yy'][t][:]; fg_edgH_yy = gdat_flatten(fg_edgH_yy)
         fg_edgH_xy = dset['fg_edgH_xy'][t][:]; fg_edgH_xy = gdat_flatten(fg_edgH_xy)
 
+    T_xWvSpd = dset['Temp_xWave_Speed'][t]
+    E_xWvSpd = dset['E_xWave_Speed'][t]
+
     return (Temp,E_avg,E_edgV,E_edgH,E_avg_MGQD,E_edgV_MGQD,E_edgH_MGQD,E_avg_HO,E_edgV_HO,E_edgH_HO,Fx_edgV,\
     Fy_edgH,Fx_edgV_MGQD,Fy_edgH_MGQD,Fx_edgV_HO,Fy_edgH_HO,Eg_avg,Eg_edgV,Eg_edgH,Eg_avg_HO,Eg_edgV_HO,\
     Eg_edgH_HO,Fxg_edgV,Fyg_edgH,Fxg_edgV_HO,Fyg_edgH_HO,fg_avg_xx,fg_avg_xy,fg_avg_yy,fg_edgV_xx,fg_edgV_xy,\
-    fg_edgH_yy,fg_edgH_xy)
+    fg_edgH_yy,fg_edgH_xy,T_xWvSpd,E_xWvSpd)
 
 def gdat_flatten(gdat):
     gdat = [x for G_list in gdat for Y_list in G_list for x in Y_list]
